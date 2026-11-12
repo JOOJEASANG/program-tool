@@ -285,7 +285,7 @@
 
   function blockToggle(event){
     const head=event.target?.closest?.('.app>aside:first-of-type .sec-head[data-sec]');
-    if(!head)return;
+    if(!head||event.target?.closest?.('button,input,select,textarea,a,[contenteditable="true"]'))return;
     const key=sectionKey(head.closest('.sec'));
     if(!key||key==='output')return;
     if(event.type==='keydown'&&!['Enter',' '].includes(event.key))return;
@@ -301,7 +301,7 @@
   function boot(){if(typeof MutationObserver==='function')observer=new MutationObserver(queue);document.addEventListener('click',blockToggle,true);document.addEventListener('keydown',blockToggle,true);
     document.addEventListener('keydown',event=>{
       const header=event.target?.closest?.('#pageSidebar #thumbSection>.sec-head');
-      if(header&&['Enter',' '].includes(event.key)){
+      if(header&&!event.target?.closest?.('button,input,select,textarea,a,[contenteditable="true"]')&&['Enter',' '].includes(event.key)){
         event.preventDefault();
         header.click();
       }
