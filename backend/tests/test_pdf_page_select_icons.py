@@ -46,13 +46,13 @@ def test_file_and_page_action_icons_have_labels_and_preserve_existing_actions():
         "'#pageUndoBtnV3'",
     ):
         assert marker in src
-    assert 'src="../js/pdf-editor/page-list-icons.js?v=20261112-1"' in EDITOR.read_text(encoding="utf-8")
+    assert 'src="../js/pdf-editor/page-list-icons.js?v=20261112-2"' in EDITOR.read_text(encoding="utf-8")
 
 
 def test_versions_and_manual_and_browser_regression():
-    assert "page-selection-preview-focus.js?v=20261112-1" in ROUTE.read_text(encoding="utf-8")
-    assert "page-count-hint.js?v=20261112-1" in CORE.read_text(encoding="utf-8")
-    assert "page-count-hint.js?v=20261112-1" in LOADER.read_text(encoding="utf-8")
+    assert "page-selection-preview-focus.js?v=20261112-2" in ROUTE.read_text(encoding="utf-8")
+    assert "page-count-hint.js?v=20261112-2" in CORE.read_text(encoding="utf-8")
+    assert "page-count-hint.js?v=20261112-2" in LOADER.read_text(encoding="utf-8")
     assert "updated: '2026-11-12'" in MANUAL.read_text(encoding="utf-8")
     assert "같은 선택 상태" in MANUAL.read_text(encoding="utf-8")
     assert "pdf-page-select-icons-smoke.html" in RUNNER.read_text(encoding="utf-8")
