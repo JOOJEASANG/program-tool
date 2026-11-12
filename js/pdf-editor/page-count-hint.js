@@ -115,6 +115,10 @@
     style.id = 'pdfPageProductivityStylesV4';
     style.textContent = `
       .page-productivity-panel{margin-bottom:8px;padding:8px;border:1px solid #dbe3ef;border-radius:10px;background:#f8fafc}
+      /* Main page toolbar already owns the one select-all/clear toggle.
+         Hide the legacy duplicate buttons and select-mode row only in this
+         unified PDF layout; other editor profiles keep their own controls. */
+      .page-productivity-panel.single-selection-ui .page-productivity-top{display:none!important}
       .page-productivity-top{display:flex;align-items:center;gap:5px;min-width:0}
       .page-productivity-top button,.page-productivity-actions button{border:1px solid #cbd5e1;border-radius:6px;background:#fff;color:#334155;font-family:inherit;font-size:9px;font-weight:800;cursor:pointer;padding:5px 6px;white-space:nowrap}
       .page-productivity-top button:hover,.page-productivity-actions button:hover{background:#eff6ff;border-color:#93c5fd;color:#1d4ed8}
@@ -631,6 +635,7 @@
   function updatePanelState() {
     const panel = ensurePanel();
     if (!panel) return;
+    panel.classList.toggle('single-selection-ui',unifiedSelection());
     // Actions are available as soon as a single page is selected, even if
     // "다중 선택" was not manually enabled first.
     panel.classList.toggle('selecting', selectionMode || (unifiedSelection() && selectedIds.size > 0));
