@@ -55,6 +55,6 @@ def test_frontend_booklet_is_classic_two_page_mode_only_and_owned_by_pdf_runtime
     for value in (1, 2, 4, 6, 8, 9):
         assert f'data-nup="{value}"' in editor
     assert "pdfBookletSheetPreviewScriptV1" in runtime
-    assert "/js/pdf-editor/booklet-sheet-preview.js?v=20260825-1" in runtime
+    assert "/js/pdf-editor/booklet-sheet-preview.js?v=20261112-2" in runtime
     executable_app = app_version.split("/*", 1)[0] + app_version.rsplit("*/", 1)[-1]
     assert "/js/pdf-editor/booklet-sheet-preview.js" not in executable_app
