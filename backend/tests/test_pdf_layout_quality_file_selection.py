@@ -50,7 +50,7 @@ def test_per_file_selection_exposes_explicit_scoped_actions():
     ):
         assert marker in selection
     for marker in (
-        "파일 전체선택",
+        "data-file-select-toggle",
         "selection.selectFile(group.fileIndex",
         "selection.clearFile(group.fileIndex)",
         "updateFileSelectionCounts",
