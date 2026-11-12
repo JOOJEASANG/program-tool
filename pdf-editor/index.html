@@ -533,7 +533,12 @@
           <div id="bookletSpineOptions" style="display:none;margin:6px 0;padding:8px 9px;border:1px solid #bfdbfe;border-radius:8px;background:#eff6ff;">
             <input id="bookletSpineGather" type="checkbox" checked hidden aria-hidden="true" tabindex="-1">
             <strong style="display:block;font-size:11px;color:#1e40af;margin-bottom:4px;">접지선 중앙 밀착 · 자동 적용</strong>
-            <small style="display:block;color:#475569;font-size:10px;line-height:1.5;">왼쪽 페이지의 오른쪽 끝과 오른쪽 페이지의 왼쪽 끝을 용지 정중앙에서 맞닿게 배치합니다. 페이지 한 면의 실제 크기는 유지하고 바깥쪽 남는 용지 여백도 잘라내지 않습니다.</small>
+            <small style="display:block;color:#475569;font-size:10px;line-height:1.5;">페이지 경계는 용지 정중앙에서 정확히 맞닿습니다. 원본 PDF 자체에 안쪽 흰 여백이 들어 있다면 아래에서 내용만 접지선 쪽으로 이동할 수 있습니다.</small>
+            <div class="field" style="margin:8px 0 3px;">
+              <label for="bookletInnerShiftMm">원본 안쪽 흰 여백 보정 (mm)</label>
+              <input id="bookletInnerShiftMm" type="number" min="0" max="20" step="0.5" value="0" inputmode="decimal" aria-describedby="bookletInnerShiftHelp">
+            </div>
+            <small id="bookletInnerShiftHelp" style="display:block;color:#475569;font-size:9px;line-height:1.5;">기본 0mm는 원본을 그대로 유지합니다. 그림 사이에 흰 띠가 보일 때 1~2mm씩 늘리세요. 왼쪽 내용은 오른쪽으로, 오른쪽 내용은 왼쪽으로 이동하고 접지선을 넘는 부분은 잘립니다. 출력 용지와 한 면의 실제 크기는 변하지 않습니다.</small>
           </div>
         </div>
         <div class="field">
@@ -1013,6 +1018,7 @@ function collectEditorState() {
     actualSizePreset: $('actualSizePreset')?.value || 'auto',
     actualSizeScalePct: Number($('actualSizeScalePct')?.value || 100),
     bookletSpineGather: !!$('bookletSpineGather')?.checked,
+    bookletInnerShiftMm: getBookletInnerShiftMm(),
     actualWidthMm: parseFloat($('actualWidthMm')?.value) || null,
     actualHeightMm: parseFloat($('actualHeightMm')?.value) || null,
     fileNupMap,
@@ -1382,6 +1388,7 @@ async function loadEditorSession(d, docId) {
     if ($('actualSizePreset')) $('actualSizePreset').value = state.actualSizePreset || (actualSizeEnabled ? 'custom' : 'auto');
     if ($('actualSizeScalePct')) $('actualSizeScalePct').value = state.actualSizeScalePct ?? 100;
     if ($('bookletSpineGather')) $('bookletSpineGather').checked = state.bookletSpineGather ?? true;
+    if ($('bookletInnerShiftMm')) $('bookletInnerShiftMm').value = String(Math.max(0, Math.min(20, Number(state.bookletInnerShiftMm) || 0)));
     if ($('bookletSpineOptions')) $('bookletSpineOptions').style.display = state.booklet ? '' : 'none';
     wmEnabled = state.wmEnabled ?? false; wmText = state.wmText ?? '사본';
     wmOpacity = state.wmOpacity ?? 0.15; wmAngle = state.wmAngle ?? -45; wmColor = state.wmColor ?? '#ff0000';
@@ -1709,6 +1716,12 @@ function syncPlacementPreset() {
 
 function bookletSpineEnabled() {
   return isBookletLayoutActive(nup);
+}
+
+function getBookletInnerShiftMm() {
+  if (!bookletSpineEnabled()) return 0;
+  const shift = Number($('bookletInnerShiftMm')?.value ?? 0);
+  return Number.isFinite(shift) ? Math.max(0, Math.min(20, shift)) : 0;
 }
 
 function updateActualSizeUi() {
@@ -2563,9 +2576,20 @@ function buildOutputPage(groupPages, pageIdx, cols, rows, mm2px, useHi, repeated
     const cellX = (foldCell ? foldCell.x : mh + (repeated ? cutX : col * (cellW + gp))) * mm2px;
     const cellY = (mv + (repeated ? cutY : row * (cellH + gp))) * mm2px;
     const src = getPageSrc(groupPages[idx], mm2px, useHi);
-    drawPageInCell(ctx, src, cellX, cellY,
-      (foldCell ? foldCell.width : cellW) * mm2px, cellH * mm2px,
-      mm2px, foldCell?.align || 'center');
+    const placedW = (foldCell ? foldCell.width : cellW) * mm2px;
+    const placedH = cellH * mm2px;
+    const towardFoldPx = foldCell ? getBookletInnerShiftMm() * mm2px * (col === 0 ? 1 : -1) : 0;
+    // Keep the actual leaf boundary fixed at the fold. Only move its source
+    // artwork inside the leaf and clip any overflow at the physical seam.
+    ctx.save();
+    if (foldCell) {
+      ctx.beginPath();
+      ctx.rect(cellX, cellY, placedW, placedH);
+      ctx.clip();
+    }
+    drawPageInCell(ctx, src, cellX + towardFoldPx, cellY,
+      placedW, placedH, mm2px, foldCell?.align || 'center');
+    ctx.restore();
     if (repeated) {
       const overlay = document.createElement('canvas');
       overlay.width = Math.max(1, Math.round(cutW * mm2px));
@@ -3134,6 +3158,7 @@ $('downloadBtn').addEventListener('click', async () => {
       facing_pages: facingPages,
       booklet: document.getElementById('bookletCheck')?.checked ?? false,
       booklet_spine_align: !!$('bookletCheck')?.checked,
+      booklet_inner_shift_mm: getBookletInnerShiftMm(),
     };
 
     // Expand repeat placements at the export boundary. An API wrapper alone is
@@ -3204,6 +3229,8 @@ $('bookletSpineGather').addEventListener('change', () => {
   updateActualSizeUi();
   schedulePreview(120);
 });
+$('bookletInnerShiftMm')?.addEventListener('input', () => schedulePreview(180));
+$('bookletInnerShiftMm')?.addEventListener('change', () => schedulePreview(100));
 $('bookletCheck')?.addEventListener('change', () => {
   $('bookletSpineOptions').style.display = $('bookletCheck').checked ? '' : 'none';
   updateActualSizeUi();
@@ -3411,6 +3438,7 @@ $('resetBtn').addEventListener('click', () => {
   $('actualWidthMm').value = '';
   $('actualHeightMm').value = '';
   $('bookletSpineGather').checked = true;
+  $('bookletInnerShiftMm').value = '0';
   $('bookletSpineOptions').style.display = 'none';
   updateActualSizeUi();
   $('previewScroll').innerHTML = '<div class="empty-state"><div class="icon">📝</div><p>PDF 파일을 업로드하면<br>설정에 따라 <b>자동으로 미리보기</b>가 생성됩니다.</p></div>';
