@@ -36,7 +36,7 @@ def test_file_and_page_action_icons_have_labels_and_preserve_existing_actions():
         "svg.innerHTML=ICONS[name]||ICONS.square;",
         "button.replaceChildren(icon(shape),caption);",
         "button.setAttribute('aria-label',description);",
-        "new MutationObserver(queue).observe(root,{childList:true,subtree:true});",
+        "new MutationObserver(decorateAll).observe(root,{childList:true,subtree:true});",
         "'.pdf-file-delete-btn'",
         "'.pdf-file-select-btn:not(.is-clear)'",
         "'.pdf-file-boundary'",
