@@ -163,7 +163,7 @@
       setRangeStatus(isFile ? '파일의 원본 페이지 번호 기준으로 입력하세요.' : '전체 작업의 현재 편집 순서 기준으로 입력하세요.');
     });
     const hint = area.parentElement.querySelector('.thumb-hint');
-    if (hint) hint.textContent = '왼쪽은 기본 페이지 목록 · Ctrl/Shift=다중선택 · 우클릭 작업은 오른쪽 미리보기에 반영';
+    if (hint) hint.textContent = '클릭=개별 선택 · Ctrl/Shift=다중 선택 · 체크박스=추가/해제 · 드래그=순서 변경';
   }
 
   function setRangeStatus(message, error = false) {
@@ -352,9 +352,11 @@
       const selected = selectedIds.has(id);
       item.classList.toggle('page-selected', selected);
       item.classList.toggle('page-selection-anchor', selected && id === anchorId);
+      item.setAttribute('aria-selected', String(selected));
       const wrap = item.querySelector('.thumb-wrap');
       if (!wrap) return;
       if (!wrap.style.position) wrap.style.position = 'relative';
+      wrap.setAttribute('aria-label', (parsedPages.indexOf(pageById(id)) + 1) + '페이지 선택 / 미리보기 이동');
       let checkbox = wrap.querySelector('.pdf-page-select-checkbox');
       if (!checkbox) {
         checkbox = document.createElement('input');
@@ -532,9 +534,23 @@
         event.stopImmediatePropagation();
         return;
       }
-      const wrap = event.target.closest('.thumb-wrap');
-      const item = wrap && wrap.closest('.thumb-item');
+      // Treat the entire item, including the page number and its padding,
+      // as a selection target; the old handler only accepted .thumb-wrap.
+      const item = event.target.closest('.thumb-item');
+      const wrap = item?.querySelector(':scope > .thumb-wrap');
       if (!wrap || !item || !area.contains(item)) return;
+      const page = pageById(Number(item.dataset.id));
+      if (!page) return;
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      selectPage(page, event);
+    }, true);
+
+    area.addEventListener('keydown', (event) => {
+      if (event.key !== 'Enter' && event.key !== ' ') return;
+      if (event.target.closest('input,button,select,.thumb-file-sep')) return;
+      const item = event.target.closest('.thumb-item');
+      if (!item || !area.contains(item)) return;
       const page = pageById(Number(item.dataset.id));
       if (!page) return;
       event.preventDefault();
@@ -938,6 +954,9 @@
 
   window.PdfEditorPageSelection = {
     selectedIds,
+    // Shared with the legacy productivity toolbar: one selection Set
+    // must drive checkbox, batch buttons and the page context menu.
+    syncSelectionUi,
     selectAll,
     selectFile,
     clearFile,
