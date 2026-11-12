@@ -55,7 +55,7 @@ document.addEventListener('DOMContentLoaded',()=>{
         grip.dispatchEvent(new KeyboardEvent('keydown',{key:'ArrowLeft',bubbles:true}));
         if(api.width<before)fail('keyboard resize did not grow right panel');
         grip.dispatchEvent(new KeyboardEvent('keydown',{key:'Home',bubbles:true}));
-        if(api.width!==240)fail('Home did not set minimum sidebar width');
+        if(api.width!==280)fail('Home did not set minimum sidebar width');
       }
       close.click();
       if(api.open||!right.inert||toggle.getAttribute('aria-expanded')!=='false')fail('close did not restore preview width');
