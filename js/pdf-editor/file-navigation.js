@@ -114,8 +114,8 @@
       body[data-program-kind="pdf-editor"] #thumbArea .thumb-file-sep[data-file-nav-header="true"]>.pdf-file-selection-count{grid-column:4;grid-row:1;align-self:center}
       body[data-program-kind="pdf-editor"] #thumbArea .thumb-file-sep[data-file-nav-header="true"]>.pdf-file-action-row{grid-column:1 / -1;grid-row:2;display:flex;align-items:stretch;gap:6px;min-width:0}
       body[data-program-kind="pdf-editor"] #thumbArea .pdf-file-action-row>button{box-sizing:border-box!important;height:32px!important;min-height:32px!important;max-height:32px!important;display:inline-flex!important;align-items:center!important;justify-content:center!important;min-width:0!important;white-space:nowrap!important;border-radius:8px!important;padding:0 7px!important;font-size:10px!important;line-height:1.15!important}
-      body[data-program-kind="pdf-editor"] #thumbArea .pdf-file-action-row>.pdf-file-select-btn:not(.is-clear){flex:1.3 1 0}
-      body[data-program-kind="pdf-editor"] #thumbArea .pdf-file-action-row>.pdf-file-select-btn.is-clear{flex:.8 1 0}
+      /* One toggle button replaces the former two-wide select / clear pair. */
+      body[data-program-kind="pdf-editor"] #thumbArea .pdf-file-action-row>.pdf-file-select-btn{flex:1.5 1 0}
       body[data-program-kind="pdf-editor"] #thumbArea .pdf-file-action-row>.pdf-file-delete-btn{flex:1 1 0}
       body[data-program-kind="pdf-editor"] #thumbArea .pdf-file-action-row>.pdf-file-boundary{flex:.8 1 0}
       body[data-program-kind="pdf-editor"] #thumbArea .thumb-file-sep[data-file-nav-header="true"]>:is(.pdf-file-order-handle,.pdf-file-nav-toggle){box-sizing:border-box!important;width:30px!important;min-width:30px!important;max-width:30px!important;height:30px!important;min-height:30px!important;max-height:30px!important;padding:0!important;display:grid!important;place-items:center!important}
@@ -310,28 +310,23 @@
       count.className = 'pdf-file-selection-count';
       count.textContent = selection.selectedCountForFile(group.fileIndex) + '개 선택';
       header.appendChild(count);
-      const allButton = document.createElement('button');
-      allButton.type = 'button';
-      allButton.className = 'pdf-file-select-btn';
-      allButton.textContent = '파일 전체선택';
-      allButton.title = group.name + '의 페이지만 전체 선택 (Ctrl을 누르면 다른 파일의 선택도 유지)';
-      allButton.addEventListener('click', event => {
+      const selectToggle = document.createElement('button');
+      selectToggle.type = 'button';
+      selectToggle.className = 'pdf-file-select-btn';
+      selectToggle.dataset.fileSelectToggle = 'true';
+      selectToggle.textContent = '전체';
+      selectToggle.title = group.name + '의 페이지만 전체 선택 (Ctrl을 누르면 다른 파일의 선택도 유지)';
+      selectToggle.setAttribute('aria-label', selectToggle.title);
+      selectToggle.setAttribute('aria-pressed', 'false');
+      selectToggle.addEventListener('click', event => {
         event.preventDefault(); event.stopPropagation();
-        selection.selectFile(group.fileIndex, { additive: event.ctrlKey || event.metaKey });
+        const fileTotal = group.pages.filter(item => item.pageType === 'pdf').length;
+        const allSelected = fileTotal > 0 && selection.selectedCountForFile(group.fileIndex) === fileTotal;
+        if (allSelected) selection.clearFile(group.fileIndex);
+        else selection.selectFile(group.fileIndex, { additive: event.ctrlKey || event.metaKey });
         updateFileSelectionCounts();
       });
-      actionRow.appendChild(allButton);
-      const clearButton = document.createElement('button');
-      clearButton.type = 'button';
-      clearButton.className = 'pdf-file-select-btn is-clear';
-      clearButton.textContent = '해제';
-      clearButton.title = group.name + '의 선택만 해제';
-      clearButton.addEventListener('click', event => {
-        event.preventDefault(); event.stopPropagation();
-        selection.clearFile(group.fileIndex);
-        updateFileSelectionCounts();
-      });
-      actionRow.appendChild(clearButton);
+      actionRow.appendChild(selectToggle);
     }
 
     // File removal changes the source file list, not only its visibility in the sidebar.
@@ -374,7 +369,22 @@
     if (!selection) return;
     byId('thumbArea')?.querySelectorAll('[data-file-nav-header="true"]').forEach(header => {
       const count = header.querySelector('.pdf-file-selection-count');
-      if (count) count.textContent = selection.selectedCountForFile(Number(header.dataset.fileIndex)) + '개 선택';
+      const index = Number(header.dataset.fileIndex);
+      const selectedCount = selection.selectedCountForFile(index);
+      if (count) count.textContent = selectedCount + '개 선택';
+      const toggle = header.querySelector('.pdf-file-select-btn[data-file-select-toggle="true"]');
+      if (toggle) {
+        const total = parsedPages.filter(page => page.pageType === 'pdf' && Number(page.file_index) === index).length;
+        const allSelected = total > 0 && selectedCount === total;
+        toggle.classList.toggle('is-clear', allSelected);
+        toggle.textContent = allSelected ? '해제' : '전체';
+        const name = header.querySelector('.thumb-file-sep-label')?.textContent?.trim() || '이 파일';
+        toggle.title = allSelected
+          ? name + '의 선택된 페이지 모두 해제'
+          : name + '의 페이지 모두 선택 (Ctrl을 누르면 다른 파일의 선택 유지)';
+        toggle.setAttribute('aria-label', toggle.title);
+        toggle.setAttribute('aria-pressed', String(allSelected));
+      }
     });
   }
 
@@ -443,6 +453,7 @@
         decorateHeader(header, group, page);
       }
       applyCollapsed(groups);
+      updateFileSelectionCounts();
       return true;
     } finally {
       enhancing = false;
