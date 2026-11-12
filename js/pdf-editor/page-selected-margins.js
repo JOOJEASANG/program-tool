@@ -94,9 +94,15 @@
     document.addEventListener('pdf-page-margin-change',()=>queue(true));
     document.addEventListener('pdf-import-committed',()=>queue(true));
     document.addEventListener('pdf-file-removed',()=>queue(true));
-    ['marginLeft','marginRight','marginTop','marginBottom'].forEach(name=>{
-      id(name)?.addEventListener('change',()=>queue(true));
-    });
+    // Global margin fields are created asynchronously by layout-export.js
+    // AFTER this module starts. Delegate events from document so inherited
+    // values stay accurate even when those fields mount later.
+    const globalEdges=new Set(['marginLeft','marginRight','marginTop','marginBottom','marginH','marginV']);
+    const onGlobalChange=event=>{
+      if(globalEdges.has(event.target?.id))refresh(true);
+    };
+    document.addEventListener('input',onGlobalChange,true);
+    document.addEventListener('change',onGlobalChange,true);
     new MutationObserver(()=>queue()).observe(area,{childList:true,subtree:false});
     const section=id('thumbSection');
     if(section)new MutationObserver(()=>queue(true)).observe(section,{attributes:true,attributeFilter:['style','hidden']});
