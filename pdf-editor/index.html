@@ -2521,7 +2521,8 @@ function drawPageInCell(ctx, src, cellX, cellY, cellW, cellH, mm2px = 1, horizon
     const overflow90 = Math.max(targetH / Math.max(cellW, 0.01), targetW / Math.max(cellH, 0.01));
     // Imported PDF pages must keep the orientation shown in their source.
     // Fitting a cell must never rotate a user's PDF without an explicit action.
-    const bleedCrop=Boolean(getBookletBleedMm() && (bookletSide==='left' || bookletSide==='right'));
+    const bleedCrop=Boolean(typeof getBookletBleedMm==='function' && getBookletBleedMm()
+      && (bookletSide==='left' || bookletSide==='right'));
     const rot = !bleedCrop && src?.dataset?.pdfAutoFitRotation !== 'disabled'
       && ((!fits0 && fits90) || (!fits0 && !fits90 && overflow90 < overflow0));
     const dw = rot ? targetH : targetW;
