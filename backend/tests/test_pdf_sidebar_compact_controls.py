@@ -1,0 +1,46 @@
+"""PDF배치: 간결한 오른쪽 사이드바와 선택 기능 회귀 검사."""
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parents[2]
+
+
+def read(path):
+    return (ROOT / path).read_text(encoding="utf-8")
+
+
+def test_only_one_global_selection_toolbar_is_visible():
+    html = read("pdf-editor/index.html")
+    selection = read("js/pdf-editor/page-selection-preview-focus.js")
+    productivity = read("js/pdf-editor/page-count-hint.js")
+    assert '#pageSidebar #pageProductivityPanelV3 .page-productivity-top{display:none!important}' in html
+    assert 'data-selection-action="all" aria-pressed="false"' in selection
+    assert '<button type="button" class="page-selection-btn" data-selection-action="clear"' not in selection
+    assert "allToggle.textContent = allSelected ? '선택 해제' : '전체 선택';" in selection
+    assert "const shared = window.PdfEditorPageSelection?.selectedIds;" in productivity
+    assert "selectedIds = shared;" in productivity
+
+
+def test_advanced_page_selection_and_margins_are_collapsed_by_default():
+    html = read("pdf-editor/index.html")
+    selection = read("js/pdf-editor/page-selection-preview-focus.js")
+    assert '<details id="pageSelectedMarginDetails" class="page-selected-margin-details">' in html
+    assert '<summary class="page-selected-margin-heading">' in html
+    assert 'id="pageSelectedMarginApply"' in html
+    assert 'id="pageSelectedMarginReset"' in html
+    assert '<details class="page-selection-advanced" id="pageSelectionAdvanced">' in selection
+    assert '<summary>범위·홀짝 선택</summary>' in selection
+    for action in ("range-replace", "range-add", "range-remove", "odd", "even", "invert", "drag"):
+        assert f'data-selection-action="{action}"' in selection
+
+
+def test_file_buttons_are_distinguishable_from_global_buttons():
+    navigation = read("js/pdf-editor/file-navigation.js")
+    icons = read("js/pdf-editor/page-list-icons.js")
+    manual = read("js/program-manuals/pdf-editor.js")
+    assert "toggle.textContent = allSelected ? '파일 해제' : '파일 선택';" in navigation
+    assert "['check-square','파일 선택'" in icons
+    assert "['square','파일 해제'" in icons
+    assert "['check-square','전체 선택'" in icons
+    assert "['square','선택 해제'" in icons
+    assert "범위·홀짝 선택" in manual
+    assert "개별 여백" in manual
