@@ -334,6 +334,7 @@
   }
 
   function blockSidebarEditing(event){
+    if(document.documentElement.classList.contains('pdf-direct-thumb-selection'))return;
     const area=byId('thumbArea');
     if(!area||!event.target?.closest?.('#thumbArea .thumb-item'))return;
     if(event.type==='contextmenu'||event.type==='dragstart'){
