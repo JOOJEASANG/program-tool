@@ -44,9 +44,9 @@
     if(!body)return false;
     const wrap=document.createElement('div');
     wrap.className='pefc-wrap';
-    wrap.innerHTML=`<button type="button" class="pefc-primary" id="pdfEditorFinalCheckBtn" disabled>✓ 인쇄 전 검사 후 저장</button><div class="pefc-hint">현재 편집 결과를 PDF로 만든 뒤 해상도·폰트·규격·도련 등을 바로 검사합니다.</div><div class="pefc-direct-note">검사가 필요 없으면 아래의 <b>바로 PDF 저장</b>을 사용하세요.</div>`;
+    wrap.innerHTML=`<button type="button" class="pefc-primary" id="pdfEditorFinalCheckBtn" title="현재 PDF를 생성하여 해상도·폰트·규격·도련을 검사한 뒤 저장" aria-label="인쇄 전 검사 후 PDF 저장" disabled>검사 후 저장</button>`;
     download.insertAdjacentElement('beforebegin',wrap);
-    download.textContent='바로 PDF 저장';
+    download.textContent='PDF 저장';
     $('pdfEditorFinalCheckBtn')?.addEventListener('click',runFinalCheck);
     return true;
   }
@@ -204,7 +204,7 @@
     const direct=$('downloadBtn');
     if(check){
       check.disabled=busy||direct?.disabled===true;
-      check.textContent=busy?(message||'인쇄 전 검사 중...'):'✓ 인쇄 전 검사 후 저장';
+      check.textContent=busy?'검사 중…':'검사 후 저장';
     }
   }
 
