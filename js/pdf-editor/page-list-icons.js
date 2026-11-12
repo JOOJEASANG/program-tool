@@ -130,7 +130,7 @@ function install(){
  }
  let frame=0;
  const queue=()=>{if(frame)return;frame=requestAnimationFrame(()=>{frame=0;decorateAll();});};
- new MutationObserver(queue).observe(root,{childList:true,subtree:true});
+ new MutationObserver(decorateAll).observe(root,{childList:true,subtree:true});
  document.addEventListener('pdf-page-selection-change',queue);
  decorateAll();
  window.PdfPageListIcons={refresh:queue,stage:'right-page-icon-actions-v1'};
