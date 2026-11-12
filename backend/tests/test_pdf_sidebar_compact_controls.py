@@ -77,8 +77,8 @@ def test_both_sidebars_keep_functions_and_reveal_only_necessary_options():
     for marker in ("pageSelectionAdvanced", "pageSelectedMarginDetails",
                    "pageJumpInputV3+button", "pdfPageJumpDetails"):
         assert marker in html or marker in script or marker in selection
-    assert "simple-sidebar-ui.js?v=20261112-2" in ui
-    assert "PDF_UI_RUNTIME_VERSION='20261112-1'" in shell
+    assert "simple-sidebar-ui.js?v=20261112-3" in ui
+    assert "PDF_UI_RUNTIME_VERSION='20261112-2'" in shell
     assert "pdf-two-sidebars-workflow-smoke.html" in runner
     assert "data-pdf-two-sidebars-smoke=\"pass\"" in runner
     assert "preserved action handlers and pinned PDF save" in browser
