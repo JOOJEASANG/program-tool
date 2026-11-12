@@ -107,8 +107,7 @@
     toolbar.innerHTML = `
       <div class="page-selection-heading">
         <span class="page-selection-count" id="pageSelectionCount">선택 0개</span>
-        <button type="button" class="page-selection-btn" data-selection-action="all">전체선택</button>
-        <button type="button" class="page-selection-btn" data-selection-action="clear">선택해제</button>
+        <button type="button" class="page-selection-btn" data-selection-action="all" aria-pressed="false" title="작업의 모든 페이지 선택">전체</button>
       </div>
       <div class="page-selection-range">
         <select id="pageSelectionRangeScope" aria-label="페이지 선택 범위 기준">
@@ -163,7 +162,7 @@
       setRangeStatus(isFile ? '파일의 원본 페이지 번호 기준으로 입력하세요.' : '전체 작업의 현재 편집 순서 기준으로 입력하세요.');
     });
     const hint = area.parentElement.querySelector('.thumb-hint');
-    if (hint) hint.textContent = '클릭=개별 선택 · Ctrl/Shift=다중 선택 · 체크박스=추가/해제 · 드래그=순서 변경';
+    if (hint) hint.textContent = '클릭=선택/재클릭 해제 · Ctrl+클릭=다중 선택 · Shift+클릭=범위 · 드래그=순서 변경';
   }
 
   function setRangeStatus(message, error = false) {
@@ -381,6 +380,24 @@
     if (!painting) syncSidebarSourceThumbs();
     const count = byId('pageSelectionCount');
     if (count) count.textContent = `선택 ${selectedIds.size}개`;
+    // One space-saving button toggles between select-all and deselect-all.
+    // When selection changes by file header, thumbnail or checkbox, keep its
+    // caption and semantics in sync with the exact selected-page count.
+    const total = editorReady() ? parsedPages.filter(page => pageId(page) !== null).length : 0;
+    const allSelected = total > 0 && selectedIds.size === total;
+    const allToggle = byId('pageSelectionToolbar')?.querySelector('[data-selection-action="all"],[data-selection-action="clear"]');
+    if (allToggle) {
+      const nextAction = allSelected ? 'clear' : 'all';
+      // Keep existing SVG menu children when the state did not change.
+      if (allToggle.dataset.selectionAction !== nextAction) {
+        allToggle.dataset.selectionAction = nextAction;
+        allToggle.textContent = allSelected ? '해제' : '전체';
+      }
+      allToggle.title = allSelected ? '전체 페이지 선택 해제' : '전체 페이지 선택';
+      allToggle.setAttribute('aria-label', allToggle.title);
+      allToggle.setAttribute('aria-pressed', String(allSelected));
+      allToggle.disabled = total === 0;
+    }
     document.dispatchEvent(new CustomEvent('pdf-page-selection-change', { detail: { count: selectedIds.size } }));
     if (!painting) highlightPreviewTarget();
   }
@@ -463,8 +480,14 @@
       else selectedIds.add(id);
       anchorId = id;
     } else {
-      selectedIds.clear();
-      selectedIds.add(id);
+      // Click an already selected thumbnail again to deselect that page.
+      // Clicking an unselected thumbnail without Ctrl/Cmd starts a fresh
+      // single selection; Ctrl/Cmd keeps its additive toggling semantics.
+      if (selectedIds.has(id)) selectedIds.delete(id);
+      else {
+        selectedIds.clear();
+        selectedIds.add(id);
+      }
       anchorId = id;
     }
 

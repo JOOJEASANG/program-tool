@@ -85,7 +85,7 @@
     document.getElementById('previewScroll').scrollTo = () => {};
     renderThumbs();
   </script>
-  <script src="/js/pdf-editor/page-selection-preview-focus.js?v=20260914-2"></script>
+  <script src="/js/pdf-editor/page-selection-preview-focus.js?v=20261112-2"></script>
   <script>
     (async () => {
       const result = document.getElementById('result');
@@ -144,7 +144,7 @@
         await wait(60);
         if (!parsedPages[0].excluded || !parsedPages[2].excluded || parsedPages[1].excluded) throw new Error('batch hide did not target full selection');
 
-        document.querySelector('[data-selection-action="clear"]').click();
+        window.PdfEditorPageSelection.clearSelection();
         click(0);
         click(3, { shiftKey: true });
         await wait(30);
