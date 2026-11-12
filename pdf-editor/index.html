@@ -490,14 +490,15 @@
             <button class="nup-btn" data-nup="9"><span class="nup-label">9장</span><span class="nup-badge" id="b9">3×3</span></button>
           </div>
           <details id="pdfActualSizeDisclosure" class="pdf-optional-settings">
-            <summary>실제 크기 · 상세 배치 설정</summary>
+            <summary>한 면(1페이지) 실제 크기 · mm</summary>
           <div id="actualSizePanel" style="margin-top:8px;padding:8px 9px;border:1px solid #dbeafe;border-radius:8px;background:#f8fbff;">
             <label class="checkline" style="margin-bottom:6px;">
               <input type="checkbox" id="actualSizeCheck">
-              <span>실제 출력크기 지정 · 원본 1페이지 크기</span>
+              <span>실제 출력크기 지정 · 한 면(1페이지)</span>
             </label>
+            <p id="bookletPageSizeHint" hidden style="font-size:10px;line-height:1.55;color:#1e40af;background:#eaf2ff;border-radius:7px;padding:8px;margin:0 0 8px;"></p>
             <div class="field" style="margin-bottom:6px;">
-              <label for="actualSizePreset">한 페이지 크기</label>
+              <label for="actualSizePreset">한 면 출력 크기</label>
               <select id="actualSizePreset" style="width:100%;font:inherit;padding:5px;border:1px solid #dbeafe;border-radius:6px;">
                 <option value="auto">자동 맞춤 (기존 방식)</option>
                 <option value="source">원본 PDF 크기</option>
@@ -530,11 +531,9 @@
             <div id="bookletPadInfo" style="display:none;margin-top:3px;font-size:10px;color:#2563eb;font-weight:700;padding-left:18px;"></div>
           </div>
           <div id="bookletSpineOptions" style="display:none;margin:6px 0;padding:8px 9px;border:1px solid #bfdbfe;border-radius:8px;background:#eff6ff;">
-            <label class="checkline" style="margin:0 0 4px;">
-              <input id="bookletSpineGather" type="checkbox" checked>
-              <span style="font-weight:800;">접지선(가운데) 방향으로 모으기</span>
-            </label>
-            <small style="display:block;color:#475569;font-size:10px;line-height:1.5;">왼쪽 내용은 오른쪽으로, 오른쪽 내용은 왼쪽으로 정렬합니다. 가운데 불필요한 간격을 없애고 실제 배치 크기는 그대로 유지합니다.</small>
+            <input id="bookletSpineGather" type="checkbox" checked hidden aria-hidden="true" tabindex="-1">
+            <strong style="display:block;font-size:11px;color:#1e40af;margin-bottom:4px;">접지선 중앙 밀착 · 자동 적용</strong>
+            <small style="display:block;color:#475569;font-size:10px;line-height:1.5;">왼쪽 페이지의 오른쪽 끝과 오른쪽 페이지의 왼쪽 끝을 용지 정중앙에서 맞닿게 배치합니다. 페이지 한 면의 실제 크기는 유지하고 바깥쪽 남는 용지 여백도 잘라내지 않습니다.</small>
           </div>
         </div>
         <div class="field">
@@ -1655,7 +1654,7 @@ function getActualSizeFit() {
   if (!size.enabled) return null;
   const { pw, ph, mh, mv, gp } = getSettings();
   const { cols, rows } = getOutputLayout(getActualLayoutNup());
-  const spine = isBookletLayoutActive(nup) && !!$('bookletSpineGather')?.checked;
+  const spine = isBookletLayoutActive(nup);
   const repeating = !!window.PdfEditorNupRepeat?.enabled?.();
   const margins = window.PdfEditorLayoutExport?.marginValues?.() || {left:mh,right:mh,top:mv,bottom:mv};
   const cellW = spine
@@ -1709,7 +1708,7 @@ function syncPlacementPreset() {
 }
 
 function bookletSpineEnabled() {
-  return isBookletLayoutActive(nup) && !!$('bookletSpineGather')?.checked;
+  return isBookletLayoutActive(nup);
 }
 
 function updateActualSizeUi() {
@@ -1722,10 +1721,24 @@ function updateActualSizeUi() {
   });
   const preset = $('actualSizePreset')?.value || 'auto';
   if ($('actualSizeScaleRow')) $('actualSizeScaleRow').style.display = preset === 'scale' ? '' : 'none';
+  const booklet = isBookletLayoutActive(nup);
+  // The fixed sheet size and the independent physical size of one booklet
+  // page must be clear before the user uploads or exports any PDF.
+  const hint = $('bookletPageSizeHint');
+  if (hint) {
+    hint.hidden = !booklet;
+    if (booklet) {
+      const {pw,ph}=getSettings();
+      hint.textContent = `출력 용지 ${pw}×${ph}mm는 그대로 저장합니다. 아래에서 한 면의 실제 가로·세로 크기를 지정하면 접지선에 딱 맞춰 붙이고 바깥쪽에 남는 여백은 유지합니다.`;
+    }
+  }
+  if (booklet && $('bookletSpineGather')) $('bookletSpineGather').checked=true;
   const warning = $('actualSizeWarning');
   if (!warning) return;
   if (!enabled) {
-    warning.textContent = '미지정 시 기존처럼 배치 칸에 자동 맞춤됩니다.';
+    warning.textContent = booklet
+      ? '한 면 크기를 지정하지 않으면 접지선에 맞춰 비율을 유지하며 자동 배치합니다.'
+      : '미지정 시 기존처럼 배치 칸에 자동 맞춤됩니다.';
     warning.style.color = '#64748b';
     return;
   }
@@ -1737,7 +1750,7 @@ function updateActualSizeUi() {
   const fit = getActualSizeFit();
   if (!fit) return;
   if (fit.fits) {
-    warning.textContent = `실제 ${fit.widthMm}×${fit.heightMm}mm · 현재 배치 칸 ${fit.cellW.toFixed(1)}×${fit.cellH.toFixed(1)}mm에 배치 가능합니다.`;
+    warning.textContent = `한 면 실제 ${fit.widthMm}×${fit.heightMm}mm · ${fit.cellW.toFixed(1)}×${fit.cellH.toFixed(1)}mm 배치 영역에 들어갑니다. ${booklet ? '접지선 밀착 · 용지 크기와 남는 여백 그대로 저장.' : ''}`;
     warning.style.color = '#047857';
   } else {
     warning.textContent = `실제 ${fit.widthMm}×${fit.heightMm}mm가 현재 배치 칸 ${fit.cellW.toFixed(1)}×${fit.cellH.toFixed(1)}mm보다 큽니다. 용지를 키우거나 여백·간격을 줄여 주세요.`;
@@ -3120,7 +3133,7 @@ $('downloadBtn').addEventListener('click', async () => {
       },
       facing_pages: facingPages,
       booklet: document.getElementById('bookletCheck')?.checked ?? false,
-      booklet_spine_align: !!$('bookletCheck')?.checked && !!$('bookletSpineGather')?.checked,
+      booklet_spine_align: !!$('bookletCheck')?.checked,
     };
 
     // Expand repeat placements at the export boundary. An API wrapper alone is
