@@ -126,6 +126,10 @@
         if(values.left!==10||values.right!==10)throw Error('paper margin was changed');
         // A 0mm page override must supersede the global 10mm, not add to it.
         scope.value='selected';scope.dispatchEvent(new Event('change',{bubbles:true}));
+        // Ordinary thumbnail clicks now ADD to the current selection.
+        // Explicitly clear the previous two-page selection for this test's
+        // single-page inherited-margin scenario.
+        window.PdfEditorPageSelection.clearSelection();
         wraps[0].dispatchEvent(new MouseEvent('click',{bubbles:true,cancelable:true}));
         await delay(100);
         for(const edge of ['Left','Right','Top','Bottom']){
