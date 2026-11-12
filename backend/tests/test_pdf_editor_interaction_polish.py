@@ -124,6 +124,6 @@ def test_polish_loads_in_advanced_runtime_without_changing_lightweight_core_mani
     polish = advanced.index(".then(()=>loadEditorInteractionPolish())")
     assert direct < polish
     assert "pdfEditorInteractionPolishScriptV1" in advanced
-    assert "/js/pdf-editor/editor-interaction-polish.js?v=20260908-1" in advanced
+    assert "/js/pdf-editor/editor-interaction-polish.js?v=20261112-1" in advanced
     assert "stage:'pdf-editor-core-runtime-manifest-v1'" in core
     assert "stage:'pdf-editor-advanced-runtime-v1'" in advanced
