@@ -159,6 +159,9 @@
   click(1);await sleep(25);check(1,'before rerender');
   window.renderThumbs();await sleep(110);check(1,'after rerender');
   if(document.querySelectorAll('#thumbArea .page-select-check').length!==0)fail('rerender added duplicate page checkbox');
+  // The file navigator and SVG menu decorators are async observers.
+  // Wait for the new header to be decorated instead of a fixed rAF delay.
+  for(let attempt=0;attempt<35&&!get('.pdf-file-delete-btn svg.pdf-page-action-icon');attempt++)await sleep(20);
   if(!get('.pdf-file-delete-btn svg.pdf-page-action-icon'))fail('rerender dropped file action icons');
   document.body.dataset.pdfPageSelectIconsSmoke='pass';
   get('#result').textContent='PASS: unified single/Ctrl/Shift/checkbox/file selection with one checkbox, active batch actions, and Korean SVG icon menus';
