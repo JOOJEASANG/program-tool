@@ -646,6 +646,9 @@
     // Actions are available as soon as a single page is selected, even if
     // "다중 선택" was not manually enabled first.
     panel.classList.toggle('selecting', selectionMode || (unifiedSelection() && selectedIds.size > 0));
+    // Keep undo/redo visible only when history exists, even after selected
+    // pages have been deleted and the selection itself is now empty.
+    panel.classList.toggle('has-history', undoStack.length > 0 || redoStack.length > 0);
     const modeButton = byId('pageSelectionModeBtnV3');
     if (modeButton) {
       modeButton.classList.toggle('active', selectionMode);
