@@ -4,8 +4,9 @@
   'use strict';
   if(window.__pdfEditorRightPageSidebarV1)return;
   window.__pdfEditorRightPageSidebarV1=true;
-  const STORAGE_WIDTH='program-studio:pdf-editor:right-pages-width-v1';
-  const MIN_WIDTH=240,MAX_WIDTH=420;
+  const STORAGE_WIDTH='program-studio:pdf-editor:right-pages-width-v2';
+  const LEGACY_STORAGE_WIDTH='program-studio:pdf-editor:right-pages-width-v1';
+  const DEFAULT_WIDTH=360,MIN_WIDTH=280,MAX_WIDTH=480;
   const breakpoint=1180;
   function init(){
     const app=document.getElementById('pdfEditorApp');
@@ -21,9 +22,15 @@
     let drag=null;
     const wide=()=>window.innerWidth>breakpoint;
     const maxWidth=()=>Math.min(MAX_WIDTH,Math.max(MIN_WIDTH,window.innerWidth-360-480));
-    const clampWidth=v=>Math.max(MIN_WIDTH,Math.min(maxWidth(),Number(v)||300));
-    let width=300;
-    try{width=clampWidth(Number(localStorage.getItem(STORAGE_WIDTH))||300);}catch(_){width=clampWidth(width);}
+    const clampWidth=v=>Math.max(MIN_WIDTH,Math.min(maxWidth(),Number(v)||DEFAULT_WIDTH));
+    let width=DEFAULT_WIDTH;
+    try{
+      const saved=Number(localStorage.getItem(STORAGE_WIDTH));
+      const legacy=Number(localStorage.getItem(LEGACY_STORAGE_WIDTH));
+      // Upgrade 300px defaults to 360px while preserving deliberately wider
+      // per-user settings (including a custom width stored before this release).
+      width=clampWidth(saved>0?saved:Math.max(DEFAULT_WIDTH,legacy||0));
+    }catch(_){width=clampWidth(width);}
     function applyWidth(next,save=false){
       width=clampWidth(next);
       app.style.setProperty('--page-sidebar-width',width+'px');
@@ -106,7 +113,7 @@
     window.PdfEditorRightPageSidebar={
       get open(){return open;},get width(){return width;},
       show(){setOpen(true,true);},hide(){setOpen(false,true);},
-      sync:syncPageState,version:'2026-11-06'
+      sync:syncPageState,version:'2026-11-12'
     };
   }
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init,{once:true});
