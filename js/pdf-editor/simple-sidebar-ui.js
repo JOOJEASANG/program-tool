@@ -96,7 +96,7 @@
       body[data-program-kind="pdf-editor"] .app>aside:first-of-type .sec:has(#downloadBtn)>.sec-head{display:none!important}
       body[data-program-kind="pdf-editor"] .app>aside:first-of-type .sec:has(#downloadBtn)>.sec-body{
         display:grid!important;grid-template-columns:minmax(0,1fr) minmax(0,1fr)!important;gap:6px!important;padding:9px!important}
-      body[data-program-kind="pdf-editor"] .app>aside:first-of-type .sec:has(#downloadBtn)>.sec-body>div[style]{display:none!important}
+      body[data-program-kind="pdf-editor"] .app>aside:first-of-type .sec:has(#downloadBtn)>.sec-body>div[style*="height:6px"]{display:none!important}
       body[data-program-kind="pdf-editor"] .app>aside:first-of-type #downloadBtn{
         grid-column:1/-1!important;grid-row:1!important;height:42px!important;max-height:none!important;font-size:13px!important}
       body[data-program-kind="pdf-editor"] .app>aside:first-of-type #previewBtn{grid-column:1!important;grid-row:2!important}
