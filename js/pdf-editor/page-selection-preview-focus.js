@@ -748,6 +748,7 @@
       const descriptors = lazy.buildOutputDescriptors?.() || [];
       const output = lazy.descriptorIndexForPage(page, descriptors);
       if(output >= 0){
+        lazy.selectSourcePage?.(page);
         void lazy.navigateOutput(output);
         return true;
       }
