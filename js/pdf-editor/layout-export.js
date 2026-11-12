@@ -502,6 +502,7 @@
     const rawInnerShift = Number($('bookletInnerShiftMm')?.value || 0);
     settings.booklet_inner_shift_mm = settings.booklet_spine_align && Number.isFinite(rawInnerShift)
       ? Math.max(0, Math.min(20, rawInnerShift)) : 0;
+    settings.booklet_bleed_inner_mm = settings.booklet_spine_align && $('bookletBleedEnabled')?.checked ? 3 : 0;
     settings.facing_pages = facingEnabled();
     settings.page_numbers = settings.page_numbers || {};
     settings.page_numbers.auto_reserve_space = pageNumberAutoReserveEnabled();
@@ -681,7 +682,8 @@
           drawPageInCell(context, source,
             innerX + insideShiftPx, innerY,
             innerWidthPx, innerHeightPx, mm2px,
-            foldCell?.align || 'center');
+            foldCell?.align || 'center',
+            foldCell?(column===0?'left':'right'):null);
           context.restore();
           if (repeated) {
             const overlay = document.createElement('canvas');
