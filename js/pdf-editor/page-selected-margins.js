@@ -32,7 +32,7 @@
       const pages=selection();
       // Selection can change due to upload or deletion without changing count.
       const key=selectedKey(pages);
-      panel.hidden=!area.closest('#thumbSection')||!(id('thumbSection')?.style.display!=='none');
+      panel.hidden=!area.closest('#thumbSection')||!(id('thumbSection')?.style.display!=='none')||pages.length===0;
       count.textContent=pages.length+'페이지';
       const ready=Boolean(engine?.applySelectedPageMargins)&&pages.length>0;
       for(const edge of EDGES)fields[edge].disabled=!ready;
