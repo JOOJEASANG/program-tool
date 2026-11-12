@@ -522,7 +522,7 @@
         // old manual per-page insets must not silently reduce its height.
         // Preserve original session overrides; bypass them ONLY for export.
         const inset = settings.booklet_bleed_inner_mm
-          ? {left:0,right:0,top:0,bottom:0}
+          ? {} // null means inherit the current global margin, never override to 0
           : pageCellMarginOverrides(expandedSources[index]);
         return { ...entry,
           content_margin_left_mm: inset.left ?? null,
