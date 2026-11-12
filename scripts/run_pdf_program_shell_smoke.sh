@@ -98,6 +98,7 @@ reset_profile
 run_product_case "program-direct-print-retired-smoke.html" "$OUT_DIR/program-direct-print-retired-dom.html" 'data-print-retired-smoke="pass"' 'PASS: printer output actions removed; PDF downloads and exports remain'
 reset_profile
 run_case "pdf-editor-shell-smoke.html" "$OUT_DIR/pdf-editor-shell-smoke-dom.html" 'PASS: PDF sidebar remains visible after delayed common/runtime initialization'
+run_product_case "pdf-two-sidebars-workflow-smoke.html" "$OUT_DIR/pdf-two-sidebars-workflow-dom.html" 'data-pdf-two-sidebars-smoke="pass"' 'PASS: PDF left paper/N-up workflow, advanced disclosures, right file navigation and margins, preserved action handlers and pinned PDF save'
 run_product_case "pdf-editor-right-sidebar-smoke.html" "$OUT_DIR/pdf-editor-right-sidebar-smoke-dom.html" 'data-pdf-right-sidebar-smoke="pass"' 'PASS: uploaded PDF thumbnails live in right sidebar with auto-open, manual collapse, resize, compact drawer and reset'
 run_product_case "pdf-selected-page-margins-smoke.html" "$OUT_DIR/pdf-selected-page-margins-smoke-dom.html" 'data-pdf-selected-page-margins-smoke="pass"' 'PASS: right sidebar selected-page margins apply, mixed values, zero overrides, save, export and reset without changing other pages'
 run_product_case "pdf-page-select-icons-smoke.html" "$OUT_DIR/pdf-page-select-icons-smoke-dom.html" 'data-pdf-page-select-icons-smoke="pass"' 'PASS: unified single/Ctrl/Shift/checkbox/file selection with one checkbox, active batch actions, and Korean SVG icon menus'
