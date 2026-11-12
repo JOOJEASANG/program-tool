@@ -550,6 +550,12 @@
 
   function handleThumbnailNavigation(event) {
     if (event.type === 'keydown' && event.key !== 'Enter' && event.key !== ' ') return;
+    // The standard PDF layout has a permanent thumbnail/checkbox selection
+    // controller. Do NOT swallow its clicks at document capture phase:
+    // checkbox, Shift-range and click-to-toggle all require the native event
+    // to reach the sidebar. Navigation is performed after selection instead.
+    if (document.documentElement.classList.contains('pdf-direct-thumb-selection')
+      && window.PdfEditorPageSelection?.selectedIds) return;
     const wrap = event.target?.closest?.('#thumbArea .thumb-wrap');
     if (!wrap) return;
     const item = wrap.closest('.thumb-item');
@@ -654,6 +660,8 @@
     requestRender,
     focusRenderedOutput,
     navigateOutput,
+    // Keep the selected source in sync with windowed output navigation.
+    selectSourcePage: markSelectedThumbnail,
     getCurrentWindow: () => ({ ...currentWindow }),
     getCurrentOutputIndex: () => currentOutputIndex,
     get coordinatorInstalled() { return coordinatorInstalled; },

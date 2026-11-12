@@ -739,6 +739,20 @@
       return false;
     }
     annotatePreviewPages();
+    // Large PDF jobs render only a small window of output faces. Select the
+    // source page first, then ask that window to navigate to its output face.
+    // Avoid pointing to the same-numbered *visible DOM index*, which can be
+    // a different sheet once the preview has been virtualized.
+    const lazy = window.PdfViewportLazyPreview;
+    if(window.__pdfEditorLazyPreviewActive && lazy?.navigateOutput && lazy?.descriptorIndexForPage){
+      const descriptors = lazy.buildOutputDescriptors?.() || [];
+      const output = lazy.descriptorIndexForPage(page, descriptors);
+      if(output >= 0){
+        lazy.selectSourcePage?.(page);
+        void lazy.navigateOutput(output);
+        return true;
+      }
+    }
     const index = outputIndexForPage(page);
     return index >= 0 ? scrollPreviewTo(index, smooth) : false;
   }

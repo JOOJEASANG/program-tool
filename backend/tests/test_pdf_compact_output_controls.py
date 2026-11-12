@@ -58,4 +58,4 @@ def test_assets_and_cache_versions_are_consistent():
     assert "simple-sidebar-ui.js?v=20261112-3" in read("js/pdf-editor/ui-runtime.js")
     assert "pdf-editor-final-check.js?v=20261112-2" in read("js/pdf-editor/route-runtime.js")
     assert "PDF_UI_RUNTIME_VERSION='20261112-2'" in read("js/program-shell-unify.js")
-    assert '"version": "2026.11.12.007"' in read("version.json")
+    assert '"version": "2026.11.12.008"' in read("version.json")

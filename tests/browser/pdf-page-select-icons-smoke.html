@@ -7,7 +7,7 @@
  .thumb-item{width:75px}.thumb-wrap{display:block;position:relative;width:75px;height:98px;border:1px solid #ddd}
  .page-preview{width:70px;height:40px}.page-sidebar{width:360px}
 </style></head>
-<body data-pdf-page-select-icons-smoke="running">
+<body data-program-kind="pdf-editor" data-pdf-page-select-icons-smoke="running">
 <pre id="result">RUNNING</pre>
 <div id="pageSidebar" class="page-sidebar">
  <div id="thumbSection" class="sec">
@@ -65,8 +65,13 @@
  document.getElementById('previewScroll').scrollTo=()=>{};
  window.renderThumbs();
 </script>
+<!-- Load the legacy number-only sidebar BEFORE the selection controller,
+     as can happen in production when runtime modules install asynchronously. -->
+<script src="/js/pdf-editor/editor-interaction-polish.js?v=20261112-1"></script>
 <script src="/js/pdf-editor/app-boundary.js?v=20261112-1"></script>
-<script src="/js/pdf-editor/page-selection-preview-focus.js?v=20261112-4"></script>
+<script src="/js/pdf-editor/page-selection-preview-focus.js?v=20261112-5"></script>
+<script>window.__pdfEditorFastMode=true;</script>
+<script src="/js/pdf-editor/viewport-lazy-preview.js?v=20261112-5"></script>
 <script src="/js/pdf-editor/page-count-hint.js?v=20261112-4"></script>
 <script src="/js/pdf-editor/file-navigation.js?v=20261112-1"></script>
 <script src="/js/pdf-editor/page-list-icons.js?v=20261112-2"></script>
@@ -106,12 +111,28 @@
   await sleep(35);check(0,'direct clear within capture-enabled heading');
   if(document.querySelectorAll('#thumbArea .page-select-check').length!==0)fail('duplicate page checkboxes present');
   if(document.querySelectorAll('#thumbArea .pdf-page-select-checkbox').length!==4)fail('one permanent checkbox per thumbnail not present');
+  if(!window.PdfEditorInteractionPolish||!window.PdfViewportLazyPreview)
+    fail('real number-only sidebar or lazy-preview conflict module did not load');
+  if(document.querySelector('#thumbArea')?.dataset.numberOnlyNavigation==='true'
+    ||document.body.dataset.pdfSidebarPageMode==='number-only')
+    fail('legacy page-number-only mode remained enabled after direct selection boot');
+  const visibleFirst=get('#thumbArea .thumb-item .thumb-wrap canvas');
+  if(!visibleFirst||getComputedStyle(visibleFirst).display==='none')
+    fail('legacy CSS still hides real source thumbnail canvases');
+  if(getComputedStyle(get('#thumbArea .pdf-page-select-checkbox')).display==='none'
+    ||getComputedStyle(get('#thumbArea .pdf-page-select-checkbox')).visibility==='hidden')
+    fail('legacy CSS still hides the individual selection checkboxes');
   if(!get('.pdf-file-action-row'))fail('per-file menu was not rendered');
   if(document.querySelectorAll('#pageSelectionToolbar [data-selection-action="all"],#pageSelectionToolbar [data-selection-action="clear"]').length!==1)
     fail('global select and clear must use one button');
   click(0);
   await sleep(35);
-  check(1,'normal click');
+  check(1,'normal click with lazy-preview document capture registered');
+  const checkedMark=get('#thumbArea .thumb-item[data-id="1"] .page-selection-mark');
+  if(!checkedMark||getComputedStyle(checkedMark).display==='none')
+    fail('selected-page check badge is not visible');
+  if(!get('#thumbArea .thumb-item[data-id="1"] .pdf-page-select-checkbox').checked)
+    fail('selected-page checkbox did not show a tick');
   if(parsedPages[0].excluded)fail('page selection unexpectedly hid selected page');
   if(getComputedStyle(get('.page-productivity-actions')).display==='none')fail('batch actions hidden after selecting one page');
   click(0);await sleep(35);check(0,'click same page again deselects');
@@ -209,6 +230,18 @@
     fail('81-page import did not render one selector on each thumbnail');
   window.PdfEditorPageSelection.clearSelection();
   click(0);click(80);await sleep(30);check(2,'81-page nonadjacent direct select');
+  // A long document often uses virtualized output preview. Clicking a late
+  // thumbnail must still select it and navigate the correct OUTPUT face.
+  const lazy=window.PdfViewportLazyPreview;
+  const oldNavigate=lazy.navigateOutput;
+  let navigated=-1;
+  lazy.navigateOutput=async index=>{navigated=index;return true;};
+  window.__pdfEditorLazyPreviewActive=true;
+  click(80);await sleep(30);check(1,'81-page lazy navigation click still deselects page');
+  click(80);await sleep(30);check(2,'81-page lazy navigation click reselects page');
+  if(navigated!==80)fail('late thumbnail did not navigate to its virtualized output face');
+  window.__pdfEditorLazyPreviewActive=false;
+  lazy.navigateOutput=oldNavigate;
   if(parsedPages[0].excluded||parsedPages[80].excluded)fail('81-page selection excluded PDF pages');
   get('#pageListSelectAll').click();
   await sleep(40);check(81,'81-page select all via page-list heading');

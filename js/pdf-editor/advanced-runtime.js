@@ -139,7 +139,7 @@
   const loadDirectPageEdit=()=>load('pdfDirectPageEditScriptV2','/js/pdf-editor/direct-page-edit-v2.js?v=20260909-2');
   const loadDragCropAutoFit=()=>load('pdfDragCropAutoFitScriptV1','/js/pdf-editor/drag-crop-autofit.js?v=20260908-2');
   const loadNupDirectPreviewEdit=()=>load('pdfNupDirectPreviewEditScriptV1','/js/pdf-editor/nup-direct-preview-edit.js?v=20260908-1');
-  const loadEditorInteractionPolish=()=>load('pdfEditorInteractionPolishScriptV1','/js/pdf-editor/editor-interaction-polish.js?v=20260908-1');
+  const loadEditorInteractionPolish=()=>load('pdfEditorInteractionPolishScriptV1','/js/pdf-editor/editor-interaction-polish.js?v=20261112-1');
   const loadOrientationScaleRegression=()=>load('pdfOrientationScaleRegressionScriptV1','/js/pdf-editor/orientation-scale-regression-fix.js?v=20260908-1');
   const loadPrecisionEditTools=()=>load('pdfPrecisionEditToolsScriptV1','/js/pdf-editor/precision-edit-tools.js?v=20260908-1');
   const loadAdvancedWorkspaceUx=()=>load('pdfAdvancedWorkspaceUxScriptV1','/js/pdf-editor/advanced-workspace-ux.js?v=20260909-1');

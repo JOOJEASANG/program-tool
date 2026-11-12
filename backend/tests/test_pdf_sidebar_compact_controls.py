@@ -15,7 +15,7 @@ def test_only_one_global_selection_toolbar_is_visible():
     assert 'html.pdf-direct-thumb-selection #pageSidebar #pageProductivityPanelV3.single-selection-ui .page-productivity-top{display:none!important}' in html
     assert '#pageSidebar #pageProductivityPanelV3 .page-productivity-top{display:none!important}' not in html
     route = read("js/pdf-editor/route-runtime.js")
-    assert "page-selection-preview-focus.js?v=20261112-4',app:'layout'" in route
+    assert "page-selection-preview-focus.js?v=20261112-5',app:'layout'" in route
     assert "panel.classList.toggle('single-selection-ui',unifiedSelection());" in productivity
     assert 'data-selection-action="all" aria-pressed="false"' in selection
     assert '<button type="button" class="page-selection-btn" data-selection-action="clear"' not in selection
