@@ -183,7 +183,7 @@
     const info = $('pdfCellMarginSummary');
     if (info) info.textContent = targets.length
       ? targets.length + '페이지 대상 · 입력한 여백이 전체 여백을 대체'
-      : '왼쪽 페이지 목록을 선택하거나, 위에서 업로드 파일을 선택하세요.';
+      : '오른쪽 페이지 목록에서 선택하거나, 위에서 파일을 선택하세요.';
     for (const edge of CELL_EDGES) {
       const input = $('pdfCellMargin' + edge[0].toUpperCase() + edge.slice(1));
       if (!input) continue;

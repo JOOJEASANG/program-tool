@@ -46,20 +46,20 @@ def test_optimized_preview_keeps_blank_and_divider_fallback_without_duplicate_ac
         assert marker in source
 
 
-def test_page_list_is_the_only_recovery_sidebar_section_allowed_to_collapse():
+def test_page_list_and_optional_print_controls_can_collapse_without_disabling_insert_actions():
     source = SIDEBAR.read_text(encoding="utf-8")
 
     for marker in (
         '#thumbSection>#sb-pages.hidden{display:none!important}',
-        "if(sec.id==='thumbSection')",
-        "if(head.closest('#thumbSection'))",
-        "single-sidebar-page-list-collapsible-hotfix-v4",
+        "function organizeWorkspace(){",
+        "function organizeRightSidebar(){",
+        "head.setAttribute('aria-expanded',String(isOpen));",
         "removePrintOutputToolLabel",
         "pdfSidebarPrintOutputLabel='removed'",
     ):
         assert marker in source
 
-    assert "body.dataset.pdfSidebarMode='all-visible-page-list-collapsible'" in source
+    assert "document.body.dataset.pdfSidebarMode='stepwise-print-workflow-v2'" in source
 
 
 def test_route_and_browser_gate_include_insert_persistence_regression():

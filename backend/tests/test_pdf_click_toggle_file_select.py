@@ -22,7 +22,7 @@ def test_single_global_all_clear_toggle_reacts_to_exact_selection():
     assert "const allSelected = total > 0 && selectedIds.size === total;" in src
     assert "const nextAction = allSelected ? 'clear' : 'all';" in src
     assert "allToggle.dataset.selectionAction = nextAction;" in src
-    assert "allToggle.textContent = allSelected ? '해제' : '전체';" in src
+    assert "allToggle.textContent = allSelected ? '선택 해제' : '전체 선택';" in src
     assert "allToggle.setAttribute('aria-pressed', String(allSelected));" in src
     assert "allToggle.disabled = total === 0;" in src
 
@@ -45,7 +45,7 @@ def test_single_file_toggle_updates_caption_count_and_preserves_other_files():
     assert "if (allSelected) selection.clearFile(group.fileIndex);" in src
     assert "selection.selectFile(group.fileIndex, { additive: event.ctrlKey || event.metaKey });" in src
     assert "toggle.classList.toggle('is-clear', allSelected);" in src
-    assert "toggle.textContent = allSelected ? '해제' : '전체';" in src
+    assert "toggle.textContent = allSelected ? '파일 해제' : '파일 선택';" in src
     assert "toggle.setAttribute('aria-pressed', String(allSelected));" in src
     assert "actionRow.appendChild(clearButton);" not in src
 
@@ -57,11 +57,11 @@ def test_icons_and_compact_toolbar_track_the_same_toggle_state():
     assert "const description=stateful" in icons
     assert "panel.classList.toggle('single-selection-ui',unifiedSelection());" in productivity
     assert ".page-productivity-panel.single-selection-ui .page-productivity-top{display:none!important}" in productivity
-    assert "page-selection-preview-focus.js?v=20261112-2" in ROUTE.read_text(encoding="utf-8")
-    assert "file-navigation.js?v=20261112-1" in ROUTE.read_text(encoding="utf-8")
-    assert "page-count-hint.js?v=20261112-2" in CORE.read_text(encoding="utf-8")
-    assert "page-count-hint.js?v=20261112-2" in LOADER.read_text(encoding="utf-8")
-    assert "page-list-icons.js?v=20261112-2" in EDITOR.read_text(encoding="utf-8")
+    assert "page-selection-preview-focus.js?v=20261112-3" in ROUTE.read_text(encoding="utf-8")
+    assert "file-navigation.js?v=20261112-2" in ROUTE.read_text(encoding="utf-8")
+    assert "page-count-hint.js?v=20261112-3" in CORE.read_text(encoding="utf-8")
+    assert "page-count-hint.js?v=20261112-3" in LOADER.read_text(encoding="utf-8")
+    assert "page-list-icons.js?v=20261112-3" in EDITOR.read_text(encoding="utf-8")
     assert "같은 페이지를 한 번 더 클릭" in MANUAL.read_text(encoding="utf-8")
     browser = BROWSER.read_text(encoding="utf-8")
     assert "click same page again deselects" in browser

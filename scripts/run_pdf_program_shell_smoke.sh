@@ -98,6 +98,7 @@ reset_profile
 run_product_case "program-direct-print-retired-smoke.html" "$OUT_DIR/program-direct-print-retired-dom.html" 'data-print-retired-smoke="pass"' 'PASS: printer output actions removed; PDF downloads and exports remain'
 reset_profile
 run_case "pdf-editor-shell-smoke.html" "$OUT_DIR/pdf-editor-shell-smoke-dom.html" 'PASS: PDF sidebar remains visible after delayed common/runtime initialization'
+run_product_case "pdf-two-sidebars-workflow-smoke.html" "$OUT_DIR/pdf-two-sidebars-workflow-dom.html" 'data-pdf-two-sidebars-smoke="pass"' 'PASS: PDF left paper/N-up workflow, advanced disclosures, right file navigation and margins, preserved action handlers and pinned PDF save'
 run_product_case "pdf-editor-right-sidebar-smoke.html" "$OUT_DIR/pdf-editor-right-sidebar-smoke-dom.html" 'data-pdf-right-sidebar-smoke="pass"' 'PASS: uploaded PDF thumbnails live in right sidebar with auto-open, manual collapse, resize, compact drawer and reset'
 run_product_case "pdf-selected-page-margins-smoke.html" "$OUT_DIR/pdf-selected-page-margins-smoke-dom.html" 'data-pdf-selected-page-margins-smoke="pass"' 'PASS: right sidebar selected-page margins apply, mixed values, zero overrides, save, export and reset without changing other pages'
 run_product_case "pdf-page-select-icons-smoke.html" "$OUT_DIR/pdf-page-select-icons-smoke-dom.html" 'data-pdf-page-select-icons-smoke="pass"' 'PASS: unified single/Ctrl/Shift/checkbox/file selection with one checkbox, active batch actions, and Korean SVG icon menus'
@@ -128,7 +129,7 @@ run_product_case "pdf-print-output-stage1-smoke.html" "$OUT_DIR/pdf-print-output
 reset_profile
 run_product_case "pdf-security-storage-policy-smoke.html" "$OUT_DIR/pdf-security-storage-smoke-dom.html" 'data-pdf-security-storage-smoke="pass"' 'PASS: PDF encrypt/decrypt uses Storage above 20MB with a 500MB file ceiling'
 reset_profile
-run_product_case "pdf-editor-workflow-v2-smoke.html" "$OUT_DIR/pdf-editor-workflow-v2-smoke-dom.html" 'data-workflow-v2-smoke="pass"' 'PASS: PDF editor page list collapses while the remaining recovery sidebar controls stay visible'
+run_product_case "pdf-editor-workflow-v2-smoke.html" "$OUT_DIR/pdf-editor-workflow-v2-smoke-dom.html" 'data-workflow-v2-smoke="pass"' 'PASS: PDF editor has collapsible advanced document options and an independently collapsible right page list'
 reset_profile
 run_product_case "pdf-divider-modal-layout-smoke.html" "$OUT_DIR/pdf-divider-modal-layout-smoke-dom.html" 'data-divider-modal-smoke="pass"' 'PASS: divider modal survives delayed studio load, opens on click and keeps actions in the narrow left panel'
 reset_profile

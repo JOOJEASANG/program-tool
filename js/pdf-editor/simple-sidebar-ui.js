@@ -1,4 +1,4 @@
-// PDF editor: one sidebar, with page-list collapse preserved while legacy rails stay disabled.
+// PDF editor: progressive print settings on the left and page management on the right.
 (function(){
   'use strict';
   if(window.__pdfEditorSimpleSidebarUiV1)return;
@@ -9,6 +9,14 @@
   window.__programStudioEditorToolRailV1=true;
   window.__pdfEditorWorkflowV2=true;
   let frame=0,observer=null;
+  // Only the document-print workflow is visible on first load. Preserve each
+  // user's expanded sections throughout dynamic thumbnail and settings updates.
+  const defaultSections=new Set(['upload','paper','nup','output']);
+  const openSections=new Set(defaultSections);
+  const sectionKey=section=>{
+    const head=section?.querySelector(':scope>.sec-head');
+    return head?.dataset?.sec || (section?.querySelector('#downloadBtn')?'output':null);
+  };
 
   function installStyles(){
     if(document.getElementById('pdfSimpleSidebarUiStyles'))return;
@@ -69,6 +77,31 @@
       body[data-program-kind="pdf-editor"] #previewScroll{background:#e8edf3!important;border-radius:9px!important}
       body[data-program-kind="pdf-editor"] #previewScroll .preview-row{width:100%;min-width:max-content;justify-content:center;flex-wrap:nowrap;box-sizing:border-box}
       body[data-program-kind="pdf-editor"] #previewScroll .page-preview{border-radius:5px!important;box-shadow:0 3px 14px rgba(15,23,42,.14)!important}
+      /* Primary print workflow: upload -> paper -> N-up -> optional text -> save. */
+      body[data-program-kind="pdf-editor"] .app>aside:first-of-type .sec.pdf-ui-closed>.sec-body,
+      body[data-program-kind="pdf-editor"] .app>aside:first-of-type .sec.pdf-ui-closed>.sec-body.hidden{display:none!important}
+      body[data-program-kind="pdf-editor"] .app>aside:first-of-type .sec.pdf-ui-toggle>.sec-head{cursor:pointer!important}
+      body[data-program-kind="pdf-editor"] .app>aside:first-of-type .sec.pdf-ui-toggle>.sec-head .sec-arrow{display:inline-block!important;margin-left:auto!important}
+      body[data-program-kind="pdf-editor"] .app>aside:first-of-type .sec.pdf-ui-closed>.sec-head .sec-arrow{transform:rotate(-90deg)!important}
+      body[data-program-kind="pdf-editor"] .app>aside:first-of-type .sec.pdf-ui-toggle>.sec-head:focus-visible{outline:2px solid #2563eb;outline-offset:-2px}
+      body[data-program-kind="pdf-editor"] #pdfActualSizeDisclosure{margin:8px 0;border:1px solid #dbe5ee;border-radius:9px;background:#f8fafc;overflow:hidden}
+      body[data-program-kind="pdf-editor"] #pdfActualSizeDisclosure>summary{padding:10px 11px;cursor:pointer;list-style:none;font-size:11px;font-weight:800;color:#334155}
+      body[data-program-kind="pdf-editor"] #pdfActualSizeDisclosure>summary::-webkit-details-marker{display:none}
+      body[data-program-kind="pdf-editor"] #pdfActualSizeDisclosure>summary::after{content:'⌄';float:right;color:#64748b}
+      body[data-program-kind="pdf-editor"] #pdfActualSizeDisclosure[open]>summary::after{content:'⌃'}
+      body[data-program-kind="pdf-editor"] #pdfActualSizeDisclosure>#actualSizePanel{margin:0 7px 8px!important}
+      body[data-program-kind="pdf-editor"] .app>aside:first-of-type .sec:has(#downloadBtn){
+        position:sticky!important;bottom:-12px!important;z-index:30!important;border-color:#b6cde6!important;
+        background:#fff!important;box-shadow:0 -4px 18px rgba(15,23,42,.11)!important;margin-bottom:0!important}
+      body[data-program-kind="pdf-editor"] .app>aside:first-of-type .sec:has(#downloadBtn)>.sec-head{display:none!important}
+      body[data-program-kind="pdf-editor"] .app>aside:first-of-type .sec:has(#downloadBtn)>.sec-body{
+        display:grid!important;grid-template-columns:minmax(0,1fr) minmax(0,1fr)!important;gap:6px!important;padding:9px!important}
+      body[data-program-kind="pdf-editor"] .app>aside:first-of-type .sec:has(#downloadBtn)>.sec-body>div[style*="height:6px"]{display:none!important}
+      body[data-program-kind="pdf-editor"] .app>aside:first-of-type #downloadBtn{
+        grid-column:1/-1!important;grid-row:1!important;height:42px!important;max-height:none!important;font-size:13px!important}
+      body[data-program-kind="pdf-editor"] .app>aside:first-of-type #previewBtn{grid-column:1!important;grid-row:2!important}
+      body[data-program-kind="pdf-editor"] .app>aside:first-of-type #resetBtn{grid-column:2!important;grid-row:2!important}
+      body[data-program-kind="pdf-editor"] .app>aside:first-of-type :is(.sec-body,summary):focus-visible{outline:2px solid #2563eb;outline-offset:1px}
       @media(max-width:760px){body[data-program-kind="pdf-editor"] .app>aside:first-of-type{padding:10px!important}body[data-program-kind="pdf-editor"] #previewScroll .preview-row{min-width:max-content}}
       @media(max-width:980px){body[data-program-kind="pdf-editor"]{overflow:auto!important}body[data-program-kind="pdf-editor"] .app{grid-template-columns:1fr!important;height:auto!important;min-height:100vh!important}body[data-program-kind="pdf-editor"] .app>aside:first-of-type,body[data-program-kind="pdf-editor"] .app>main{grid-column:1!important;width:100%!important;height:auto!important;position:relative!important;overflow:visible!important}}
     `;
@@ -139,25 +172,103 @@
     }catch(_){}
   }
 
-  function keepSectionsOpen(){
-    document.querySelectorAll('.app>aside .sec').forEach(sec=>{
-      sec.hidden=false;
-      sec.classList.remove('pdf-step-section','pdf-advanced-section','pdf-output-dock-v2','ps-tool-source','ps-tool-context-hidden');
-      sec.removeAttribute('data-pdf-step');
-      sec.removeAttribute('data-ps-tool-step');
-      const head=sec.querySelector(':scope>.sec-head'),body=sec.querySelector(':scope>.sec-body');
-      if(sec.id==='thumbSection'){
-        if(head&&body){
-          head.setAttribute('aria-expanded',body.classList.contains('hidden')?'false':'true');
-          head.removeAttribute('role');
+  function organizeWorkspace(){
+    const left=document.querySelector('.app>aside:first-of-type');
+    if(!left)return;
+    const upload=left.querySelector('#sb-upload')?.closest('.sec');
+    const paper=left.querySelector('#sb-paper')?.closest('.sec');
+    const nup=left.querySelector('#sb-nup')?.closest('.sec');
+    if(upload&&paper&&nup&&paper.parentElement===nup.parentElement
+        &&paper.compareDocumentPosition(nup)&Node.DOCUMENT_POSITION_PRECEDING){
+      nup.parentNode.insertBefore(paper,nup);
+    }
+    const names={upload:'1 · PDF 불러오기',paper:'2 · 용지·여백',nup:'3 · 페이지 배치',edit:'추가 · 문서 표시'};
+    for(const section of left.querySelectorAll('.sec')){
+      const key=sectionKey(section);
+      if(!key)continue;
+      // Output controls stay visible at the bottom; every other section can
+      // collapse without losing any inputs, event listeners, or unsaved values.
+      const isOpen=key==='output'||openSections.has(key);
+      section.classList.remove('pdf-step-section','pdf-advanced-section','pdf-output-dock-v2','ps-tool-source','ps-tool-context-hidden');
+      section.removeAttribute('data-pdf-step');
+      section.removeAttribute('data-ps-tool-step');
+      section.classList.toggle('pdf-ui-closed',!isOpen);
+      section.classList.toggle('pdf-ui-toggle',key!=='output');
+      section.hidden=false;
+      const head=section.querySelector(':scope>.sec-head');
+      const body=section.querySelector(':scope>.sec-body');
+      if(head){
+        head.classList.toggle('collapsed',!isOpen);
+        head.setAttribute('aria-expanded',String(isOpen));
+        if(key!=='output'){
+          head.setAttribute('role','button');
+          head.setAttribute('tabindex','0');
+          if(body?.id)head.setAttribute('aria-controls',body.id);
         }
-        return;
+        const title=head.querySelector('.sec-title');
+        if(title&&names[key]&&title.textContent!==names[key])title.textContent=names[key];
       }
-      head?.classList.remove('collapsed');body?.classList.remove('hidden');
-      if(head){head.setAttribute('aria-expanded','true');head.removeAttribute('role');}
-    });
+      if(body)body.classList.toggle('hidden',!isOpen);
+    }
+    const actual=document.getElementById('pdfActualSizeDisclosure');
+    if(actual&&document.getElementById('actualSizeCheck')?.checked)actual.open=true;
+    const edit=left.querySelector('[data-sec="edit"] .sec-badge');
+    if(edit){
+      const on=['wmEnabled','hfEnabled','pnEnabled'].filter(id=>document.getElementById(id)?.checked).length;
+      const caption=on?on+'개 표시 사용 중':'워터마크·머리말·쪽번호';
+      if(edit.textContent!==caption)edit.textContent=caption;
+    }
     const hint=document.querySelector('.thumb-hint');
-    if(hint&&hint.textContent.includes('클릭=제외'))hint.textContent='클릭=미리보기 이동 · 드래그=순서변경 · 배지=개별설정';
+    if(hint&&hint.textContent.includes('클릭=제외'))hint.textContent='클릭으로 선택 · Ctrl/Shift로 여러 페이지 선택 · 드래그로 순서 변경';
+  }
+
+  function organizeRightSidebar(){
+    const right=document.getElementById('pageSidebar');
+    if(!right)return;
+    // The page grid retains its independent collapse control and exposes the
+    // actual state to assistive technology, unlike the former duplicate heading.
+    const section=document.getElementById('thumbSection');
+    const heading=section?.querySelector(':scope>.sec-head');
+    const pages=section?.querySelector(':scope>.sec-body');
+    if(heading&&pages){
+      const expanded=!pages.classList.contains('hidden');
+      if(heading.getAttribute('aria-expanded')!==String(expanded))heading.setAttribute('aria-expanded',String(expanded));
+      if(heading.getAttribute('role')!=='button')heading.setAttribute('role','button');
+      if(heading.tabIndex!==0)heading.tabIndex=0;
+      if(pages.id)heading.setAttribute('aria-controls',pages.id);
+    }
+    // Per-file overrides belong with file/page management. Move the *existing*
+    // controls, preserving their handlers, instead of creating a second editor.
+    const margin=document.getElementById('pdfPageCellMarginsV1');
+    if(margin){
+      let details=document.getElementById('pdfFileMarginsDetails');
+      if(!details){
+        details=document.createElement('details');
+        details.id='pdfFileMarginsDetails';
+        details.className='pdf-file-margins-disclosure';
+        const summary=document.createElement('summary');
+        summary.textContent='파일별 여백 · 고급';
+        details.appendChild(summary);
+        const thumb=document.getElementById('thumbSection');
+        if(thumb?.parentElement===right)right.insertBefore(details,thumb);
+        else right.appendChild(details);
+      }
+      if(margin.parentElement!==details)details.appendChild(margin);
+    }
+    const navigation=document.getElementById('pdfFileNavigation');
+    if(navigation&&navigation.parentElement?.id!=='pdfPageJumpDetails'){
+      let details=document.getElementById('pdfPageJumpDetails');
+      if(!details){
+        details=document.createElement('details');
+        details.id='pdfPageJumpDetails';
+        details.className='pdf-page-jump-disclosure';
+        const summary=document.createElement('summary');
+        summary.textContent='페이지 찾기 · 파일 접기';
+        details.appendChild(summary);
+        navigation.parentElement.insertBefore(details,navigation);
+      }
+      if(navigation.parentElement!==details)details.appendChild(navigation);
+    }
   }
 
   function compactLogout(){
@@ -168,26 +279,39 @@
 
   function sync(){
     observer?.disconnect?.();
-    try{installStyles();neutralizeToolRail();restoreOutputRail();removeLegacyUi();removePrintOutputToolLabel();keepSectionsOpen();compactLogout();document.body.dataset.pdfSidebarMode='all-visible-page-list-collapsible';document.documentElement.dataset.pdfSimpleSidebarUi='1';}
+    try{installStyles();neutralizeToolRail();restoreOutputRail();removeLegacyUi();removePrintOutputToolLabel();organizeWorkspace();organizeRightSidebar();compactLogout();document.body.dataset.pdfSidebarMode='stepwise-print-workflow-v2';document.documentElement.dataset.pdfSimpleSidebarUi='1';}
     finally{observer?.observe(document.querySelector('.app')||document.body,{childList:true,subtree:true,attributes:true,attributeFilter:['class','style','hidden','aria-hidden']});}
   }
 
   function blockToggle(event){
-    const head=event.target.closest?.('.app>aside .sec-head');if(!head)return;
-    if(head.closest('#thumbSection')){
-      setTimeout(()=>{
-        const body=head.parentElement?.querySelector(':scope>.sec-body');
-        if(body)head.setAttribute('aria-expanded',body.classList.contains('hidden')?'false':'true');
-      },0);
-      return;
-    }
-    event.preventDefault();event.stopImmediatePropagation();
-    head.classList.remove('collapsed');head.parentElement?.querySelector(':scope>.sec-body')?.classList.remove('hidden');
+    const head=event.target?.closest?.('.app>aside:first-of-type .sec-head[data-sec]');
+    if(!head)return;
+    const key=sectionKey(head.closest('.sec'));
+    if(!key||key==='output')return;
+    if(event.type==='keydown'&&!['Enter',' '].includes(event.key))return;
+    event.preventDefault();
+    event.stopImmediatePropagation();
+    if(openSections.has(key))openSections.delete(key);
+    else openSections.add(key);
+    // Section feedback must be synchronous, including in background tabs where
+    // requestAnimationFrame is paused. A queued repaint may refresh later.
+    sync();
   }
   function queue(){if(frame)return;frame=requestAnimationFrame(()=>{frame=0;sync();});}
-  function boot(){if(typeof MutationObserver==='function')observer=new MutationObserver(queue);document.addEventListener('click',blockToggle,true);sync();[80,220,600,1200,2200].forEach(delay=>setTimeout(queue,delay));}
+  function boot(){if(typeof MutationObserver==='function')observer=new MutationObserver(queue);document.addEventListener('click',blockToggle,true);document.addEventListener('keydown',blockToggle,true);
+    document.addEventListener('keydown',event=>{
+      const header=event.target?.closest?.('#pageSidebar #thumbSection>.sec-head');
+      if(header&&['Enter',' '].includes(event.key)){
+        event.preventDefault();
+        header.click();
+      }
+    },true);
+    document.addEventListener('click',event=>{
+      if(event.target?.closest?.('#pageSidebar #thumbSection>.sec-head'))queueMicrotask(organizeRightSidebar);
+    });
+    sync();[80,220,600,1200,2200].forEach(delay=>setTimeout(queue,delay));}
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot();
 
-  const api={sync,removePrintOutputToolLabel,stage:'single-sidebar-page-list-collapsible-hotfix-v4',revision:'print-output-label-cleanup-v6'};
+  const api={sync,removePrintOutputToolLabel,stage:'two-sidebar-print-workflow-v2',revision:'stepwise-sidebar-and-file-margin-grouping-v1'};
   window.PdfEditorSimpleSidebarUi=api;window.PdfEditorWorkflowUi=api;window.PdfEditorWorkspaceLayout=api;
 })();

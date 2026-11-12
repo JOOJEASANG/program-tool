@@ -21,7 +21,7 @@ def test_pdf_tools_remove_fixed_header_without_losing_actions():
         "document.getElementById('userName')",
         "oldNav.remove()",
         "stage:'pdf-tools-headerless-unified-shell'",
-        "workflowStage:'pdf-all-controls-visible-v1'",
+        "workflowStage:'pdf-progressive-controls-v2'",
     ):
         assert marker in source
 
@@ -44,7 +44,7 @@ def test_runtime_loads_shared_shell_for_pdf_editor_from_canonical_route_manifest
     route_runtime = ROUTE_RUNTIME.read_text(encoding="utf-8")
     assert "pdfEditorRouteRuntimeScriptV1" in runtime
     assert "programShellUnifyScriptV1" in route_runtime
-    assert "/js/program-shell-unify.js?v=20260831-1" in route_runtime
+    assert "/js/program-shell-unify.js?v=20261112-1" in route_runtime
     assert "/js/pdf-editor/ui-runtime.js?v=${PDF_UI_RUNTIME_VERSION}" in SHELL.read_text(encoding="utf-8")
 
 
