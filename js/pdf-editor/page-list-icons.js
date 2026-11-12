@@ -117,6 +117,7 @@ function install(){
      '#pageSidebar .pdf-page-action-icon{display:block;flex:0 0 15px;width:15px;height:15px;pointer-events:none}',
      '#pageSidebar .pdf-page-action-label{display:block;min-width:0;overflow:hidden;text-overflow:ellipsis}',
      '#pageSidebar .pdf-file-action-row{gap:4px!important}',
+     '#pageSidebar .pdf-file-nav-toggle .pdf-page-action-label,#pageSidebar .pdf-file-order-handle .pdf-page-action-label{display:none!important}',
      '#pageSidebar .pdf-file-action-row>.pdf-page-icon-button{padding:0 4px!important;flex:1 1 0!important;font-size:9px!important}',
      '#pageSidebar .pdf-file-delete-btn.pdf-page-icon-button{color:#b91c1c!important;border-color:#fecaca}',
      '#pageSidebar .pdf-page-icon-button:focus-visible{outline:2px solid #2563eb!important;outline-offset:1px}',
