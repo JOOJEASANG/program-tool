@@ -349,6 +349,26 @@
     #pageSidebar .page-sidebar-toolbar{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:3px 0 10px;position:sticky;top:-12px;
       z-index:5;background:#f7f9fc;border-bottom:1px solid #e2e8f0;margin-bottom:10px}
     #pageSidebar .page-sidebar-heading{font-size:13px;font-weight:900;color:#26384d}
+    /* Right rail: keep selected-page tools small, preserve file-wide controls on demand. */
+    #pageSidebar .pdf-file-margins-disclosure,
+    #pageSidebar .pdf-page-jump-disclosure{border:1px solid #dbe4ee;border-radius:9px;background:#fff;margin:0 0 8px;overflow:hidden}
+    #pageSidebar .pdf-file-margins-disclosure>summary,
+    #pageSidebar .pdf-page-jump-disclosure>summary{padding:10px 12px;cursor:pointer;list-style:none;font-weight:800;font-size:11px;color:#334155}
+    #pageSidebar .pdf-file-margins-disclosure>summary::-webkit-details-marker,
+    #pageSidebar .pdf-page-jump-disclosure>summary::-webkit-details-marker{display:none}
+    #pageSidebar .pdf-file-margins-disclosure>summary::after,
+    #pageSidebar .pdf-page-jump-disclosure>summary::after{content:'⌄';float:right;color:#64748b}
+    #pageSidebar :is(.pdf-file-margins-disclosure,.pdf-page-jump-disclosure)[open]>summary::after{content:'⌃'}
+    #pageSidebar .pdf-file-margins-disclosure .pdf-cell-margin-panel{margin:0 8px 9px}
+    #pageSidebar .pdf-page-jump-disclosure .pdf-file-nav{position:static;margin:0 8px 8px}
+    #pageSidebar .page-productivity-jump>#pageJumpInputV3,
+    #pageSidebar .page-productivity-jump>#pageJumpInputV3+button{display:none!important}
+    #pageSidebar #pageProductivityPanelV3 .page-productivity-jump{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}
+    #pageSidebar #thumbArea .page-selection-mark,
+    #pageSidebar #thumbArea .thumb-item[data-batch-selected="true"]::after{display:none!important}
+    #pageSidebar #thumbSection>.sec-head{padding:9px 11px!important;background:#f8fafc}
+    #pageSidebar #thumbArea .thumb-file-sep-label{max-width:185px}
+    #pageSidebar :is(summary,button,select,input):focus-visible{outline:2px solid #2563eb;outline-offset:2px}
     .page-sidebar-toggle{flex:0 0 auto;border:1px solid #cbd5e1;border-radius:7px;background:#fff;color:#1e40af;
       font:800 11px Pretendard,"Noto Sans KR",sans-serif;padding:6px 9px;cursor:pointer;white-space:nowrap}
     .page-sidebar-toggle:hover,.page-sidebar-close:hover{background:#eff6ff;border-color:#93c5fd}
@@ -469,6 +489,8 @@
             <button class="nup-btn" data-nup="8"><span class="nup-label">8장</span><span class="nup-badge" id="b8">2×4</span></button>
             <button class="nup-btn" data-nup="9"><span class="nup-label">9장</span><span class="nup-badge" id="b9">3×3</span></button>
           </div>
+          <details id="pdfActualSizeDisclosure" class="pdf-optional-settings">
+            <summary>실제 크기 · 상세 배치 설정</summary>
           <div id="actualSizePanel" style="margin-top:8px;padding:8px 9px;border:1px solid #dbeafe;border-radius:8px;background:#f8fbff;">
             <label class="checkline" style="margin-bottom:6px;">
               <input type="checkbox" id="actualSizeCheck">
@@ -498,6 +520,7 @@
             <button type="button" id="actualUseSourceBtn" style="width:100%;border:1px solid #bfdbfe;border-radius:7px;padding:5px 7px;background:#fff;color:#1d4ed8;font-size:9px;font-weight:800;cursor:pointer;font-family:inherit;">원본 PDF 크기 불러오기</button>
             <div id="actualSizeWarning" style="margin-top:5px;font-size:9px;line-height:1.45;color:#64748b;font-weight:650;">미지정 시 기존처럼 배치 칸에 자동 맞춤됩니다.</div>
           </div>
+          </details>
           <div id="bookletRow" class="opt-row" style="display:none; margin-top:4px;">
             <label style="display:flex;align-items:center;gap:6px;font-size:11px;color:#374151;cursor:pointer;">
               <input type="checkbox" id="bookletCheck" style="cursor:pointer;">
@@ -515,7 +538,7 @@
           </div>
         </div>
         <div class="field">
-          <label>슬라이드 순서</label>
+          <label>페이지 배치 순서</label>
           <div class="orient-row">
             <button class="orient-btn active" id="orderLR">
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
@@ -805,13 +828,13 @@
     <!-- 페이지 목록 -->
     <div class="sec" id="thumbSection" style="display:none">
       <div class="sec-head" data-sec="pages">
-        <span class="sec-title">업로드된 페이지</span>
+        <span class="sec-title">파일별 페이지</span>
         <span class="slide-count" id="slideCount"></span>
         <span class="sec-arrow">▾</span>
       </div>
       <div class="sec-body" id="sb-pages">
         <div class="thumb-area" id="thumbArea"></div>
-        <div class="thumb-hint">클릭=제외 · 드래그=순서변경 · 배지=개별설정</div>
+        <div class="thumb-hint">클릭으로 선택 · Ctrl/Shift로 여러 페이지 선택 · 드래그로 순서 변경</div>
       </div>
     </div>
 
