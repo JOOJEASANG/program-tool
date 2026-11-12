@@ -72,6 +72,9 @@ def test_selected_page_margin_panel_uses_exact_same_engine_and_has_mixed_state()
         "engine.applySelectedPageMargins({},true)",
         "'pdf-page-selection-change'",
         "'pdf-page-margin-change'",
+        "document.addEventListener('input',onGlobalChange,true)",
+        "document.addEventListener('change',onGlobalChange,true)",
+        "const globalEdges=new Set(['marginLeft','marginRight','marginTop','marginBottom','marginH','marginV'])",
     ):
         assert marker in ui
     assert "layout-export.js?v=20261112-1" in CORE.read_text(encoding="utf-8")
