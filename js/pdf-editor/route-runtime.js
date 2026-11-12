@@ -6,7 +6,7 @@
   window.__pdfEditorRouteRuntimeV2=true;
 
   const MODULES=Object.freeze([
-    {id:'programShellUnifyScriptV1',src:'/js/program-shell-unify.js?v=20260831-1'},
+    {id:'programShellUnifyScriptV1',src:'/js/program-shell-unify.js?v=20261112-1'},
     {id:'pdfAllInOneStage1ScriptV1',src:'/js/pdf-all-in-one-stage1.js?v=20260824-1'},
     {id:'desktopToolMobileNoticeScriptV1',src:'/js/desktop-tool-mobile-notice.js?v=20260807-1'},
     {id:'pdfLayoutPageSelectionScriptV1',src:'/js/pdf-editor/page-selection-preview-focus.js?v=20261112-3',app:'layout'},
