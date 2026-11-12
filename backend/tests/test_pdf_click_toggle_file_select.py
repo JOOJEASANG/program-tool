@@ -62,7 +62,7 @@ def test_icons_and_compact_toolbar_track_the_same_toggle_state():
     assert "page-count-hint.js?v=20261112-4" in CORE.read_text(encoding="utf-8")
     assert "page-count-hint.js?v=20261112-4" in LOADER.read_text(encoding="utf-8")
     assert "page-list-icons.js?v=20261112-3" in EDITOR.read_text(encoding="utf-8")
-    assert "같은 페이지를 한 번 더 클릭" in MANUAL.read_text(encoding="utf-8")
+    assert "이미 선택된 페이지를 다시 클릭" in MANUAL.read_text(encoding="utf-8")
     browser = BROWSER.read_text(encoding="utf-8")
     assert "click same page again deselects" in browser
     assert "file-specific clear" in browser
