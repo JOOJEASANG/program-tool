@@ -128,7 +128,9 @@ def test_frontend_selection_file_scope_preview_export_and_session_contract():
     assert "window.PdfEditorPageSelection?.snapshotSelectedIds?.()" in js
     assert "fileSourcePages(Number(match[1]))" in js
     assert "cellX + deltaLeft * mm2px" in js
-    assert "innerW * mm2px, innerH * mm2px" in js
+    assert "const innerWidthPx = innerW * mm2px;" in js
+    assert "const innerHeightPx = innerH * mm2px;" in js
+    assert "innerWidthPx, innerHeightPx, mm2px" in js
     assert "settings.pages = settings.pages.map" in js
     for edge in ("left", "right", "top", "bottom"):
         assert "content_margin_" + edge + "_mm: inset." + edge + " ?? null" in js

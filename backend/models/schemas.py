@@ -192,6 +192,9 @@ class PdfProcessRequest(BaseModel):
     booklet: bool = False
     # Place booklet content against the center fold instead of centering it in separated cells.
     booklet_spine_align: bool = False
+    # Optional safe inward move of source artwork on each half of a booklet.
+    # This removes visible INNER white bands without shrinking the sheet or leaf.
+    booklet_inner_shift_mm: float = Field(default=0.0, ge=0.0, le=20.0)
     repeat_cell_overlays: bool = False
 
     @model_validator(mode="after")

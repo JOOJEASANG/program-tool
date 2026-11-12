@@ -499,6 +499,9 @@
     settings.margin_v_mm = (margins.top + margins.bottom) / 2;
     settings.gap_mm = num('gap', 5);
     settings.booklet_spine_align = !!$('bookletCheck')?.checked;
+    const rawInnerShift = Number($('bookletInnerShiftMm')?.value || 0);
+    settings.booklet_inner_shift_mm = settings.booklet_spine_align && Number.isFinite(rawInnerShift)
+      ? Math.max(0, Math.min(20, rawInnerShift)) : 0;
     settings.facing_pages = facingEnabled();
     settings.page_numbers = settings.page_numbers || {};
     settings.page_numbers.auto_reserve_space = pageNumberAutoReserveEnabled();
@@ -659,10 +662,27 @@
           if (innerW <= 25.4 / 72 || innerH <= 25.4 / 72) {
             throw new Error('페이지 개별 여백이 배치 칸보다 큽니다. 해당 페이지의 여백을 줄여 주세요.');
           }
+          const innerX = cellX + deltaLeft * mm2px;
+          const innerY = cellY + deltaTop * mm2px;
+          const innerWidthPx = innerW * mm2px;
+          const innerHeightPx = innerH * mm2px;
+          const rawShift = Number($('bookletInnerShiftMm')?.value || 0);
+          const insideShiftPx = foldCell && Number.isFinite(rawShift)
+            ? Math.max(0, Math.min(20, rawShift)) * mm2px * (column === 0 ? 1 : -1) : 0;
+          // The source PDF may contain a white strip INSIDE its own page.
+          // Adjust the artwork only; the assigned physical page remains fixed
+          // at the fold, and neither side may paint across into its neighbour.
+          context.save();
+          if (foldCell) {
+            context.beginPath();
+            context.rect(innerX, innerY, innerWidthPx, innerHeightPx);
+            context.clip();
+          }
           drawPageInCell(context, source,
-            cellX + deltaLeft * mm2px, cellY + deltaTop * mm2px,
-            innerW * mm2px, innerH * mm2px, mm2px,
+            innerX + insideShiftPx, innerY,
+            innerWidthPx, innerHeightPx, mm2px,
             foldCell?.align || 'center');
+          context.restore();
           if (repeated) {
             const overlay = document.createElement('canvas');
             overlay.width = Math.max(1, Math.round(cutWidth * mm2px));

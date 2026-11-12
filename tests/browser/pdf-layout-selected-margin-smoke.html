@@ -24,6 +24,7 @@
     <input id="gap" type="number" value="5">
     <input id="bookletCheck" type="checkbox">
     <input id="bookletSpineGather" type="checkbox" checked>
+    <input id="bookletInnerShiftMm" type="number" value="0" min="0" max="20" step="0.5">
     <input id="facingPages" type="checkbox">
   </div>
   <script>
@@ -174,8 +175,22 @@
         if(Math.abs(window.renderPlacements[0].x+window.renderPlacements[0].w-105)>0.01
           || Math.abs(window.renderPlacements[1].x-105)>0.01)
           throw Error('booklet must keep both sides on the fold even with an older unchecked option');
+        // The physical leaf rectangles still meet at 105mm. With a source
+        // PDF that contains inside white bands, only its artwork is moved.
+        const shift=document.getElementById('bookletInnerShiftMm');
+        shift.value='6';
+        window.renderPlacements.length=0;
+        window.buildOutputPage([parsedPages[0],parsedPages[0]],0,2,1,1,false,0,false,1);
+        const [adjustedLeft,adjustedRight]=window.renderPlacements;
+        if(Math.abs((adjustedLeft.x+adjustedLeft.w)-111)>0.01
+          || Math.abs(adjustedRight.x-99)>0.01)
+          throw Error('booklet inside-white-space correction did not move source drawings toward fold');
+        const settings=window.PdfEditorLayoutExport.patchSettings({booklet:true, pages:[]});
+        if(settings.booklet_spine_align!==true||settings.booklet_inner_shift_mm!==6)
+          throw Error('export settings lost or changed the booklet inner shift');
+
         document.body.dataset.pdfSelectedMarginSmoke='pass';
-        result.textContent='PASS: selected-page and per-file insets activate and preserve paper margins';
+        result.textContent='PASS: selected-page and per-file insets activate, fold clipping, booklet artwork shift and physical margins';
       }catch(error){fail(String(error.stack||error));}
     })();
   </script>
