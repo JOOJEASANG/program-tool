@@ -39,7 +39,7 @@
   };
  </script>
  <script src="/js/pdf-editor/layout-export.js?v=20261112-1"></script>
- <script src="/js/pdf-editor/page-selected-margins.js?v=20261112-1"></script>
+ <script src="/js/pdf-editor/page-selected-margins.js?v=20261112-2"></script>
  <script>
  (async()=>{
   const $=id=>document.getElementById(id);
@@ -59,8 +59,9 @@
     const api=window.PdfEditorLayoutExport;
     if(!api?.applySelectedPageMargins||!window.PdfSelectedPageMargins)fail('selected-page margin API missing');
     if(!$('pageSelectedMarginApply').disabled)fail('apply should be disabled before selecting');
-    if($('pageSelectedMarginPanel').hidden)fail('margin control should show after PDF upload');
+    if(!$('pageSelectedMarginPanel').hidden)fail('margin editor should stay hidden until a page is selected');
     selection(2);await wait(35);
+    if($('pageSelectedMarginPanel').hidden)fail('margin editor did not appear for selected page');
     if($('pageSelectedMarginApply').disabled||$('pageSelectedMarginCount').textContent!=='1페이지')fail('one-page selection did not activate margin control');
     if($('pageSelectedMarginLeft').value!=='10')fail('initial margin should inherit global setting');
     edit('Left',12);edit('Top',0);
@@ -97,6 +98,7 @@
     if($('pageSelectedMarginLeft').value!=='25')fail('inherited global margin change was not shown immediately');
     if(parsedPages[1].cellMargins!==undefined)fail('global margin edit froze a page override');
     selection();await wait(35);
+    if(!$('pageSelectedMarginPanel').hidden)fail('margin editor should disappear again after deselecting pages');
     if(!$('pageSelectedMarginApply').disabled||!$('pageSelectedMarginReset').disabled)fail('margin actions not disabled after deselect');
     if(window.previewRequests<2)fail('margin edits did not request preview redraw');
     document.body.dataset.pdfSelectedPageMarginsSmoke='pass';
