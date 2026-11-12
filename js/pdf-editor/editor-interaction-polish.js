@@ -275,7 +275,10 @@
       body[data-program-kind="pdf-editor"] #thumbArea .thumb-wrap.excluded{opacity:.42!important;text-decoration:line-through!important;background:#f1f5f9!important}
       body[data-program-kind="pdf-editor"] #thumbArea .thumb-wrap[data-sidebar-current="true"],body[data-program-kind="pdf-editor"] #thumbArea .thumb-item[data-file-nav-current="true"] .thumb-wrap{border-color:#2563eb!important;background:#eff6ff!important;box-shadow:0 0 0 2px rgba(37,99,235,.13)!important}
       body[data-program-kind="pdf-editor"] .thumb-hint{font-size:9px!important;color:#64748b!important}
-    `;
+    `.replaceAll('body[data-program-kind="pdf-editor"]',
+      'html:not(.pdf-direct-thumb-selection) body[data-program-kind="pdf-editor"]');
+    // Page-number-only navigation belongs to the legacy viewer. The current
+    // PDF batch editor must show source thumbnail images and checkboxes.
     document.head.appendChild(style);
   }
 
@@ -283,6 +286,21 @@
     installStyles();
     const area=byId('thumbArea');
     if(!area)return false;
+    if(document.documentElement.classList.contains('pdf-direct-thumb-selection')){
+      delete area.dataset.numberOnlyNavigation;
+      if(document.body?.dataset.pdfSidebarPageMode==='number-only')
+        delete document.body.dataset.pdfSidebarPageMode;
+      area.querySelectorAll('.thumb-item').forEach(item=>{
+        item.draggable=true;
+        item.removeAttribute('data-page-number');
+        const wrap=item.querySelector('.thumb-wrap');
+        if(wrap){
+          if(wrap.getAttribute('role')==='button')wrap.removeAttribute('role');
+          if(wrap.title.includes('오른쪽 미리보기 화면으로 이동'))wrap.removeAttribute('title');
+        }
+      });
+      return true;
+    }
     const total=pages().length;
     if(area.dataset.numberOnlyNavigation!=='true')area.dataset.numberOnlyNavigation='true';
     area.querySelectorAll('.thumb-item').forEach((item,index)=>{
