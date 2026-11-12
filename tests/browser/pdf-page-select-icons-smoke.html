@@ -1,0 +1,137 @@
+<!doctype html>
+<html lang="ko">
+<head><meta charset="utf-8"><title>PDF right page list selection and icons regression</title>
+<style>
+ #thumbArea{display:grid;grid-template-columns:repeat(4,75px);gap:6px}
+ .thumb-item{width:75px}.thumb-wrap{display:block;position:relative;width:75px;height:98px;border:1px solid #ddd}
+ .page-preview{width:70px;height:40px}.page-sidebar{width:360px}
+</style></head>
+<body data-pdf-page-select-icons-smoke="running">
+<pre id="result">RUNNING</pre>
+<div id="pageSidebar" class="page-sidebar">
+ <div id="sb-pages">
+  <div class="thumb-hint"></div>
+  <div id="thumbArea"></div>
+ </div>
+</div>
+<div id="previewInfo">미리보기</div>
+<div id="previewScroll"></div>
+<div id="thumbCtxMenu"></div>
+<script>
+ function makeCanvas(){
+   const c=document.createElement('canvas');c.width=60;c.height=80;return c;
+ }
+ window.parsedPages=[1,2,3,4].map(id=>({
+  id,pageType:'pdf',file_index:id<=2?0:1,page_index:id<=2?id-1:id-3,
+  sourceFile:id<=2?'첫번째.pdf':'두번째.pdf',pdfPage:{id},thumbCanvas:makeCanvas(),
+  excluded:false,rotation:0
+ }));
+ window.uploadedFiles=[{name:'첫번째.pdf',size:300,lastModified:1},{name:'두번째.pdf',size:300,lastModified:1}];
+ window.nup=1;window.BOOKLET_STRIPS={};
+ window.groupByNup=pages=>[{n:1,pages}];
+ window.getLayout=()=>({cols:1,rows:1});
+ window.schedulePreview=()=>{};
+ window.triggerPreview=()=>Promise.resolve();
+ window.showStatus=()=>{};window.hideStatus=()=>{};
+ window.makeBlankPage=()=>({id:90+Math.random(),pageType:'blank',thumbCanvas:makeCanvas()});
+ window.displayPreview=()=>{};
+ window.renderPdfPage=async()=>makeCanvas();
+ window.renderThumbs=function renderThumbs(){
+  const area=document.getElementById('thumbArea');area.replaceChildren();
+  parsedPages.forEach((page,index)=>{
+   const item=document.createElement('div');item.className='thumb-item';item.dataset.id=page.id;
+   item.draggable=true;
+   const wrap=document.createElement('div');wrap.className='thumb-wrap';
+   const canvas=document.createElement('canvas');canvas.width=60;canvas.height=80;wrap.appendChild(canvas);
+   const num=document.createElement('span');num.className='thumb-num';num.textContent=String(index+1);wrap.appendChild(num);
+   wrap.addEventListener('click',()=>{page.excluded=!page.excluded;});
+   wrap.addEventListener('contextmenu',event=>window._openThumbCtxMenu?.(event,page,index));
+   item.appendChild(wrap);area.appendChild(item);
+  });
+  const prev=document.getElementById('previewScroll');prev.replaceChildren();
+  parsedPages.forEach(()=>{
+   const div=document.createElement('div');div.className='page-preview';prev.appendChild(div);
+  });
+ };
+ document.getElementById('previewScroll').getBoundingClientRect=()=>({top:0});
+ document.getElementById('previewScroll').scrollTo=()=>{};
+ window.renderThumbs();
+</script>
+<script src="/js/pdf-editor/page-selection-preview-focus.js?v=20261112-1"></script>
+<script src="/js/pdf-editor/page-count-hint.js?v=20261112-1"></script>
+<script src="/js/pdf-editor/file-navigation.js?v=20261021-3"></script>
+<script src="/js/pdf-editor/page-list-icons.js?v=20261112-1"></script>
+<script>
+(async()=>{
+ const fail=msg=>{throw Error(msg);};
+ const sleep=ms=>new Promise(resolve=>setTimeout(resolve,ms));
+ const get=(selector)=>document.querySelector(selector);
+ const wraps=()=>[...document.querySelectorAll('#thumbArea .thumb-wrap')];
+ const click=(index,opts={})=>wraps()[index].dispatchEvent(new MouseEvent('click',{bubbles:true,cancelable:true,...opts}));
+ const check=(count,label)=>{
+  const first=window.PdfEditorPageSelection?.selectedIds;
+  const batch=window.PdfPageProductivity?.selectedIds;
+  if(!first||first!==batch)fail(label+': separate selection Sets');
+  if(first.size!==count)fail(label+': expected '+count+' selections, got '+first.size);
+  if(document.querySelectorAll('#thumbArea .page-selected').length!==count)fail(label+': visible check highlight mismatch');
+  if(get('#pageSelectionCountV3')?.textContent!==('선택 '+count))fail(label+': batch toolbar count mismatch');
+  if(get('#pageSelectionCount')?.textContent!==('선택 '+count+'개'))fail(label+': page selection toolbar count mismatch');
+ };
+ try{
+  await sleep(350);
+  if(!window.PdfEditorPageSelection||!window.PdfPageProductivity)fail('both editing modules not loaded');
+  if(!get('#pageSelectionToolbar')||!get('#pageProductivityPanelV3'))fail('selection and batch toolbars missing');
+  if(document.querySelectorAll('#thumbArea .page-select-check').length!==0)fail('duplicate page checkboxes present');
+  if(document.querySelectorAll('#thumbArea .pdf-page-select-checkbox').length!==4)fail('one permanent checkbox per thumbnail not present');
+  if(!get('.pdf-file-action-row'))fail('per-file menu was not rendered');
+  click(0);
+  await sleep(35);
+  check(1,'normal click');
+  if(parsedPages[0].excluded)fail('page selection unexpectedly hid selected page');
+  if(getComputedStyle(get('.page-productivity-actions')).display==='none')fail('batch actions hidden after selecting one page');
+  click(2,{ctrlKey:true});await sleep(35);check(2,'Ctrl multi-select');
+  click(3,{shiftKey:true});await sleep(35);check(3,'Shift range select');
+  const firstCheck=get('#thumbArea .thumb-item[data-id="1"] .pdf-page-select-checkbox');
+  firstCheck.click();await sleep(35);check(2,'checkbox deselect');
+  firstCheck.click();await sleep(35);check(3,'checkbox reselect');
+  if(firstCheck.checked!==true)fail('selected checkbox not checked');
+  get('#pageSelectionToolbar [data-selection-action="clear"]').click();
+  await sleep(35);check(0,'clear selection toolbar');
+  const fileHeader=get('#thumbArea [data-file-nav-header="true"]');
+  if(!fileHeader)fail('file header absent');
+  fileHeader.querySelector('.pdf-file-select-btn:not(.is-clear)').click();
+  await sleep(35);check(2,'file-specific select');
+  if([...window.PdfPageProductivity.selectedIds].some(id=>id>2))fail('file select included wrong pages');
+  fileHeader.querySelector('.pdf-file-select-btn.is-clear').click();
+  await sleep(35);check(0,'file-specific clear');
+  const buttons=[
+   '.pdf-file-select-btn:not(.is-clear)','.pdf-file-select-btn.is-clear','.pdf-file-delete-btn',
+   '#pageSelectionToolbar [data-selection-action="all"]',
+   '#pageSelectionToolbar [data-selection-action="drag"]',
+   '#pageSelectionModeBtnV3',
+   '.page-productivity-actions [data-batch-action="true"]'
+  ];
+  for(const selector of buttons){
+   const button=get(selector);
+   if(!button?.querySelector('svg.pdf-page-action-icon'))fail('icon missing: '+selector);
+   if(!button.getAttribute('aria-label')||!button.title)fail('accessible action description missing: '+selector);
+   if(!button.querySelector('.pdf-page-action-label')?.textContent.trim())fail('Korean caption missing: '+selector);
+  }
+  get('#pageSelectionToolbar [data-selection-action="all"]').click();
+  await sleep(35);check(4,'iconized select all button');
+  get('#pageSelectionToolbar [data-selection-action="clear"]').click();
+  await sleep(35);check(0,'iconized clear button');
+  // Regeneration of thumbnails must preserve the unified selection model,
+  // restore one checkbox, and recreate iconized per-file actions.
+  click(1);await sleep(25);check(1,'before rerender');
+  window.renderThumbs();await sleep(110);check(1,'after rerender');
+  if(document.querySelectorAll('#thumbArea .page-select-check').length!==0)fail('rerender added duplicate page checkbox');
+  if(!get('.pdf-file-delete-btn svg.pdf-page-action-icon'))fail('rerender dropped file action icons');
+  document.body.dataset.pdfPageSelectIconsSmoke='pass';
+  get('#result').textContent='PASS: unified single/Ctrl/Shift/checkbox/file selection with one checkbox, active batch actions, and Korean SVG icon menus';
+ }catch(error){
+  document.body.dataset.pdfPageSelectIconsSmoke='fail';
+  get('#result').textContent='FAIL: '+String(error.stack||error);
+ }
+})();
+</script></body></html>
