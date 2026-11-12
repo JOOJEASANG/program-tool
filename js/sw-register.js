@@ -5,7 +5,7 @@
 
   // Historical filename: this module owns shared runtime loading and retired
   // service-worker cleanup. It intentionally does not register a worker.
-  const VERSION='2026.11.12.007';
+  const VERSION='2026.11.12.008';
   const CACHE_PREFIX='program-studio-';
   const CLEANUP_KEY='program-studio-legacy-runtime-cleanup-'+VERSION;
   const SCRIPT_TIMEOUT_MS=8000;
@@ -94,7 +94,7 @@
       tasks.push(load('pdfSessionSaveSafetyScriptV1','/js/pdf-editor/session-save-safety.js?v=20261021-5'));
       tasks.push(load('pdfFileContextScopeScript','/js/pdf-editor/file-context-scope.js?v=20260805-1'));
       tasks.push(load('pdfImportTransactionSafetyScriptV1','/js/pdf-editor/import-transaction-safety.js?v=20260806-1'));
-      tasks.push(load('pdfViewportLazyPreviewScriptV1','/js/pdf-editor/viewport-lazy-preview.js?v=20261021-3'));
+      tasks.push(load('pdfViewportLazyPreviewScriptV1','/js/pdf-editor/viewport-lazy-preview.js?v=20261112-5'));
       tasks.push(load('pdfViewportLazyPreviewGuardScriptV1','/js/pdf-editor/viewport-lazy-preview-guard.js?v=20260806-1'));
       tasks.push(load('pdfFileNavigationScriptV1','/js/pdf-editor/file-navigation.js?v=20261112-2'));
       tasks.push(load('pdfDividerLocalImageUploadScriptV1','/js/pdf-divider-local-image-upload.js?v=20260818-2'));
