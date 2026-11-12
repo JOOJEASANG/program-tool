@@ -89,5 +89,6 @@ def test_pdf_editor_manual_documents_multiselect_shortcuts_and_batch_context_men
     assert "Ctrl/Cmd+클릭" in manual
     assert "Shift+클릭" in manual
     assert "전체선택" in manual
-    assert "선택해제" in manual
+    assert "다시 누르면 모두 해제됩니다." in manual
+    assert "같은 페이지를 한 번 더 클릭" in manual
     assert "선택된 페이지 중 하나를 우클릭" in manual
