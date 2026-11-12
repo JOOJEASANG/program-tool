@@ -745,7 +745,8 @@
     // a different sheet once the preview has been virtualized.
     const lazy = window.PdfViewportLazyPreview;
     if(window.__pdfEditorLazyPreviewActive && lazy?.navigateOutput && lazy?.descriptorIndexForPage){
-      const output = lazy.descriptorIndexForPage(page);
+      const descriptors = lazy.buildOutputDescriptors?.() || [];
+      const output = lazy.descriptorIndexForPage(page, descriptors);
       if(output >= 0){
         void lazy.navigateOutput(output);
         return true;
