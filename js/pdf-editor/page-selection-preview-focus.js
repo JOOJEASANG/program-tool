@@ -387,8 +387,12 @@
     const allSelected = total > 0 && selectedIds.size === total;
     const allToggle = byId('pageSelectionToolbar')?.querySelector('[data-selection-action="all"],[data-selection-action="clear"]');
     if (allToggle) {
-      allToggle.dataset.selectionAction = allSelected ? 'clear' : 'all';
-      allToggle.textContent = allSelected ? '해제' : '전체';
+      const nextAction = allSelected ? 'clear' : 'all';
+      // Keep existing SVG menu children when the state did not change.
+      if (allToggle.dataset.selectionAction !== nextAction) {
+        allToggle.dataset.selectionAction = nextAction;
+        allToggle.textContent = allSelected ? '해제' : '전체';
+      }
       allToggle.title = allSelected ? '전체 페이지 선택 해제' : '전체 페이지 선택';
       allToggle.setAttribute('aria-label', allToggle.title);
       allToggle.setAttribute('aria-pressed', String(allSelected));
