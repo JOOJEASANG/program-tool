@@ -1,4 +1,4 @@
-// Unified loader for the PDF editor's always-visible sidebar UI.
+// Unified loader for the PDF editor's two-sidebar progressive UI.
 (function(){
   'use strict';
   if(window.__pdfEditorUiRuntimeV1)return;
