@@ -12,7 +12,11 @@ def test_only_one_global_selection_toolbar_is_visible():
     html = read("pdf-editor/index.html")
     selection = read("js/pdf-editor/page-selection-preview-focus.js")
     productivity = read("js/pdf-editor/page-count-hint.js")
-    assert '#pageSidebar #pageProductivityPanelV3 .page-productivity-top{display:none!important}' in html
+    assert '#pageSidebar #pageProductivityPanelV3.single-selection-ui .page-productivity-top{display:none!important}' in html
+    assert '#pageSidebar #pageProductivityPanelV3 .page-productivity-top{display:none!important}' not in html
+    route = read("js/pdf-editor/route-runtime.js")
+    assert "page-selection-preview-focus.js?v=20261112-3',app:'layout'" in route
+    assert "panel.classList.toggle('single-selection-ui',unifiedSelection());" in productivity
     assert 'data-selection-action="all" aria-pressed="false"' in selection
     assert '<button type="button" class="page-selection-btn" data-selection-action="clear"' not in selection
     assert "allToggle.textContent = allSelected ? '선택 해제' : '전체 선택';" in selection
