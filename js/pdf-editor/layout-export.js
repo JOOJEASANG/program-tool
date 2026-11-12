@@ -230,6 +230,40 @@
     syncPageCellMarginUi();
     requestPreview();
   }
+  // Direct right-sidebar action: use the same source-page overrides as the
+  // existing left panel and export/session implementations. Unspecified sides
+  // remain untouched, including per-page mixed values.
+  function applySelectedPageMargins(changes = {}, reset = false) {
+    const targets = selectedSourcePages();
+    if (!targets.length) return { ok: false, error: '먼저 오른쪽 페이지 목록에서 PDF 페이지를 선택하세요.' };
+    const values = {};
+    if (!reset) {
+      for (const edge of CELL_EDGES) {
+        if (!Object.prototype.hasOwnProperty.call(changes, edge)) continue;
+        const raw = changes[edge];
+        if (raw === '' || raw === null || raw === undefined) continue;
+        const value = Number(raw);
+        if (!Number.isFinite(value) || value < 0 || value > 80) {
+          return { ok: false, error: edge + ' 여백은 0~80mm 사이로 입력하세요.' };
+        }
+        values[edge] = value;
+      }
+      if (!Object.keys(values).length) return { ok: false, error: '변경할 여백 수치를 입력하세요.' };
+    }
+    targets.forEach((page) => {
+      if (reset) {
+        delete page.cellMargins;
+      } else {
+        page.cellMargins = { ...pageCellMarginOverrides(page), ...values };
+      }
+    });
+    syncPageCellMarginUi();
+    requestPreview();
+    document.dispatchEvent(new CustomEvent('pdf-page-margin-change', {
+      detail: { count: targets.length, reset, edges: Object.keys(values) },
+    }));
+    return { ok: true, count: targets.length, reset };
+  }
   function queueCellMarginSync() {
     if (cellMarginSyncQueued) return;
     cellMarginSyncQueued = true;
@@ -859,6 +893,7 @@
     selectedSourcePages,
     fileSourcePages,
     applyPageCellMargins,
+    applySelectedPageMargins,
     syncPageCellMarginUi,
     effectiveMargins,
     layoutMargins,

@@ -28,7 +28,7 @@ def test_pdf_page_list_has_moved_to_right_of_preview_without_duplication():
     assert 'id="pageSidebarBackdrop"' in source
     assert 'page-sidebar-open' in source
     assert 'grid-template-columns:360px minmax(0,1fr) var(--page-sidebar-width)!important' in source
-    assert 'pdf-editor/page-sidebar.js?v=20261106-1' in source
+    assert 'pdf-editor/page-sidebar.js?v=20261112-1' in source
 
 
 def test_right_panel_keeps_existing_thumbnail_editing_dom_hooks():

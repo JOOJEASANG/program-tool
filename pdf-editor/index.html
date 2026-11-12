@@ -302,8 +302,29 @@
     }
 
 
+
+    /* Compact four-direction override; remains tied to the existing output engine. */
+    #pageSelectedMarginPanel[hidden]{display:none!important}
+    #pageSidebar .page-selected-margin-panel{margin:0 0 12px;padding:11px 10px;border:1px solid #cbdcf1;border-radius:10px;background:#fff}
+    #pageSidebar .page-selected-margin-heading{display:flex;align-items:center;justify-content:space-between;gap:5px;font-size:12px;color:#1e3a5f}
+    #pageSidebar .page-selected-margin-heading small{font-size:10px;color:#64748b}
+    #pageSidebar #pageSelectedMarginCount{font-size:10px;color:#2563eb;font-weight:800;white-space:nowrap}
+    #pageSidebar .page-selected-margin-help{font-size:10px;color:#64748b;line-height:1.45;margin:5px 0 9px}
+    #pageSidebar .page-selected-margin-fields{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px}
+    #pageSidebar .page-selected-margin-fields label{margin:0;font-size:10px;text-align:center;color:#334155}
+    #pageSidebar .page-selected-margin-fields input{box-sizing:border-box;display:block;min-width:0;width:100%;margin-top:4px;
+      padding:6px 2px!important;font-size:12px!important;font-weight:800;text-align:center;border-radius:7px}
+    #pageSidebar .page-selected-margin-fields input:disabled{background:#f1f5f9;color:#94a3b8}
+    #pageSidebar .page-selected-margin-actions{display:grid;grid-template-columns:1.2fr 1fr;gap:6px;margin-top:8px}
+    #pageSidebar .page-selected-margin-actions button{min-width:0;padding:8px 4px;border:1px solid #cbd5e1;background:#fff;
+      color:#475569;border-radius:7px;font-size:10px;font-weight:800;cursor:pointer}
+    #pageSidebar #pageSelectedMarginApply{background:#2563eb;border-color:#2563eb;color:#fff}
+    #pageSidebar .page-selected-margin-actions button:disabled{opacity:.45;cursor:not-allowed}
+    #pageSidebar #pageSelectedMarginStatus{min-height:15px;margin-top:6px;font-size:10px;font-weight:700;color:#64748b;line-height:1.45}
+    #pageSidebar #pageSelectedMarginStatus[data-error="true"]{color:#b91c1c}
+
     /* Page thumbnails live in one independent, resizable right sidebar. */
-    #pdfEditorApp{--page-sidebar-width:300px;min-width:0}
+    #pdfEditorApp{--page-sidebar-width:360px;min-width:0}
     body[data-program-kind="pdf-editor"] .app#pdfEditorApp.page-sidebar-open{
       grid-template-columns:360px minmax(0,1fr) var(--page-sidebar-width)!important;
     }
@@ -333,7 +354,7 @@
     .page-sidebar-backdrop{display:none}
     @media(max-width:1180px){
       body[data-program-kind="pdf-editor"] .app#pdfEditorApp.page-sidebar-open{grid-template-columns:360px minmax(0,1fr)!important}
-      #pageSidebar{position:fixed!important;right:0;top:var(--nav-h);bottom:0;width:min(360px,calc(100vw - 20px))!important;
+      #pageSidebar{position:fixed!important;right:0;top:var(--nav-h);bottom:0;width:min(400px,calc(100vw - 20px))!important;
         height:auto!important;max-height:none!important;z-index:780;box-shadow:-10px 0 24px rgba(15,23,42,.2)}
       #pageSidebarResize{display:none}
       .page-sidebar-backdrop:not([hidden]){display:block;position:fixed;inset:var(--nav-h) 0 0;z-index:770;background:rgba(15,23,42,.26)}
@@ -343,7 +364,7 @@
     }
     @media(max-width:520px){
       .page-sidebar-toggle{font-size:10px;padding:6px 7px}
-      #pageSidebar{padding:10px!important;width:min(350px,calc(100vw - 12px))!important}
+      #pageSidebar{padding:10px!important;width:min(400px,calc(100vw - 12px))!important}
     }
 
     /* ── Thumbnail context menu ───────────────────────────── */
@@ -745,12 +766,30 @@
     </div>
   </main>
   <aside id="pageSidebar" class="page-sidebar" aria-label="오른쪽 페이지 목록" aria-hidden="true" inert>
-    <div id="pageSidebarResize" class="page-sidebar-resizer" role="separator" tabindex="0" aria-orientation="vertical" aria-label="페이지 목록 너비 조절" aria-valuemin="240" aria-valuemax="420" aria-valuenow="300" title="드래그 또는 방향키로 너비 조절"></div>
+    <div id="pageSidebarResize" class="page-sidebar-resizer" role="separator" tabindex="0" aria-orientation="vertical" aria-label="페이지 목록 너비 조절" aria-valuemin="280" aria-valuemax="480" aria-valuenow="360" title="드래그 또는 방향키로 너비 조절"></div>
     <div class="page-sidebar-toolbar">
       <div class="page-sidebar-heading">페이지 목록</div>
       <button id="pageSidebarClose" class="page-sidebar-close" type="button" aria-label="페이지 목록 닫기" title="페이지 목록 닫기">×</button>
     </div>
     <p id="pageSidebarEmpty" class="page-sidebar-empty">왼쪽에서 PDF를 업로드하면 여기에 페이지 목록이 표시됩니다.</p>
+    <section id="pageSelectedMarginPanel" class="page-selected-margin-panel" hidden aria-label="선택 페이지 개별 내용 여백">
+      <div class="page-selected-margin-heading">
+        <strong>선택 페이지 여백 <small>(mm)</small></strong>
+        <span id="pageSelectedMarginCount" aria-live="polite">0페이지</span>
+      </div>
+      <p class="page-selected-margin-help">페이지를 선택하면 그 페이지만 여백을 조절합니다. 전체 여백에 더하지 않습니다.</p>
+      <div class="page-selected-margin-fields">
+        <label>왼쪽<input id="pageSelectedMarginLeft" type="number" min="0" max="80" step="0.5" aria-label="선택 페이지 왼쪽 내용 여백 mm"></label>
+        <label>오른쪽<input id="pageSelectedMarginRight" type="number" min="0" max="80" step="0.5" aria-label="선택 페이지 오른쪽 내용 여백 mm"></label>
+        <label>위쪽<input id="pageSelectedMarginTop" type="number" min="0" max="80" step="0.5" aria-label="선택 페이지 위쪽 내용 여백 mm"></label>
+        <label>아래쪽<input id="pageSelectedMarginBottom" type="number" min="0" max="80" step="0.5" aria-label="선택 페이지 아래쪽 내용 여백 mm"></label>
+      </div>
+      <div class="page-selected-margin-actions">
+        <button type="button" id="pageSelectedMarginApply" disabled>선택 페이지에 적용</button>
+        <button type="button" id="pageSelectedMarginReset" disabled>개별 여백 초기화</button>
+      </div>
+      <div id="pageSelectedMarginStatus" role="status" aria-live="polite">오른쪽 페이지 목록에서 페이지를 선택하세요.</div>
+    </section>
     <!-- 페이지 목록 -->
     <div class="sec" id="thumbSection" style="display:none">
       <div class="sec-head" data-sec="pages">
@@ -873,7 +912,8 @@
 <script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
 <script src="../js/sw-register.js" defer></script>
-<script src="../js/pdf-editor/page-sidebar.js?v=20261106-1" defer></script>
+<script src="../js/pdf-editor/page-sidebar.js?v=20261112-1" defer></script>
+<script src="../js/pdf-editor/page-selected-margins.js?v=20261112-1" defer></script>
 <script src="../js/pdf-editor/page-list-icons.js?v=20261112-1" defer></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
