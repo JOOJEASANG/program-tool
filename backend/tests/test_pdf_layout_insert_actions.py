@@ -13,7 +13,7 @@ def test_sidebar_removes_print_output_tools_label_even_from_legacy_headers():
     assert "const target='인쇄출력도구'" in source
     assert ".ps-tool-panel-head,.ps-tool-rail-title,[data-ps-tool-title]" in source
     assert "ownText(node)" in source
-    assert "revision:'print-output-label-cleanup-v6'" in source
+    assert "revision:'stepwise-sidebar-and-file-margin-grouping-v1'" in source
 
 
 def test_preview_insert_buttons_use_document_capture_bridge_after_rerender():
