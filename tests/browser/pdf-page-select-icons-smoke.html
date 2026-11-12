@@ -58,10 +58,10 @@
  document.getElementById('previewScroll').scrollTo=()=>{};
  window.renderThumbs();
 </script>
-<script src="/js/pdf-editor/page-selection-preview-focus.js?v=20261112-1"></script>
-<script src="/js/pdf-editor/page-count-hint.js?v=20261112-1"></script>
-<script src="/js/pdf-editor/file-navigation.js?v=20261021-3"></script>
-<script src="/js/pdf-editor/page-list-icons.js?v=20261112-1"></script>
+<script src="/js/pdf-editor/page-selection-preview-focus.js?v=20261112-2"></script>
+<script src="/js/pdf-editor/page-count-hint.js?v=20261112-2"></script>
+<script src="/js/pdf-editor/file-navigation.js?v=20261112-1"></script>
+<script src="/js/pdf-editor/page-list-icons.js?v=20261112-2"></script>
 <script>
 (async()=>{
  const fail=msg=>{throw Error(msg);};
@@ -85,28 +85,51 @@
   if(document.querySelectorAll('#thumbArea .page-select-check').length!==0)fail('duplicate page checkboxes present');
   if(document.querySelectorAll('#thumbArea .pdf-page-select-checkbox').length!==4)fail('one permanent checkbox per thumbnail not present');
   if(!get('.pdf-file-action-row'))fail('per-file menu was not rendered');
+  if(document.querySelectorAll('#pageSelectionToolbar [data-selection-action="all"],#pageSelectionToolbar [data-selection-action="clear"]').length!==1)
+    fail('global select and clear must use one button');
   click(0);
   await sleep(35);
   check(1,'normal click');
   if(parsedPages[0].excluded)fail('page selection unexpectedly hid selected page');
   if(getComputedStyle(get('.page-productivity-actions')).display==='none')fail('batch actions hidden after selecting one page');
-  click(2,{ctrlKey:true});await sleep(35);check(2,'Ctrl multi-select');
+  click(0);await sleep(35);check(0,'click same page again deselects');
+  if(get('#thumbArea .thumb-item[data-id="1"] .pdf-page-select-checkbox').checked)
+    fail('checkbox remains checked after second thumbnail click');
+  click(2);await sleep(35);check(1,'plain click selects page in second file');
+  if(!window.PdfEditorPageSelection.selectedIds.has(3))fail('other file page was not selected');
+  click(0);await sleep(35);check(1,'plain click on another page replaces selection');
+  if(!window.PdfEditorPageSelection.selectedIds.has(1))fail('plain click replacement chose wrong page');
+  click(2,{ctrlKey:true});await sleep(35);check(2,'Ctrl multi-select across files');
   click(3,{shiftKey:true});await sleep(35);check(2,'Shift range select from last anchor');
   const firstCheck=get('#thumbArea .thumb-item[data-id="3"] .pdf-page-select-checkbox');
   firstCheck.click();await sleep(35);check(1,'checkbox deselect');
   firstCheck.click();await sleep(35);check(2,'checkbox reselect');
   if(firstCheck.checked!==true)fail('selected checkbox not checked');
-  get('#pageSelectionToolbar [data-selection-action="clear"]').click();
-  await sleep(35);check(0,'clear selection toolbar');
+  window.PdfEditorPageSelection.clearSelection();
+  await sleep(35);check(0,'clear selection API');
   const fileHeader=get('#thumbArea [data-file-nav-header="true"]');
   if(!fileHeader)fail('file header absent');
-  fileHeader.querySelector('.pdf-file-select-btn:not(.is-clear)').click();
+  if(fileHeader.querySelectorAll('.pdf-file-select-btn').length!==1)
+    fail('per-file select and clear must use one toggle');
+  const fileToggle=fileHeader.querySelector('.pdf-file-select-btn');
+  fileToggle.click();
   await sleep(35);check(2,'file-specific select');
   if([...window.PdfPageProductivity.selectedIds].some(id=>id>2))fail('file select included wrong pages');
-  fileHeader.querySelector('.pdf-file-select-btn.is-clear').click();
+  if(!fileToggle.classList.contains('is-clear')||fileToggle.querySelector('.pdf-page-action-label')?.textContent!=='해제')
+    fail('file selection button did not switch to deselect');
+  if(!fileToggle.title.includes('해제')||fileToggle.getAttribute('aria-pressed')!=='true')
+    fail('file selection toggle accessibility state not updated');
+  fileToggle.click();
   await sleep(35);check(0,'file-specific clear');
+  if(fileToggle.classList.contains('is-clear')||fileToggle.querySelector('.pdf-page-action-label')?.textContent!=='전체')
+    fail('file selection button did not switch back to all');
+  click(2);await sleep(35);check(1,'other file selected');
+  fileToggle.dispatchEvent(new MouseEvent('click',{bubbles:true,cancelable:true,ctrlKey:true}));
+  await sleep(35);check(3,'Ctrl + file select preserves other file');
+  fileToggle.click();await sleep(35);check(1,'file deselect preserves other file');
+  if(!window.PdfEditorPageSelection.selectedIds.has(3))fail('per-file clear affected unrelated file');
   const buttons=[
-   '.pdf-file-select-btn:not(.is-clear)','.pdf-file-select-btn.is-clear','.pdf-file-delete-btn',
+   '.pdf-file-select-btn:not(.is-clear)','.pdf-file-delete-btn',
    '#pageSelectionToolbar [data-selection-action="all"]',
    '#pageSelectionToolbar [data-selection-action="drag"]',
    '#pageSelectionModeBtnV3',
@@ -118,10 +141,19 @@
    if(!button.getAttribute('aria-label')||!button.title)fail('accessible action description missing: '+selector);
    if(!button.querySelector('.pdf-page-action-label')?.textContent.trim())fail('Korean caption missing: '+selector);
   }
-  get('#pageSelectionToolbar [data-selection-action="all"]').click();
+  const globalToggle=get('#pageSelectionToolbar [data-selection-action="all"]');
+  if(!globalToggle)fail('single global toggle missing');
+  globalToggle.click();
   await sleep(35);check(4,'iconized select all button');
-  get('#pageSelectionToolbar [data-selection-action="clear"]').click();
+  if(globalToggle.dataset.selectionAction!=='clear'||globalToggle.querySelector('.pdf-page-action-label')?.textContent!=='해제')
+    fail('global all button failed to switch to clear');
+  if(globalToggle.getAttribute('aria-pressed')!=='true'||!globalToggle.title.includes('해제'))
+    fail('global selection toggle accessibility state incorrect');
+  if(!get('.pdf-file-select-btn.is-clear'))fail('file toggle not updated after global select-all');
+  globalToggle.click();
   await sleep(35);check(0,'iconized clear button');
+  if(globalToggle.dataset.selectionAction!=='all'||globalToggle.querySelector('.pdf-page-action-label')?.textContent!=='전체')
+    fail('global clear button did not switch back to all');
   // Regeneration of thumbnails must preserve the unified selection model,
   // restore one checkbox, and recreate iconized per-file actions.
   click(1);await sleep(25);check(1,'before rerender');
