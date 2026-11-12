@@ -619,7 +619,17 @@ def _render_source_page(
                     f"×{clip_rect.height / pdf_ops.MM_TO_PT:.1f}mm. "
                     "도련 처리 옵션을 끄거나 파일 크기를 확인해 주세요."
                 )
-            if booklet_fold_side == "left":
+            # The source clip is determined before applying the editor's
+            # page rotation. A half-turn reverses which *source* X edge faces
+            # the fold; the browser crops the already-rotated preview canvas.
+            rotation_degrees = (
+                float(getattr(page_info, "rotation", 0) or 0)
+                + float(getattr(page_info, "fine_rotation_deg", 0) or 0)
+            ) % 360
+            if not (abs(rotation_degrees) < 0.01 or abs(rotation_degrees - 180) < 0.01):
+                raise ValueError("A4 도련 자동 처리는 페이지 회전 0° 또는 180°만 지원합니다.")
+            inner_edge_is_right = (booklet_fold_side == "left") != (abs(rotation_degrees - 180) < 0.01)
+            if inner_edge_is_right:
                 clip_rect.x1 -= crop
             else:
                 clip_rect.x0 += crop
