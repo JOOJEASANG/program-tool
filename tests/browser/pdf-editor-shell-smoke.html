@@ -23,11 +23,11 @@
     <aside>
       <h1>PDF 문서 편집기</h1>
       <div class="sub">PDF 편집 작업</div>
-      <div class="sec" id="uploadSection"><div class="sec-head"><span class="sec-title">파일 업로드</span></div><div class="sec-body" id="sb-upload">업로드 도구</div></div>
-      <div class="sec" id="nupSection"><div class="sec-head"><span class="sec-title">N-up 배치</span></div><div class="sec-body" id="sb-nup">배치 도구</div></div>
-      <div class="sec" id="paperSection"><div class="sec-head"><span class="sec-title">용지 설정</span></div><div class="sec-body" id="sb-paper">용지 도구</div></div>
-      <div class="sec" id="editSection"><div class="sec-head collapsed"><span class="sec-title">문서 편집</span></div><div class="sec-body hidden" id="sb-edit">편집 도구</div></div>
-      <div class="sec" id="outputSection"><div class="sec-head"><span class="sec-title">출력</span></div><div class="sec-body">출력 도구</div></div>
+      <div class="sec" id="uploadSection"><div class="sec-head" data-sec="upload"><span class="sec-title">파일 업로드</span></div><div class="sec-body" id="sb-upload">업로드 도구</div></div>
+      <div class="sec" id="nupSection"><div class="sec-head" data-sec="nup"><span class="sec-title">N-up 배치</span></div><div class="sec-body" id="sb-nup">배치 도구</div></div>
+      <div class="sec" id="paperSection"><div class="sec-head" data-sec="paper"><span class="sec-title">용지 설정</span></div><div class="sec-body" id="sb-paper">용지 도구</div></div>
+      <div class="sec" id="editSection"><div class="sec-head collapsed" data-sec="edit"><span class="sec-title">문서 편집</span></div><div class="sec-body hidden" id="sb-edit">편집 도구</div></div>
+      <div class="sec" id="outputSection"><div class="sec-head"><span class="sec-title">출력</span></div><div class="sec-body"><button id="previewBtn">새로고침</button><button id="downloadBtn">PDF 저장</button><button id="resetBtn">초기화</button></div></div>
     </aside>
     <main>
       <div class="preview-info">
@@ -56,7 +56,7 @@
       const visible=node=>node&&getComputedStyle(node).display!=='none'&&getComputedStyle(node).visibility!=='hidden';
       try{
         await waitFor(()=>document.body.dataset.programShell==='compact','compact shell');
-        await waitFor(()=>window.PdfEditorSimpleSidebarUi?.stage==='single-sidebar-page-list-collapsible-hotfix-v4','sidebar recovery runtime');
+        await waitFor(()=>window.PdfEditorSimpleSidebarUi?.stage==='two-sidebar-print-workflow-v2','sidebar recovery runtime');
         await new Promise(resolve=>setTimeout(resolve,2300));
 
         assert(window.ProgramShellUnify?.stage==='pdf-tools-headerless-unified-shell','shell API missing');
@@ -112,13 +112,18 @@
         const sections=[...aside.querySelectorAll('.sec')];
         assert(sections.length===5,'sidebar sections were lost');
         assert(sections.every(visible),'one or more sidebar sections became hidden');
-        assert(visible(document.getElementById('sb-edit')),'previously collapsed editor section did not stay open');
+        assert(!visible(document.getElementById('sb-edit')),'advanced document display should start collapsed');
+        assert(visible(document.getElementById('sb-upload')),'file upload must stay visible');
+        assert(visible(document.getElementById('sb-paper')),'paper settings must stay visible');
+        assert(visible(document.getElementById('sb-nup')),'N-up settings must stay visible');
+        assert(aside.querySelector('#paperSection').compareDocumentPosition(aside.querySelector('#nupSection'))&Node.DOCUMENT_POSITION_FOLLOWING,'paper settings should precede N-up');
+        assert(getComputedStyle(document.getElementById('outputSection')).position==='sticky','PDF save controls should stay sticky');
         assert(!document.querySelector('.ps-sidebar-toggle'),'legacy sidebar toggle was mounted');
         assert(!document.querySelector('.ps-tool-rail'),'legacy editor tool rail was mounted');
         assert(!document.querySelector('.ps-tool-sidebar-shell'),'legacy editor tool shell was mounted');
         assert(!document.getElementById('pdfEditorWorkflowV2Script'),'legacy PDF workflow script was loaded');
         assert(!document.getElementById('editorToolRailV1Script'),'legacy tool-rail script was loaded');
-        assert(document.body.dataset.pdfSidebarMode==='all-visible-page-list-collapsible','sidebar recovery marker missing');
+        assert(document.body.dataset.pdfSidebarMode==='stepwise-print-workflow-v2','sidebar recovery marker missing');
 
         const perRow=document.getElementById('perRowSelect');
         const perRowWidth=parseFloat(getComputedStyle(perRow).width);
