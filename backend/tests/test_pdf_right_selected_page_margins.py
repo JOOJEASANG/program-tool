@@ -77,8 +77,8 @@ def test_selected_page_margin_panel_uses_exact_same_engine_and_has_mixed_state()
         "const globalEdges=new Set(['marginLeft','marginRight','marginTop','marginBottom','marginH','marginV'])",
     ):
         assert marker in ui
-    assert "layout-export.js?v=20261112-1" in CORE.read_text(encoding="utf-8")
-    assert "layout-export.js?v=20261112-1" in LOADER.read_text(encoding="utf-8")
+    assert "layout-export.js?v=20261112-2" in CORE.read_text(encoding="utf-8")
+    assert "layout-export.js?v=20261112-2" in LOADER.read_text(encoding="utf-8")
 
 
 def test_browser_regression_and_manual_cover_selected_only_and_global_reset():

@@ -536,6 +536,7 @@ def _page_content_inset_rect(
     cell_rect: fitz.Rect,
     page_info,
     global_margins: tuple[float, float, float, float],
+    fold_inner_edge: str | None = None,
 ) -> fitz.Rect:
     """Replace each global margin for this page, rather than adding an inset.
 
@@ -548,6 +549,11 @@ def _page_content_inset_rect(
     for name, inherited in zip(("left", "right", "top", "bottom"), global_margins):
         override = getattr(page_info, f"content_margin_{name}_mm", None)
         desired = inherited if override is None else float(override) * unit
+        if name == fold_inner_edge:
+            # No booklet gutter, even when a previous per-page override was
+            # saved before switching to booklet mode. Outer/top/bottom
+            # overrides remain intact; the fold-facing edge stays at x=W/2.
+            desired = 0.0
         edges.append(desired - inherited)
     left, right, top, bottom = edges
     rect = fitz.Rect(
@@ -856,7 +862,12 @@ def build_pdf_document(
                             0.0 if align == "right" else content_margins[1],
                             content_margins[2], content_margins[3],
                         )
-                    content_rect = _page_content_inset_rect(cell_rect, page_info, inherited)
+                    content_rect = _page_content_inset_rect(
+                        cell_rect,
+                        page_info,
+                        inherited,
+                        fold_inner_edge=("right" if align == "right" else "left") if spine else None,
+                    )
                     _render_source_page(
                         out_page,
                         sources,

@@ -171,8 +171,9 @@
         document.getElementById('bookletSpineGather').checked=false;
         window.renderPlacements.length=0;
         window.buildOutputPage([parsedPages[0],parsedPages[0]],0,2,1,1,false,0,false,1);
-        if(window.renderPlacements[0].x+window.renderPlacements[0].w>=window.renderPlacements[1].x)
-          throw Error('disabling fold alignment did not restore normal N-up gap');
+        if(Math.abs(window.renderPlacements[0].x+window.renderPlacements[0].w-105)>0.01
+          || Math.abs(window.renderPlacements[1].x-105)>0.01)
+          throw Error('booklet must keep both sides on the fold even with an older unchecked option');
         document.body.dataset.pdfSelectedMarginSmoke='pass';
         result.textContent='PASS: selected-page and per-file insets activate and preserve paper margins';
       }catch(error){fail(String(error.stack||error));}

@@ -101,12 +101,22 @@
     syncPerPageNupControls(active);
 
     if(active){
+      const spine=$('bookletSpineGather');
+      if(spine)spine.checked=true;
+      // The physical one-side size is central to booklet printing. Reveal it
+      // once per activation without taking away the user's ability to close it.
+      const sizeDetails=$('pdfActualSizeDisclosure');
+      if(sizeDetails&&!sizeDetails.dataset.bookletAutoOpened){
+        sizeDetails.open=true;
+        sizeDetails.dataset.bookletAutoOpened='1';
+      }
       if(previousNormalNup===null){
         const current=activeNup();
         previousNormalNup=current===BOOKLET_NUP?null:current;
       }
       if(activeNup()!==BOOKLET_NUP)clickNup(BOOKLET_NUP);
     }else if(restore&&previousNormalNup!==null){
+      $('pdfActualSizeDisclosure')?.removeAttribute('data-booklet-auto-opened');
       const restoreNup=previousNormalNup;
       previousNormalNup=null;
       clickNup(restoreNup);
@@ -321,7 +331,7 @@
       let next=previous(settings);
       if(!next||typeof next!=='object')next=settings&&typeof settings==='object'?{...settings}:{};
       if(!isBookletEnabled())return next;
-      return {...next,booklet:true,nup_default:BOOKLET_NUP};
+      return {...next,booklet:true,nup_default:BOOKLET_NUP,booklet_spine_align:true};
     };
     patched.__classicBookletOnlyPatched=true;
     window.PdfOutputContract={...current,enrichSettings:patched};
