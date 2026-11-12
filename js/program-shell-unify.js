@@ -108,5 +108,5 @@
   function boot(){if(apply())return;[40,120,300,700].forEach(delay=>setTimeout(()=>{apply();loadPdfEnhancements();},delay));}
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot();
 
-  window.ProgramShellUnify={apply,loadPdfUiRuntime,loadPdfWorkflow,loadPdfWorkspace,stage:'pdf-tools-headerless-unified-shell',workflowStage:'pdf-all-controls-visible-v1',workspaceStage:'pdf-single-sidebar-v2',uiRuntimeStage:'pdf-editor-always-visible-sidebar-runtime-v2'};
+  window.ProgramShellUnify={apply,loadPdfUiRuntime,loadPdfWorkflow,loadPdfWorkspace,stage:'pdf-tools-headerless-unified-shell',workflowStage:'pdf-progressive-controls-v2',workspaceStage:'pdf-two-sidebars-v3',uiRuntimeStage:'pdf-editor-two-sidebar-workflow-runtime-v3'};
 })();
