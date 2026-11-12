@@ -92,9 +92,9 @@
   if(getComputedStyle(get('.page-productivity-actions')).display==='none')fail('batch actions hidden after selecting one page');
   click(2,{ctrlKey:true});await sleep(35);check(2,'Ctrl multi-select');
   click(3,{shiftKey:true});await sleep(35);check(2,'Shift range select from last anchor');
-  const firstCheck=get('#thumbArea .thumb-item[data-id="1"] .pdf-page-select-checkbox');
-  firstCheck.click();await sleep(35);check(2,'checkbox deselect');
-  firstCheck.click();await sleep(35);check(3,'checkbox reselect');
+  const firstCheck=get('#thumbArea .thumb-item[data-id="3"] .pdf-page-select-checkbox');
+  firstCheck.click();await sleep(35);check(1,'checkbox deselect');
+  firstCheck.click();await sleep(35);check(2,'checkbox reselect');
   if(firstCheck.checked!==true)fail('selected checkbox not checked');
   get('#pageSelectionToolbar [data-selection-action="clear"]').click();
   await sleep(35);check(0,'clear selection toolbar');
