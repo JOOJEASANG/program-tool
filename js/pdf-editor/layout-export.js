@@ -498,7 +498,7 @@
     settings.margin_h_mm = (margins.left + margins.right) / 2;
     settings.margin_v_mm = (margins.top + margins.bottom) / 2;
     settings.gap_mm = num('gap', 5);
-    settings.booklet_spine_align = !!$('bookletCheck')?.checked && !!$('bookletSpineGather')?.checked;
+    settings.booklet_spine_align = !!$('bookletCheck')?.checked;
     settings.facing_pages = facingEnabled();
     settings.page_numbers = settings.page_numbers || {};
     settings.page_numbers.auto_reserve_space = pageNumberAutoReserveEnabled();
@@ -572,8 +572,7 @@
         const numberSpaceRequested = pageNumberAutoReserveEnabled()
           && pageNumberApplies(resolvedOutputIndex);
         let margins = layoutMargins(resolvedOutputIndex);
-        const spine = !!$('bookletCheck')?.checked && !!$('bookletSpineGather')?.checked
-          && !repeated && cols === 2;
+        const spine = !!$('bookletCheck')?.checked && !repeated && cols === 2;
         // In repeat mode each cut-out tile is an independent print. Margins
         // apply inside EACH half/quarter rather than only at paper edges.
         let layoutGap = gp;
@@ -644,6 +643,13 @@
           // existing sheet margin: 10mm global + 0mm override => 0mm final.
           const baseMargins = foldCell?.baseMargins || margins;
           const finalMargins = pageCellMargins(sourcePage, baseMargins);
+          // A booklet has no gutter: the fold-facing edge of either page
+          // must remain exactly on the physical paper centerline. Preserve
+          // the other three per-page margin overrides without adding a gap.
+          if (foldCell) {
+            if (column === 0) finalMargins.right = 0;
+            else finalMargins.left = 0;
+          }
           const deltaLeft = finalMargins.left - baseMargins.left;
           const deltaRight = finalMargins.right - baseMargins.right;
           const deltaTop = finalMargins.top - baseMargins.top;
