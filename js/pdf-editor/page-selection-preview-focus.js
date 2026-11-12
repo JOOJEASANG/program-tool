@@ -61,6 +61,12 @@
     style.id = 'pdfPageSelectionStyles';
     style.textContent = `
       .page-selection-toolbar{display:flex;flex-wrap:wrap;align-items:center;gap:5px;margin-bottom:7px;padding:7px;border:1px solid #dbe5ef;border-radius:9px;background:#f8fafc}
+      .page-selection-advanced{width:100%;border-top:1px solid #e2e8f0}
+      .page-selection-advanced>summary{list-style:none;cursor:pointer;padding:7px 4px 2px;font-size:10.5px;font-weight:850;color:#334155}
+      .page-selection-advanced>summary::-webkit-details-marker{display:none}
+      .page-selection-advanced>summary::after{content:'⌄';float:right;color:#64748b}
+      .page-selection-advanced[open]>summary::after{content:'⌃'}
+      .page-selection-advanced>summary:focus-visible{outline:2px solid #2563eb;outline-offset:2px;border-radius:5px}
       .page-selection-heading{display:flex;gap:5px;align-items:center;width:100%}
       .page-selection-heading .page-selection-count{flex:1}
       .page-selection-range{width:100%;display:grid;gap:5px;padding-top:5px;border-top:1px solid #e2e8f0}
@@ -107,8 +113,10 @@
     toolbar.innerHTML = `
       <div class="page-selection-heading">
         <span class="page-selection-count" id="pageSelectionCount">선택 0개</span>
-        <button type="button" class="page-selection-btn" data-selection-action="all" aria-pressed="false" title="작업의 모든 페이지 선택">전체</button>
+        <button type="button" class="page-selection-btn" data-selection-action="all" aria-pressed="false" title="작업의 모든 페이지 선택">전체 선택</button>
       </div>
+      <details class="page-selection-advanced" id="pageSelectionAdvanced">
+        <summary>범위·홀짝 선택</summary>
       <div class="page-selection-range">
         <select id="pageSelectionRangeScope" aria-label="페이지 선택 범위 기준">
           <option value="all">전체 작업 · 현재 편집 순서</option>
@@ -127,7 +135,8 @@
           <button type="button" class="page-selection-btn" data-selection-action="drag" aria-pressed="false" title="켜면 썸네일을 마우스로 쓸어 연속 선택합니다. 끄면 페이지 드래그 정렬이 가능합니다.">드래그 선택</button>
         </div>
         <div class="page-selection-status" id="pageSelectionRangeStatus" role="status" aria-live="polite">범위는 쉼표로 구분 · Shift+클릭으로 연속 선택</div>
-      </div>`;
+      </div>
+      </details>`;
     area.parentElement.insertBefore(toolbar, area);
     syncRangeScopeOptions();
     toolbar.addEventListener('click', (event) => {
@@ -391,7 +400,7 @@
       // Keep existing SVG menu children when the state did not change.
       if (allToggle.dataset.selectionAction !== nextAction) {
         allToggle.dataset.selectionAction = nextAction;
-        allToggle.textContent = allSelected ? '해제' : '전체';
+        allToggle.textContent = allSelected ? '선택 해제' : '전체 선택';
       }
       allToggle.title = allSelected ? '전체 페이지 선택 해제' : '전체 페이지 선택';
       allToggle.setAttribute('aria-label', allToggle.title);
