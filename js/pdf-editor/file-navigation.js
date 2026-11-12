@@ -376,8 +376,10 @@
       if (toggle) {
         const total = parsedPages.filter(page => page.pageType === 'pdf' && Number(page.file_index) === index).length;
         const allSelected = total > 0 && selectedCount === total;
+        const wasClear = toggle.classList.contains('is-clear');
         toggle.classList.toggle('is-clear', allSelected);
-        toggle.textContent = allSelected ? '해제' : '전체';
+        // Updating unchanged textContent would repeatedly destroy icon SVGs.
+        if (wasClear !== allSelected) toggle.textContent = allSelected ? '해제' : '전체';
         const name = header.querySelector('.thumb-file-sep-label')?.textContent?.trim() || '이 파일';
         toggle.title = allSelected
           ? name + '의 선택된 페이지 모두 해제'
