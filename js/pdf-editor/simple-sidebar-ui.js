@@ -281,7 +281,9 @@
     event.stopImmediatePropagation();
     if(openSections.has(key))openSections.delete(key);
     else openSections.add(key);
-    queue();
+    // Section feedback must be synchronous, including in background tabs where
+    // requestAnimationFrame is paused. A queued repaint may refresh later.
+    sync();
   }
   function queue(){if(frame)return;frame=requestAnimationFrame(()=>{frame=0;sync();});}
   function boot(){if(typeof MutationObserver==='function')observer=new MutationObserver(queue);document.addEventListener('click',blockToggle,true);document.addEventListener('keydown',blockToggle,true);sync();[80,220,600,1200,2200].forEach(delay=>setTimeout(queue,delay));}
