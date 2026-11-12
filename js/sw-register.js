@@ -96,7 +96,7 @@
       tasks.push(load('pdfImportTransactionSafetyScriptV1','/js/pdf-editor/import-transaction-safety.js?v=20260806-1'));
       tasks.push(load('pdfViewportLazyPreviewScriptV1','/js/pdf-editor/viewport-lazy-preview.js?v=20261021-3'));
       tasks.push(load('pdfViewportLazyPreviewGuardScriptV1','/js/pdf-editor/viewport-lazy-preview-guard.js?v=20260806-1'));
-      tasks.push(load('pdfFileNavigationScriptV1','/js/pdf-editor/file-navigation.js?v=20261021-3'));
+      tasks.push(load('pdfFileNavigationScriptV1','/js/pdf-editor/file-navigation.js?v=20261112-2'));
       tasks.push(load('pdfDividerLocalImageUploadScriptV1','/js/pdf-divider-local-image-upload.js?v=20260818-2'));
       tasks.push(load('pdfEditorFinalCheckScriptV1','/js/pdf-editor-final-check.js?v='+VERSION));
       tasks.push(load('pdfEditorSpreadSplitScriptV1','/js/pdf-editor/spread-split.js?v=20260825-1'));
