@@ -149,5 +149,6 @@ def test_browser_preview_and_export_share_the_same_imposed_side_crop():
     assert "booklet_bleed_inner_mm: getBookletBleedMm()" in html
     assert "foldCell?(column===0?'left':'right'):null" in layout
     assert "settings.booklet_bleed_inner_mm =" in layout
+    assert "? {} // null means inherit the current global margin" in layout
     assert "inner_edge_is_right = (booklet_fold_side == \"left\")" in engine
     assert "clip_rect.x0 += crop" in engine
