@@ -225,6 +225,18 @@
   function organizeRightSidebar(){
     const right=document.getElementById('pageSidebar');
     if(!right)return;
+    // The page grid retains its independent collapse control and exposes the
+    // actual state to assistive technology, unlike the former duplicate heading.
+    const section=document.getElementById('thumbSection');
+    const heading=section?.querySelector(':scope>.sec-head');
+    const pages=section?.querySelector(':scope>.sec-body');
+    if(heading&&pages){
+      const expanded=!pages.classList.contains('hidden');
+      if(heading.getAttribute('aria-expanded')!==String(expanded))heading.setAttribute('aria-expanded',String(expanded));
+      if(heading.getAttribute('role')!=='button')heading.setAttribute('role','button');
+      if(heading.tabIndex!==0)heading.tabIndex=0;
+      if(pages.id)heading.setAttribute('aria-controls',pages.id);
+    }
     // Per-file overrides belong with file/page management. Move the *existing*
     // controls, preserving their handlers, instead of creating a second editor.
     const margin=document.getElementById('pdfPageCellMarginsV1');
@@ -286,7 +298,18 @@
     sync();
   }
   function queue(){if(frame)return;frame=requestAnimationFrame(()=>{frame=0;sync();});}
-  function boot(){if(typeof MutationObserver==='function')observer=new MutationObserver(queue);document.addEventListener('click',blockToggle,true);document.addEventListener('keydown',blockToggle,true);sync();[80,220,600,1200,2200].forEach(delay=>setTimeout(queue,delay));}
+  function boot(){if(typeof MutationObserver==='function')observer=new MutationObserver(queue);document.addEventListener('click',blockToggle,true);document.addEventListener('keydown',blockToggle,true);
+    document.addEventListener('keydown',event=>{
+      const header=event.target?.closest?.('#pageSidebar #thumbSection>.sec-head');
+      if(header&&['Enter',' '].includes(event.key)){
+        event.preventDefault();
+        header.click();
+      }
+    },true);
+    document.addEventListener('click',event=>{
+      if(event.target?.closest?.('#pageSidebar #thumbSection>.sec-head'))queueMicrotask(organizeRightSidebar);
+    });
+    sync();[80,220,600,1200,2200].forEach(delay=>setTimeout(queue,delay));}
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot();
 
   const api={sync,removePrintOutputToolLabel,stage:'two-sidebar-print-workflow-v2',revision:'stepwise-sidebar-and-file-margin-grouping-v1'};
