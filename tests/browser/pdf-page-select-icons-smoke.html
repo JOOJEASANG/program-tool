@@ -182,6 +182,25 @@
   // Wait for the new header to be decorated instead of a fixed rAF delay.
   for(let attempt=0;attempt<35&&!get('.pdf-file-delete-btn svg.pdf-page-action-icon');attempt++)await sleep(20);
   if(!get('.pdf-file-delete-btn svg.pdf-page-action-icon'))fail('rerender dropped file action icons');
+  // A real user may import 81+ pages: all page checkboxes must remain direct
+  // and the compact header must be able to select and clear the entire set.
+  for(let id=5;id<=81;id++){
+    parsedPages.push({
+      id,pageType:'pdf',file_index:1,page_index:id-3,sourceFile:'두번째.pdf',
+      pdfPage:{id},thumbCanvas:makeCanvas(),excluded:false,rotation:0
+    });
+  }
+  window.renderThumbs();
+  await sleep(280);
+  if(document.querySelectorAll('#thumbArea .pdf-page-select-checkbox').length!==81)
+    fail('81-page import did not render one selector on each thumbnail');
+  window.PdfEditorPageSelection.clearSelection();
+  click(0);click(80);await sleep(30);check(2,'81-page nonadjacent direct select');
+  if(parsedPages[0].excluded||parsedPages[80].excluded)fail('81-page selection excluded PDF pages');
+  get('#pageListSelectAll').click();
+  await sleep(40);check(81,'81-page select all via page-list heading');
+  get('#pageListSelectAll').click();
+  await sleep(40);check(0,'81-page clear all via page-list heading');
   document.body.dataset.pdfPageSelectIconsSmoke='pass';
   get('#result').textContent='PASS: direct independent thumbnail/checkbox/Shift/file selection, compact in-list select all, preserved batch actions and Korean SVG icons';
  }catch(error){
