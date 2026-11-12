@@ -73,8 +73,16 @@
     if(output.pages[0].content_margin_left_mm!==null||output.pages[2].content_margin_top_mm!==null)fail('export leaked margins to unselected pages');
     const saved=window.collectEditorState();
     if(saved.pageCellMargins?.[1]?.left!==12||saved.pageCellMargins?.[1]?.top!==0)fail('saved session missed individual margins');
-    selection(1,2);await wait(35);
-    if($('pageSelectedMarginLeft').value!==''||$('pageSelectedMarginLeft').placeholder!=='혼합')fail('mixed page margin not displayed');
+    selection(1,2);
+    // The selection observer and right-panel redraw use animation frames;
+    // wait for the actual mixed-state signal instead of guessing a delay.
+    for(let check=0;check<30;check++){
+      if($('pageSelectedMarginLeft').value===''&&$('pageSelectedMarginLeft').placeholder==='혼합')break;
+      await wait(20);
+    }
+    if($('pageSelectedMarginLeft').value!==''||$('pageSelectedMarginLeft').placeholder!=='혼합')
+      fail('mixed page margin not displayed: value='+$('pageSelectedMarginLeft').value+
+        ' placeholder='+$('pageSelectedMarginLeft').placeholder);
     edit('Right',18);$('pageSelectedMarginApply').click();
     if(parsedPages[0].cellMargins?.right!==18||parsedPages[1].cellMargins?.right!==18)fail('multi-page right override failed');
     if(parsedPages[0].cellMargins?.left!==undefined||parsedPages[1].cellMargins?.left!==12)fail('mixed left side was overwritten');
