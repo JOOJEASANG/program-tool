@@ -163,7 +163,7 @@
       setRangeStatus(isFile ? '파일의 원본 페이지 번호 기준으로 입력하세요.' : '전체 작업의 현재 편집 순서 기준으로 입력하세요.');
     });
     const hint = area.parentElement.querySelector('.thumb-hint');
-    if (hint) hint.textContent = '왼쪽은 기본 페이지 목록 · Ctrl/Shift=다중선택 · 우클릭 작업은 오른쪽 미리보기에 반영';
+    if (hint) hint.textContent = '클릭=개별 선택 · Ctrl/Shift=다중 선택 · 체크박스=추가/해제 · 드래그=순서 변경';
   }
 
   function setRangeStatus(message, error = false) {
