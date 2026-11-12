@@ -90,6 +90,12 @@
     if(parsedPages[1].cellMargins!==undefined)fail('reset did not clear selected page override');
     if(parsedPages[0].cellMargins?.right!==18)fail('reset touched unselected page');
     if(api.pageCellMargins(parsedPages[1]).left!==10)fail('reset did not restore inherited global margin');
+    // Global margin fields may be mounted after the right panel. They must
+    // still update the displayed inherited value without page reselection.
+    $('marginLeft').value='25';
+    $('marginLeft').dispatchEvent(new Event('input',{bubbles:true}));
+    if($('pageSelectedMarginLeft').value!=='25')fail('inherited global margin change was not shown immediately');
+    if(parsedPages[1].cellMargins!==undefined)fail('global margin edit froze a page override');
     selection();await wait(35);
     if(!$('pageSelectedMarginApply').disabled||!$('pageSelectedMarginReset').disabled)fail('margin actions not disabled after deselect');
     if(window.previewRequests<2)fail('margin edits did not request preview redraw');
