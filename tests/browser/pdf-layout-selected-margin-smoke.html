@@ -24,6 +24,7 @@
     <input id="gap" type="number" value="5">
     <input id="bookletCheck" type="checkbox">
     <input id="bookletSpineGather" type="checkbox" checked>
+    <input id="bookletBleedEnabled" type="checkbox">
     <input id="bookletInnerShiftMm" type="number" value="0" min="0" max="20" step="0.5">
     <input id="facingPages" type="checkbox">
   </div>
@@ -52,7 +53,7 @@
     window.applyDocEdits=()=>{};
     window.getPageSrc=page=>page.thumbCanvas;
     window.renderPlacements=[];
-    window.drawPageInCell=(_ctx,_src,x,y,w,h,_mm2px,align)=>{const p={x,y,w,h,align};window.lastRenderPlacement=p;window.renderPlacements.push(p)};
+    window.drawPageInCell=(_ctx,_src,x,y,w,h,_mm2px,align,bookletSide)=>{const p={x,y,w,h,align,bookletSide};window.lastRenderPlacement=p;window.renderPlacements.push(p)};
     window.displayPreview=()=>{};
     window.renderPdfPage=async ()=>canvas();
     window.showStatus=()=>{};
@@ -189,8 +190,17 @@
         if(settings.booklet_spine_align!==true||settings.booklet_inner_shift_mm!==6)
           throw Error('export settings lost or changed the booklet inner shift');
 
+        document.getElementById('bookletBleedEnabled').checked=true;
+        shift.value='0';
+        window.renderPlacements.length=0;
+        window.buildOutputPage([parsedPages[0],parsedPages[0]],0,2,1,1,false,0,false,1);
+        if(window.renderPlacements[0]?.bookletSide!=='left'||window.renderPlacements[1]?.bookletSide!=='right')
+          throw Error('3mm bleed crop was not mapped to the actual imposed booklet side');
+        const bleedRequest=window.PdfEditorLayoutExport.patchSettings({booklet:true,pages:[]});
+        if(bleedRequest.booklet_bleed_inner_mm!==3)
+          throw Error('A4 bleed option was not exported to PDF server');
         document.body.dataset.pdfSelectedMarginSmoke='pass';
-        result.textContent='PASS: selected-page and per-file insets activate, fold clipping, booklet artwork shift and physical margins';
+        result.textContent='PASS: selected-page and per-file insets, fold clipping, booklet artwork shift and imposed-side 3mm bleed';
       }catch(error){fail(String(error.stack||error));}
     })();
   </script>

@@ -585,6 +585,8 @@ def _render_source_page(
     placement_size_pt: tuple[float, float] | None = None,
     horizontal_align: str = "center",
     fold_inner_shift_pt: float = 0.0,
+    booklet_bleed_inner_mm: float = 0.0,
+    booklet_fold_side: str | None = None,
 ) -> None:
     src_doc = src_docs[page_info.file_index]
     src_page = src_doc[page_info.page_index]
@@ -601,6 +603,36 @@ def _render_source_page(
     render_page_index = 0 if erased_doc is not None else page_info.page_index
     try:
         clip_rect = _page_clip_rect(src_page.rect, page_info)
+        if booklet_bleed_inner_mm:
+            # Work from the *imposed* side, never source page parity: back
+            # sheets change their ordering. Remove the 3mm bleed facing the
+            # center fold without downscaling the other three-edge bleed.
+            if booklet_fold_side not in {"left", "right"} or placement_size_pt is None:
+                raise ValueError("소책자 안쪽 도련 잘라내기에는 배치 방향과 실제 한 면 크기가 필요합니다")
+            crop = booklet_bleed_inner_mm * pdf_ops.MM_TO_PT
+            size_tolerance = 0.75 * pdf_ops.MM_TO_PT
+            if (abs(clip_rect.width - (placement_size_pt[0] + crop)) > size_tolerance
+                    or abs(clip_rect.height - placement_size_pt[1]) > size_tolerance):
+                raise ValueError(
+                    "도련 자동 처리 원본은 216×303mm여야 합니다. "
+                    f"현재 페이지: {clip_rect.width / pdf_ops.MM_TO_PT:.1f}"
+                    f"×{clip_rect.height / pdf_ops.MM_TO_PT:.1f}mm. "
+                    "도련 처리 옵션을 끄거나 파일 크기를 확인해 주세요."
+                )
+            # The source clip is determined before applying the editor's
+            # page rotation. A half-turn reverses which *source* X edge faces
+            # the fold; the browser crops the already-rotated preview canvas.
+            rotation_degrees = (
+                float(getattr(page_info, "rotation", 0) or 0)
+                + float(getattr(page_info, "fine_rotation_deg", 0) or 0)
+            ) % 360
+            if not (abs(rotation_degrees) < 0.01 or abs(rotation_degrees - 180) < 0.01):
+                raise ValueError("A4 도련 자동 처리는 페이지 회전 0° 또는 180°만 지원합니다.")
+            inner_edge_is_right = (booklet_fold_side == "left") != (abs(rotation_degrees - 180) < 0.01)
+            if inner_edge_is_right:
+                clip_rect.x1 -= crop
+            else:
+                clip_rect.x0 += crop
         if placement_size_pt is not None:
             width_pt, height_pt = placement_size_pt
             rotation = _resolve_actual_size_rotation(
@@ -896,6 +928,8 @@ def build_pdf_document(
                         placement_size_pt=placement_size_pt,
                         horizontal_align=align,
                         fold_inner_shift_pt=fold_inner_shift_pt,
+                        booklet_bleed_inner_mm=float(getattr(request, "booklet_bleed_inner_mm", 0.0) or 0.0) if spine else 0.0,
+                        booklet_fold_side=("left" if align == "right" else "right") if spine else None,
                     )
 
             if bool(getattr(request, "repeat_cell_overlays", False)) and not booklet_enabled:

@@ -502,6 +502,7 @@
     const rawInnerShift = Number($('bookletInnerShiftMm')?.value || 0);
     settings.booklet_inner_shift_mm = settings.booklet_spine_align && Number.isFinite(rawInnerShift)
       ? Math.max(0, Math.min(20, rawInnerShift)) : 0;
+    settings.booklet_bleed_inner_mm = settings.booklet_spine_align && $('bookletBleedEnabled')?.checked ? 3 : 0;
     settings.facing_pages = facingEnabled();
     settings.page_numbers = settings.page_numbers || {};
     settings.page_numbers.auto_reserve_space = pageNumberAutoReserveEnabled();
@@ -517,7 +518,12 @@
         ? pages.flatMap((page) => Array(page.excluded ? 1 : copies).fill(page))
         : pages;
       settings.pages = settings.pages.map((entry, index) => {
-        const inset = pageCellMarginOverrides(expandedSources[index]);
+        // When the preset promises a true 213×303mm leaf on a 305mm sheet,
+        // old manual per-page insets must not silently reduce its height.
+        // Preserve original session overrides; bypass them ONLY for export.
+        const inset = settings.booklet_bleed_inner_mm
+          ? {} // null means inherit the current global margin, never override to 0
+          : pageCellMarginOverrides(expandedSources[index]);
         return { ...entry,
           content_margin_left_mm: inset.left ?? null,
           content_margin_right_mm: inset.right ?? null,
@@ -645,7 +651,9 @@
           // side by the DIFFERENCE between this page's final margin and the
           // existing sheet margin: 10mm global + 0mm override => 0mm final.
           const baseMargins = foldCell?.baseMargins || margins;
-          const finalMargins = pageCellMargins(sourcePage, baseMargins);
+          const finalMargins = $('bookletBleedEnabled')?.checked && spine
+            ? {...baseMargins}
+            : pageCellMargins(sourcePage, baseMargins);
           // A booklet has no gutter: the fold-facing edge of either page
           // must remain exactly on the physical paper centerline. Preserve
           // the other three per-page margin overrides without adding a gap.
@@ -681,7 +689,8 @@
           drawPageInCell(context, source,
             innerX + insideShiftPx, innerY,
             innerWidthPx, innerHeightPx, mm2px,
-            foldCell?.align || 'center');
+            foldCell?.align || 'center',
+            foldCell?(column===0?'left':'right'):null);
           context.restore();
           if (repeated) {
             const overlay = document.createElement('canvas');

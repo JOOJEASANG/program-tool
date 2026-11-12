@@ -195,6 +195,9 @@ class PdfProcessRequest(BaseModel):
     # Optional safe inward move of source artwork on each half of a booklet.
     # This removes visible INNER white bands without shrinking the sheet or leaf.
     booklet_inner_shift_mm: float = Field(default=0.0, ge=0.0, le=20.0)
+    # Optional 3mm INNER bleed crop for 216×303mm PDF pages imposed onto
+    # 457×305mm sheets, preserving the outer/top/bottom bleed at actual size.
+    booklet_bleed_inner_mm: float = Field(default=0.0, ge=0.0, le=3.0)
     repeat_cell_overlays: bool = False
 
     @model_validator(mode="after")
@@ -216,6 +219,16 @@ class PdfProcessRequest(BaseModel):
             NupValue.eight,
         }:
             raise ValueError("소책자 모드는 2, 4, 6, 8-up만 지원합니다")
+        if self.booklet_bleed_inner_mm:
+            if not (self.booklet and self.nup_default == NupValue.two
+                    and self.booklet_spine_align
+                    and self.placement_width_mm is not None
+                    and self.placement_height_mm is not None
+                    and abs(self.booklet_bleed_inner_mm - 3.0) < 0.01
+                    and abs(self.placement_width_mm - 213.0) < 0.05
+                    and abs(self.placement_height_mm - 303.0) < 0.05
+                    and self.paper.width_mm >= 426.0 and self.paper.height_mm >= 303.0):
+                raise ValueError("A4 중철 도련 처리에는 2-up 소책자, 213×303mm 한 면, 426×303mm 이상 출력 용지가 필요합니다")
         return self
 
 

@@ -538,7 +538,16 @@
               <label for="bookletInnerShiftMm">원본 안쪽 흰 여백 보정 (mm)</label>
               <input id="bookletInnerShiftMm" type="number" min="0" max="20" step="0.5" value="0" inputmode="decimal" aria-describedby="bookletInnerShiftHelp">
             </div>
-            <small id="bookletInnerShiftHelp" style="display:block;color:#475569;font-size:9px;line-height:1.5;">기본 0mm는 원본을 그대로 유지합니다. 그림 사이에 흰 띠가 보일 때 1~2mm씩 늘리세요. 왼쪽 내용은 오른쪽으로, 오른쪽 내용은 왼쪽으로 이동하고 접지선을 넘는 부분은 잘립니다. 출력 용지와 한 면의 실제 크기는 변하지 않습니다.</small>
+            <small id="bookletInnerShiftHelp" style="display:block;color:#475569;font-size:9px;line-height:1.5;">도련 없는 원본의 안쪽 흰 띠를 보정할 때만 사용합니다. 도련 자동 처리에서는 0mm로 두세요.</small>
+            <div style="margin-top:10px;padding:9px;border:1px solid #93c5fd;border-radius:8px;background:white;">
+              <strong style="display:block;font-size:11px;color:#1d4ed8;margin-bottom:6px;">A4 중철 · 도련 3mm 자동 처리</strong>
+              <button id="bookletA4BleedPresetBtn" type="button" style="width:100%;border:1px solid #2563eb;border-radius:7px;padding:9px 6px;background:#eff6ff;color:#1d4ed8;font-size:11px;font-weight:800;cursor:pointer;">305×457mm 용지 · A4 중철 자동 설정</button>
+              <label class="checkline" style="margin:8px 0 4px;">
+                <input type="checkbox" id="bookletBleedEnabled">
+                <span style="font-size:10px;font-weight:800;">216×303mm 원본의 접지선 안쪽 도련 3mm 제거</span>
+              </label>
+              <p id="bookletBleedStatus" role="status" aria-live="polite" style="font-size:9px;line-height:1.6;color:#475569;margin:4px 0 0;">자동 설정 시 왼쪽 원본의 오른쪽 3mm, 오른쪽 원본의 왼쪽 3mm를 잘라 213×303mm씩 맞붙입니다. 전체 출력 용지는 457×305mm로 유지됩니다.</p>
+            </div>
           </div>
         </div>
         <div class="field">
@@ -1019,6 +1028,7 @@ function collectEditorState() {
     actualSizeScalePct: Number($('actualSizeScalePct')?.value || 100),
     bookletSpineGather: !!$('bookletSpineGather')?.checked,
     bookletInnerShiftMm: getBookletInnerShiftMm(),
+    bookletBleedEnabled: !!$('bookletBleedEnabled')?.checked,
     actualWidthMm: parseFloat($('actualWidthMm')?.value) || null,
     actualHeightMm: parseFloat($('actualHeightMm')?.value) || null,
     fileNupMap,
@@ -1389,6 +1399,7 @@ async function loadEditorSession(d, docId) {
     if ($('actualSizeScalePct')) $('actualSizeScalePct').value = state.actualSizeScalePct ?? 100;
     if ($('bookletSpineGather')) $('bookletSpineGather').checked = state.bookletSpineGather ?? true;
     if ($('bookletInnerShiftMm')) $('bookletInnerShiftMm').value = String(Math.max(0, Math.min(20, Number(state.bookletInnerShiftMm) || 0)));
+    if ($('bookletBleedEnabled')) $('bookletBleedEnabled').checked = !!state.bookletBleedEnabled;
     if ($('bookletSpineOptions')) $('bookletSpineOptions').style.display = state.booklet ? '' : 'none';
     wmEnabled = state.wmEnabled ?? false; wmText = state.wmText ?? '사본';
     wmOpacity = state.wmOpacity ?? 0.15; wmAngle = state.wmAngle ?? -45; wmColor = state.wmColor ?? '#ff0000';
@@ -1718,6 +1729,66 @@ function bookletSpineEnabled() {
   return isBookletLayoutActive(nup);
 }
 
+function getBookletBleedMm() {
+  return isBookletLayoutActive(nup) && !!$('bookletBleedEnabled')?.checked ? 3 : 0;
+}
+
+function bookletBleedPreviewWarning() {
+  const label=$('bookletBleedStatus');
+  if (!label) return;
+  if (!getBookletBleedMm()) {
+    label.textContent='216×303mm 원본으로 중철할 때 자동 설정을 사용하세요. 일반 소책자 출력은 기존과 동일하게 유지됩니다.';
+    label.style.color='#475569';
+    return;
+  }
+  const {pw,ph}=getSettings(), size=getActualPlacementSize(), source=firstSourceSizeMm();
+  const sourceFits=!source||(Math.abs(source.widthMm-216)<=0.75 && Math.abs(source.heightMm-303)<=0.75);
+  const geometryFits=size.enabled && Math.abs(size.widthMm-213)<0.05 && Math.abs(size.heightMm-303)<0.05 && pw>=426 && ph>=303;
+  label.textContent=sourceFits&&geometryFits
+    ? '안쪽 3mm 제외 · 중앙 밀착 · 바깥쪽/상하 도련 유지. 305×457mm 용지는 상하 여유가 각 1mm이므로 출력기 비인쇄 영역을 확인하세요.'
+    : '규격 확인: 원본 각 216×303mm, 한 면 213×303mm, 출력 용지 최소 426×303mm가 필요합니다.';
+  label.style.color=sourceFits&&geometryFits?'#047857':'#b91c1c';
+}
+
+function applyA4BookletBleedPreset() {
+  const booklet=$('bookletCheck');
+  if (booklet && !booklet.checked) {
+    booklet.checked=true;
+    booklet.dispatchEvent(new Event('change',{bubbles:true}));
+  }
+  if (nup!==2) document.querySelector('.nup-btn[data-nup="2"]')?.click();
+  $('bookletSpineOptions').style.display='';
+  $('paperSize').value='custom';
+  $('customSizeRow').style.display='grid';
+  $('customW').value='305';
+  $('customH').value='457';
+  landscape=true;
+  $('orientLand').classList.add('active');
+  $('orientPort').classList.remove('active');
+  ['marginH','marginV','gap','marginLeft','marginRight','marginTop','marginBottom'].forEach(id=>{
+    if($(id)) $(id).value='0';
+  });
+  showBorder=false;
+  $('showBorder').checked=false;
+  // Never let a subsequent upload replace the chosen printer-sheet size.
+  $('autoDetectSize').checked=false;
+  // Page-number auto reserve would steal several millimeters from a sheet
+  // with only 1mm of vertical clearance and silently break the fold geometry.
+  pnEnabled=false;
+  $('pnEnabled').checked=false;
+  $('pnSettings').style.display='none';
+  $('actualSizeCheck').checked=true;
+  $('actualSizePreset').value='custom';
+  $('actualWidthMm').value='213';
+  $('actualHeightMm').value='303';
+  $('bookletInnerShiftMm').value='0';
+  $('bookletBleedEnabled').checked=true;
+  updateNupBadges();
+  updateActualSizeUi();
+  if ($('pdfActualSizeDisclosure')) $('pdfActualSizeDisclosure').open=true;
+  if (parsedPages.length) schedulePreview(120);
+}
+
 function getBookletInnerShiftMm() {
   if (!bookletSpineEnabled()) return 0;
   const shift = Number($('bookletInnerShiftMm')?.value ?? 0);
@@ -1746,6 +1817,7 @@ function updateActualSizeUi() {
     }
   }
   if (booklet && $('bookletSpineGather')) $('bookletSpineGather').checked=true;
+  bookletBleedPreviewWarning();
   const warning = $('actualSizeWarning');
   if (!warning) return;
   if (!enabled) {
@@ -2435,7 +2507,7 @@ function groupByNup(pages) {
 }
 
 // ── Draw one page into a cell (auto-rotates 90° when it gives ≥10% better fit) ──
-function drawPageInCell(ctx, src, cellX, cellY, cellW, cellH, mm2px = 1, horizontalAlign = 'center') {
+function drawPageInCell(ctx, src, cellX, cellY, cellW, cellH, mm2px = 1, horizontalAlign = 'center', bookletSide = null) {
   const alignX = (width) => horizontalAlign === 'right' ? cellX + cellW - width
     : horizontalAlign === 'left' ? cellX : cellX + (cellW - width) / 2;
   const actual = getActualPlacementSize();
@@ -2449,7 +2521,9 @@ function drawPageInCell(ctx, src, cellX, cellY, cellW, cellH, mm2px = 1, horizon
     const overflow90 = Math.max(targetH / Math.max(cellW, 0.01), targetW / Math.max(cellH, 0.01));
     // Imported PDF pages must keep the orientation shown in their source.
     // Fitting a cell must never rotate a user's PDF without an explicit action.
-    const rot = src?.dataset?.pdfAutoFitRotation !== 'disabled'
+    const bleedCrop=Boolean(typeof getBookletBleedMm==='function' && getBookletBleedMm()
+      && (bookletSide==='left' || bookletSide==='right'));
+    const rot = !bleedCrop && src?.dataset?.pdfAutoFitRotation !== 'disabled'
       && ((!fits0 && fits90) || (!fits0 && !fits90 && overflow90 < overflow0));
     const dw = rot ? targetH : targetW;
     const dh = rot ? targetW : targetH;
@@ -2464,6 +2538,12 @@ function drawPageInCell(ctx, src, cellX, cellY, cellW, cellH, mm2px = 1, horizon
       ctx.translate(dx + dw / 2, dy + dh / 2);
       ctx.rotate(Math.PI / 2);
       ctx.drawImage(src, -targetW / 2, -targetH / 2, targetW, targetH);
+    } else if (bleedCrop) {
+      // Source 216×303mm. Trim the 3mm facing the fold, leaving outer/top/
+      // bottom bleed untouched. The 213×303mm destination must not rescale.
+      const bleedPx=src.width * 3/216;
+      const cropX=bookletSide==='right'?bleedPx:0;
+      ctx.drawImage(src,cropX,0,src.width-bleedPx,src.height,dx,dy,dw,dh);
     } else {
       ctx.drawImage(src, dx, dy, dw, dh);
     }
@@ -2588,7 +2668,8 @@ function buildOutputPage(groupPages, pageIdx, cols, rows, mm2px, useHi, repeated
       ctx.clip();
     }
     drawPageInCell(ctx, src, cellX + towardFoldPx, cellY,
-      placedW, placedH, mm2px, foldCell?.align || 'center');
+      placedW, placedH, mm2px, foldCell?.align || 'center',
+      foldCell?(col===0?'left':'right'):null);
     ctx.restore();
     if (repeated) {
       const overlay = document.createElement('canvas');
@@ -3071,6 +3152,16 @@ $('downloadBtn').addEventListener('click', async () => {
       $('downloadBtn').disabled = false;
       return;
     }
+    if (getBookletBleedMm()) {
+      const source=firstSourceSizeMm();
+      if (!actualPlacement.enabled || Math.abs(actualPlacement.widthMm-213)>0.05
+        || Math.abs(actualPlacement.heightMm-303)>0.05 || pw<426 || ph<303
+        || (source && (Math.abs(source.widthMm-216)>0.75 || Math.abs(source.heightMm-303)>0.75))) {
+        showStatus('A4 도련 자동 처리 조건: 216×303mm 원본 · 213×303mm 한 면 · 426×303mm 이상 출력 용지가 필요합니다.', 'error');
+        $('downloadBtn').disabled=false;
+        return;
+      }
+    }
 
     // The option values, preview format and server format must agree.
     const pnFormatMap = { number: '1', 'page-of': '1/N', 'number-total': '1/N', dash: '-1-', 'dash-total': '-1/N-' };
@@ -3159,6 +3250,7 @@ $('downloadBtn').addEventListener('click', async () => {
       booklet: document.getElementById('bookletCheck')?.checked ?? false,
       booklet_spine_align: !!$('bookletCheck')?.checked,
       booklet_inner_shift_mm: getBookletInnerShiftMm(),
+      booklet_bleed_inner_mm: getBookletBleedMm(),
     };
 
     // Expand repeat placements at the export boundary. An API wrapper alone is
@@ -3231,6 +3323,11 @@ $('bookletSpineGather').addEventListener('change', () => {
 });
 $('bookletInnerShiftMm')?.addEventListener('input', () => schedulePreview(180));
 $('bookletInnerShiftMm')?.addEventListener('change', () => schedulePreview(100));
+$('bookletA4BleedPresetBtn')?.addEventListener('click', applyA4BookletBleedPreset);
+$('bookletBleedEnabled')?.addEventListener('change', () => {
+  updateActualSizeUi();
+  schedulePreview(120);
+});
 $('bookletCheck')?.addEventListener('change', () => {
   $('bookletSpineOptions').style.display = $('bookletCheck').checked ? '' : 'none';
   updateActualSizeUi();
@@ -3439,6 +3536,7 @@ $('resetBtn').addEventListener('click', () => {
   $('actualHeightMm').value = '';
   $('bookletSpineGather').checked = true;
   $('bookletInnerShiftMm').value = '0';
+  $('bookletBleedEnabled').checked=false;
   $('bookletSpineOptions').style.display = 'none';
   updateActualSizeUi();
   $('previewScroll').innerHTML = '<div class="empty-state"><div class="icon">📝</div><p>PDF 파일을 업로드하면<br>설정에 따라 <b>자동으로 미리보기</b>가 생성됩니다.</p></div>';
