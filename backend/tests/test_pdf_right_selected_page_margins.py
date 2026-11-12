@@ -86,7 +86,7 @@ def test_browser_regression_and_manual_cover_selected_only_and_global_reset():
     manual = MANUAL.read_text(encoding="utf-8")
     assert "pdf-selected-page-margins-smoke.html" in runner
     assert 'data-pdf-selected-page-margins-smoke="pass"' in runner
-    for marker in ("기본 폭을 300px에서 360px", "개별 여백", "혼합", "개별 여백 초기화"):
+    for marker in ("사이드바 너비는 280~480px", "개별 여백", "혼합", "개별 여백 초기화"):
         assert marker in manual
     for file in (RIGHT, PANEL, ENGINE):
         check = subprocess.run(["node", "--check", str(file)], text=True, capture_output=True, cwd=ROOT)
