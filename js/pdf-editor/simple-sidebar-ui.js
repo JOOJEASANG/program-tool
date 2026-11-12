@@ -1,4 +1,4 @@
-// PDF editor: one sidebar, with page-list collapse preserved while legacy rails stay disabled.
+// PDF editor: progressive print settings on the left and page management on the right.
 (function(){
   'use strict';
   if(window.__pdfEditorSimpleSidebarUiV1)return;
