@@ -2500,7 +2500,7 @@ function groupByNup(pages) {
 }
 
 // ── Draw one page into a cell (auto-rotates 90° when it gives ≥10% better fit) ──
-function drawPageInCell(ctx, src, cellX, cellY, cellW, cellH, mm2px = 1, horizontalAlign = 'center') {
+function drawPageInCell(ctx, src, cellX, cellY, cellW, cellH, mm2px = 1, horizontalAlign = 'center', bookletSide = null) {
   const alignX = (width) => horizontalAlign === 'right' ? cellX + cellW - width
     : horizontalAlign === 'left' ? cellX : cellX + (cellW - width) / 2;
   const actual = getActualPlacementSize();
@@ -2514,7 +2514,8 @@ function drawPageInCell(ctx, src, cellX, cellY, cellW, cellH, mm2px = 1, horizon
     const overflow90 = Math.max(targetH / Math.max(cellW, 0.01), targetW / Math.max(cellH, 0.01));
     // Imported PDF pages must keep the orientation shown in their source.
     // Fitting a cell must never rotate a user's PDF without an explicit action.
-    const rot = src?.dataset?.pdfAutoFitRotation !== 'disabled'
+    const bleedCrop=Boolean(getBookletBleedMm() && (bookletSide==='left' || bookletSide==='right'));
+    const rot = !bleedCrop && src?.dataset?.pdfAutoFitRotation !== 'disabled'
       && ((!fits0 && fits90) || (!fits0 && !fits90 && overflow90 < overflow0));
     const dw = rot ? targetH : targetW;
     const dh = rot ? targetW : targetH;
@@ -2529,6 +2530,12 @@ function drawPageInCell(ctx, src, cellX, cellY, cellW, cellH, mm2px = 1, horizon
       ctx.translate(dx + dw / 2, dy + dh / 2);
       ctx.rotate(Math.PI / 2);
       ctx.drawImage(src, -targetW / 2, -targetH / 2, targetW, targetH);
+    } else if (bleedCrop) {
+      // Source 216×303mm. Trim the 3mm facing the fold, leaving outer/top/
+      // bottom bleed untouched. The 213×303mm destination must not rescale.
+      const bleedPx=src.width * 3/216;
+      const cropX=bookletSide==='right'?bleedPx:0;
+      ctx.drawImage(src,cropX,0,src.width-bleedPx,src.height,dx,dy,dw,dh);
     } else {
       ctx.drawImage(src, dx, dy, dw, dh);
     }
@@ -2653,7 +2660,8 @@ function buildOutputPage(groupPages, pageIdx, cols, rows, mm2px, useHi, repeated
       ctx.clip();
     }
     drawPageInCell(ctx, src, cellX + towardFoldPx, cellY,
-      placedW, placedH, mm2px, foldCell?.align || 'center');
+      placedW, placedH, mm2px, foldCell?.align || 'center',
+      foldCell?(col===0?'left':'right'):null);
     ctx.restore();
     if (repeated) {
       const overlay = document.createElement('canvas');
@@ -3136,6 +3144,16 @@ $('downloadBtn').addEventListener('click', async () => {
       $('downloadBtn').disabled = false;
       return;
     }
+    if (getBookletBleedMm()) {
+      const source=firstSourceSizeMm();
+      if (!actualPlacement.enabled || Math.abs(actualPlacement.widthMm-213)>0.05
+        || Math.abs(actualPlacement.heightMm-303)>0.05 || pw<426 || ph<303
+        || (source && (Math.abs(source.widthMm-216)>0.75 || Math.abs(source.heightMm-303)>0.75))) {
+        showStatus('A4 도련 자동 처리 조건: 216×303mm 원본 · 213×303mm 한 면 · 426×303mm 이상 출력 용지가 필요합니다.', 'error');
+        $('downloadBtn').disabled=false;
+        return;
+      }
+    }
 
     // The option values, preview format and server format must agree.
     const pnFormatMap = { number: '1', 'page-of': '1/N', 'number-total': '1/N', dash: '-1-', 'dash-total': '-1/N-' };
@@ -3224,6 +3242,7 @@ $('downloadBtn').addEventListener('click', async () => {
       booklet: document.getElementById('bookletCheck')?.checked ?? false,
       booklet_spine_align: !!$('bookletCheck')?.checked,
       booklet_inner_shift_mm: getBookletInnerShiftMm(),
+      booklet_bleed_inner_mm: getBookletBleedMm(),
     };
 
     // Expand repeat placements at the export boundary. An API wrapper alone is
