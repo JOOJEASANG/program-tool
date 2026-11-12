@@ -88,7 +88,9 @@
       if(frame)return;
       frame=requestAnimationFrame(()=>{frame=0;refresh(false);});
     };
-    document.addEventListener('pdf-page-selection-change',()=>queue());
+    // Selection changes are tiny and must update the target count instantly;
+    // no animation-frame delay (headless browsers and inactive tabs may pause it).
+    document.addEventListener('pdf-page-selection-change',()=>refresh(false));
     document.addEventListener('pdf-page-margin-change',()=>queue(true));
     document.addEventListener('pdf-import-committed',()=>queue(true));
     document.addEventListener('pdf-file-removed',()=>queue(true));
