@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<title>PDF compact left output controls smoke</title>
+<script>history.replaceState(null,'','/pdf-editor/index.html?compact-output-smoke=1');</script>
+<style>
+  *{box-sizing:border-box}
+  body{margin:0}
+  .app{display:grid;grid-template-columns:360px minmax(0,1fr);height:600px}
+  .app>aside{padding:12px;background:#f5f7fa;overflow:auto}
+  .sec{background:#fff;border:1px solid #dbe5ee;border-radius:12px}
+  .sec-body{padding:11px 12px}
+  .btn{display:block;width:100%;border:0;padding:10px;color:#111}
+  .btn:disabled{opacity:.45}
+  .app>main{min-height:250px}
+</style>
+</head>
+<body data-program-kind="pdf-editor" data-pdf-compact-output-smoke="running">
+<pre id="result">RUNNING</pre>
+<div class="app" id="pdfEditorApp">
+ <aside>
+  <div class="sec">
+   <div class="sec-head"><span class="sec-title">출력</span></div>
+   <div class="sec-body">
+    <button class="btn btn-primary" id="previewBtn" disabled>미리보기</button>
+    <div style="height:6px;"></div>
+    <button class="btn btn-green" id="downloadBtn" disabled>PDF 저장</button>
+    <div style="height:6px;"></div>
+    <button class="btn btn-secondary" id="resetBtn">전체 초기화</button>
+   </div>
+  </div>
+ </aside>
+ <main></main>
+</div>
+<script>
+ var parsedPages=[{pageType:'pdf',file_index:0,page_index:0,excluded:false,rotation:0}];
+ var uploadedFiles=[new File(['test'],'sample.pdf',{type:'application/pdf'})];
+ window.previewCount=0;window.resetCount=0;window.directSaveCount=0;
+ document.getElementById('previewBtn').addEventListener('click',()=>window.previewCount++);
+ document.getElementById('resetBtn').addEventListener('click',()=>window.resetCount++);
+ document.getElementById('downloadBtn').addEventListener('click',()=>window.directSaveCount++);
+ function apiProcessPdf(){return Promise.resolve(new Blob(['%PDF-1.4\n%%EOF'],{type:'application/pdf'}));}
+ function apiPreflightCheck(){return Promise.resolve({score:100,page_count:1,checks:[]});}
+ function collectEditorState(){return {pages:parsedPages,nup:1,fileNupMap:{},booklet:false};}
+ function getSettings(){return {pw:210,ph:297,mh:10,mv:10,gp:4};}
+ function showStatus(){}
+</script>
+<script src="/js/pdf-editor/simple-sidebar-ui.js?v=20261112-3"></script>
+<script src="/js/pdf-editor-final-check.js?v=20261112-2"></script>
+<script>
+(async()=>{
+ const $=id=>document.getElementById(id);
+ const wait=ms=>new Promise(resolve=>setTimeout(resolve,ms));
+ const fail=reason=>{throw Error(reason)};
+ const rect=id=>$(id).getBoundingClientRect();
+ const within=(a,b)=>Math.abs(a-b)<2;
+ const white=button=>getComputedStyle(button).color==='rgb(255, 255, 255)';
+ try{
+  for(let i=0;i<45&&!$('pdfEditorFinalCheckBtn');i++)await wait(30);
+  if(!$('pdfEditorFinalCheckBtn'))fail('print check action missing');
+  for(let i=0;i<45&&document.documentElement.dataset.pdfSimpleSidebarUi!=='1';i++)await wait(30);
+  if(document.documentElement.dataset.pdfSimpleSidebarUi!=='1')fail('sidebar UI did not mount');
+  await wait(130);
+  const dock=$('downloadBtn').closest('.sec');
+  const row=dock.querySelector('.sec-body');
+  const before=rect('downloadBtn'),preview=rect('previewBtn'),check=rect('pdfEditorFinalCheckBtn'),reset=rect('resetBtn');
+  if(getComputedStyle(row).gridTemplateColumns.split(' ').length!==3)fail('not using three aligned secondary action columns');
+  if(!getComputedStyle(dock.querySelector('.pefc-wrap')).display.includes('contents'))fail('check wrapper still uses a separate grid row');
+  if(!(before.bottom<=preview.top+1&&within(preview.top,check.top)&&within(check.top,reset.top)))fail('actions not arranged as two rows');
+  if(!(preview.left<check.left&&check.left<reset.left))fail('secondary buttons not ordered as preview, check, reset');
+  if(before.height>39||preview.height>34||check.height>34||reset.height>34)fail('output buttons too tall');
+  if(dock.getBoundingClientRect().height>115)fail('output dock still excessively tall');
+  if(row.querySelectorAll('.pefc-hint,.pefc-direct-note').length)fail('redundant explanation paragraphs remain in output dock');
+  if($('downloadBtn').textContent.trim()!=='PDF 저장'||$('previewBtn').textContent.trim()!=='미리보기'
+   ||$('pdfEditorFinalCheckBtn').textContent.trim()!=='검사 후 저장'||$('resetBtn').textContent.trim()!=='전체 초기화')
+    fail('compact Korean button labels missing');
+  if(!white($('downloadBtn'))||!white($('previewBtn'))||!white($('pdfEditorFinalCheckBtn')))
+    fail('disabled action labels lack white high-contrast text');
+  if(!$('pdfEditorFinalCheckBtn').title.includes('도련'))fail('preflight functionality tooltip missing');
+  if(!$('downloadBtn').disabled||!$('previewBtn').disabled||!$('pdfEditorFinalCheckBtn').disabled||$('resetBtn').disabled)
+    fail('disabled action states were changed');
+  $('previewBtn').disabled=false;$('downloadBtn').disabled=false;
+  await wait(80);
+  if($('pdfEditorFinalCheckBtn').disabled)fail('check button did not follow direct-save ready state');
+  if(!white($('downloadBtn'))||!white($('previewBtn'))||!white($('pdfEditorFinalCheckBtn')))fail('enabled action labels not white');
+  $('previewBtn').click();$('downloadBtn').click();$('resetBtn').click();
+  if(window.previewCount!==1||window.directSaveCount!==1||window.resetCount!==1)fail('existing primary and secondary handlers no longer work');
+  $('pdfEditorFinalCheckBtn').click();
+  for(let i=0;i<40&&!$('pdfEditorFinalCheckModal')?.classList.contains('open');i++)await wait(20);
+  if(!$('pdfEditorFinalCheckModal')?.classList.contains('open'))fail('preflight modal failed to open');
+  document.body.dataset.pdfCompactOutputSmoke='pass';
+  $('result').textContent='PASS: compact two-row output dock, accessible white text in disabled/enabled states, preserved preview/save/reset/preflight actions';
+ }catch(error){
+  document.body.dataset.pdfCompactOutputSmoke='fail';
+  $('result').textContent='FAIL: '+String(error.stack||error);
+ }
+})();
+</script>
+</body>
+</html>

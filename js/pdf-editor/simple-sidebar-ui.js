@@ -90,17 +90,46 @@
       body[data-program-kind="pdf-editor"] #pdfActualSizeDisclosure>summary::after{content:'⌄';float:right;color:#64748b}
       body[data-program-kind="pdf-editor"] #pdfActualSizeDisclosure[open]>summary::after{content:'⌃'}
       body[data-program-kind="pdf-editor"] #pdfActualSizeDisclosure>#actualSizePanel{margin:0 7px 8px!important}
+      /* Compact fixed output dock: one primary save + three aligned actions.
+         Keep native button IDs, listeners, preflight modal and save state intact. */
       body[data-program-kind="pdf-editor"] .app>aside:first-of-type .sec:has(#downloadBtn){
-        position:sticky!important;bottom:-12px!important;z-index:30!important;border-color:#b6cde6!important;
-        background:#fff!important;box-shadow:0 -4px 18px rgba(15,23,42,.11)!important;margin-bottom:0!important}
+        position:sticky!important;bottom:-12px!important;z-index:30!important;border-color:#cad8e7!important;
+        border-radius:10px 10px 0 0!important;background:#fff!important;
+        box-shadow:0 -3px 14px rgba(15,23,42,.09)!important;margin-bottom:0!important}
       body[data-program-kind="pdf-editor"] .app>aside:first-of-type .sec:has(#downloadBtn)>.sec-head{display:none!important}
       body[data-program-kind="pdf-editor"] .app>aside:first-of-type .sec:has(#downloadBtn)>.sec-body{
-        display:grid!important;grid-template-columns:minmax(0,1fr) minmax(0,1fr)!important;gap:6px!important;padding:9px!important}
+        display:grid!important;grid-template-columns:minmax(0,1.04fr) minmax(0,1.20fr) minmax(0,.87fr)!important;
+        gap:5px!important;padding:7px 8px!important;align-items:stretch!important}
       body[data-program-kind="pdf-editor"] .app>aside:first-of-type .sec:has(#downloadBtn)>.sec-body>div[style*="height:6px"]{display:none!important}
+      /* The check module inserts its button in a wrapper. Flatten only this
+         presentation wrapper so every action shares the same two-row grid. */
+      body[data-program-kind="pdf-editor"] .app>aside:first-of-type .sec:has(#downloadBtn) .pefc-wrap{
+        display:contents!important}
+      body[data-program-kind="pdf-editor"] .app>aside:first-of-type .sec:has(#downloadBtn) :is(.pefc-hint,.pefc-direct-note){
+        display:none!important}
+      body[data-program-kind="pdf-editor"] .app>aside:first-of-type .sec:has(#downloadBtn) :is(#downloadBtn,#previewBtn,#pdfEditorFinalCheckBtn,#resetBtn){
+        box-sizing:border-box!important;margin:0!important;width:100%!important;min-width:0!important;
+        padding:0 5px!important;border-radius:7px!important;line-height:1.2!important;
+        font-family:inherit!important;font-weight:850!important;white-space:nowrap!important;
+        box-shadow:none!important;transform:none!important}
       body[data-program-kind="pdf-editor"] .app>aside:first-of-type #downloadBtn{
-        grid-column:1/-1!important;grid-row:1!important;height:42px!important;max-height:none!important;font-size:13px!important}
-      body[data-program-kind="pdf-editor"] .app>aside:first-of-type #previewBtn{grid-column:1!important;grid-row:2!important}
-      body[data-program-kind="pdf-editor"] .app>aside:first-of-type #resetBtn{grid-column:2!important;grid-row:2!important}
+        grid-column:1/-1!important;grid-row:1!important;height:37px!important;min-height:37px!important;max-height:37px!important;
+        background:#147c72!important;border:1px solid #147c72!important;color:#fff!important;font-size:12px!important}
+      body[data-program-kind="pdf-editor"] .app>aside:first-of-type #previewBtn{
+        grid-column:1!important;grid-row:2!important;height:32px!important;background:#3168c8!important;
+        border:1px solid #3168c8!important;color:#fff!important;font-size:10px!important}
+      body[data-program-kind="pdf-editor"] .app>aside:first-of-type #pdfEditorFinalCheckBtn{
+        grid-column:2!important;grid-row:2!important;height:32px!important;min-height:32px!important;
+        background:#0e8379!important;border:1px solid #0e8379!important;color:#fff!important;font-size:9.7px!important}
+      body[data-program-kind="pdf-editor"] .app>aside:first-of-type #resetBtn{
+        grid-column:3!important;grid-row:2!important;height:32px!important;background:#edf2f7!important;
+        border:1px solid #d8e1eb!important;color:#34506c!important;font-size:9.8px!important}
+      body[data-program-kind="pdf-editor"] .app>aside:first-of-type .sec:has(#downloadBtn) :is(#downloadBtn,#previewBtn,#pdfEditorFinalCheckBtn):disabled{
+        opacity:1!important;background:#91a6be!important;border-color:#91a6be!important;color:#fff!important;
+        cursor:not-allowed!important}
+      body[data-program-kind="pdf-editor"] .app>aside:first-of-type .sec:has(#downloadBtn) :is(#downloadBtn,#previewBtn,#pdfEditorFinalCheckBtn):not(:disabled):hover{
+        filter:brightness(1.07)!important}
+      body[data-program-kind="pdf-editor"] .app>aside:first-of-type #resetBtn:hover{background:#e2e9f2!important}
       body[data-program-kind="pdf-editor"] .app>aside:first-of-type :is(.sec-body,summary):focus-visible{outline:2px solid #2563eb;outline-offset:1px}
       @media(max-width:760px){body[data-program-kind="pdf-editor"] .app>aside:first-of-type{padding:10px!important}body[data-program-kind="pdf-editor"] #previewScroll .preview-row{min-width:max-content}}
       @media(max-width:980px){body[data-program-kind="pdf-editor"]{overflow:auto!important}body[data-program-kind="pdf-editor"] .app{grid-template-columns:1fr!important;height:auto!important;min-height:100vh!important}body[data-program-kind="pdf-editor"] .app>aside:first-of-type,body[data-program-kind="pdf-editor"] .app>main{grid-column:1!important;width:100%!important;height:auto!important;position:relative!important;overflow:visible!important}}

@@ -28,7 +28,7 @@
     const style=document.createElement('style');
     style.id='pdfEditorFinalCheckStyles';
     style.textContent=`
-      .pefc-wrap{margin-top:6px;padding-top:8px;border-top:1px dashed #cbd5e1}.pefc-primary{width:100%;border:0;border-radius:10px;padding:11px 12px;background:linear-gradient(135deg,#0f766e,#0e9f8d);color:#fff;font:900 12px Pretendard,"Noto Sans KR",sans-serif;cursor:pointer;box-shadow:0 7px 18px rgba(15,118,110,.18)}.pefc-primary:hover:not(:disabled){filter:brightness(.97);transform:translateY(-1px)}.pefc-primary:disabled{opacity:.45;cursor:not-allowed;transform:none}.pefc-hint{font-size:9px;color:#64748b;line-height:1.45;margin-top:5px;text-align:center}.pefc-direct-note{font-size:9px;color:#64748b;text-align:center;margin:5px 0 2px}
+      .pefc-wrap{margin-top:6px;padding-top:8px;border-top:1px dashed #cbd5e1}.pefc-primary{width:100%;border:0;border-radius:10px;padding:11px 12px;background:linear-gradient(135deg,#0f766e,#0e9f8d);color:#fff;font:900 12px Pretendard,"Noto Sans KR",sans-serif;cursor:pointer;box-shadow:0 7px 18px rgba(15,118,110,.18)}.pefc-primary:hover:not(:disabled){filter:brightness(.97);transform:translateY(-1px)}.pefc-primary:disabled{opacity:.45;cursor:not-allowed;transform:none}
       .pefc-modal{display:none;position:fixed;inset:0;z-index:2200;background:rgba(15,23,42,.62);backdrop-filter:blur(4px);align-items:center;justify-content:center;padding:18px}.pefc-modal.open{display:flex}.pefc-box{width:min(650px,100%);max-height:90vh;overflow:auto;background:#fff;border-radius:20px;box-shadow:0 30px 90px rgba(0,0,0,.3);padding:22px}.pefc-head{display:flex;align-items:flex-start;gap:11px}.pefc-icon{width:42px;height:42px;border-radius:12px;background:#e6f6f3;display:grid;place-items:center;font-size:21px}.pefc-title{font-size:18px;font-weight:950;color:#12396d}.pefc-sub{font-size:10px;color:#64748b;line-height:1.5;margin-top:4px;word-break:break-all}.pefc-close{margin-left:auto;width:34px;height:34px;border:0;border-radius:9px;background:#f1f5f9;color:#475569;cursor:pointer;font-size:18px}.pefc-summary{display:grid;grid-template-columns:110px minmax(0,1fr);gap:13px;align-items:center;margin-top:16px;padding:15px;border:1px solid #e2e8f0;border-radius:14px;background:#f8fafc}.pefc-score{height:86px;border-radius:13px;background:#fff;border:1px solid #e2e8f0;display:flex;flex-direction:column;align-items:center;justify-content:center}.pefc-score strong{font-size:27px;color:#12396d}.pefc-score span{font-size:9px;color:#64748b;font-weight:850}.pefc-verdict strong{display:block;font-size:14px}.pefc-verdict p{font-size:10px;color:#64748b;line-height:1.55;margin-top:5px}.pefc-verdict.ready strong{color:#15803d}.pefc-verdict.warn strong{color:#a16207}.pefc-verdict.fail strong{color:#dc2626}
       .pefc-stats{display:flex;gap:6px;flex-wrap:wrap;margin-top:9px}.pefc-stat{font-size:9px;font-weight:900;border-radius:999px;padding:4px 7px;background:#eef2f7;color:#475569}.pefc-stat.fail{background:#fee2e2;color:#b91c1c}.pefc-stat.warn{background:#fef3c7;color:#92400e}.pefc-stat.pass{background:#dcfce7;color:#166534}.pefc-bind{margin-top:10px;padding:10px 11px;border-radius:11px;background:#eff6ff;border:1px solid #bfdbfe;color:#1e3a8a;font-size:10px;line-height:1.55;font-weight:800}.pefc-list{display:grid;gap:7px;margin-top:13px}.pefc-item{padding:10px 11px;border:1px solid #e2e8f0;border-radius:11px;background:#fff}.pefc-item-head{display:flex;align-items:center;gap:7px}.pefc-badge{font-size:8px;font-weight:950;border-radius:999px;padding:3px 6px}.pefc-badge.fail{background:#fee2e2;color:#b91c1c}.pefc-badge.warning{background:#fef3c7;color:#92400e}.pefc-item strong{font-size:10px;color:#334155}.pefc-item p{font-size:9px;color:#64748b;line-height:1.5;margin-top:5px}.pefc-empty{margin-top:13px;padding:11px;border-radius:11px;background:#f0fdf4;border:1px solid #bbf7d0;color:#166534;font-size:10px;font-weight:850}.pefc-actions{display:flex;gap:8px;justify-content:flex-end;margin-top:16px}.pefc-btn{border-radius:10px;padding:10px 15px;font-size:11px;font-weight:900;cursor:pointer}.pefc-btn.back{border:1px solid #dbe3eb;background:#f8fafc;color:#475569}.pefc-btn.save{border:0;background:#12396d;color:#fff}.pefc-btn:disabled{opacity:.45;cursor:not-allowed}
       @media(max-width:650px){.pefc-summary{grid-template-columns:1fr}.pefc-score{height:72px}.pefc-actions{flex-direction:column-reverse}.pefc-btn{width:100%}}
@@ -44,9 +44,9 @@
     if(!body)return false;
     const wrap=document.createElement('div');
     wrap.className='pefc-wrap';
-    wrap.innerHTML=`<button type="button" class="pefc-primary" id="pdfEditorFinalCheckBtn" disabled>✓ 인쇄 전 검사 후 저장</button><div class="pefc-hint">현재 편집 결과를 PDF로 만든 뒤 해상도·폰트·규격·도련 등을 바로 검사합니다.</div><div class="pefc-direct-note">검사가 필요 없으면 아래의 <b>바로 PDF 저장</b>을 사용하세요.</div>`;
+    wrap.innerHTML=`<button type="button" class="pefc-primary" id="pdfEditorFinalCheckBtn" title="현재 PDF를 생성하여 해상도·폰트·규격·도련을 검사한 뒤 저장" aria-label="인쇄 전 검사 후 PDF 저장" disabled>검사 후 저장</button>`;
     download.insertAdjacentElement('beforebegin',wrap);
-    download.textContent='바로 PDF 저장';
+    download.textContent='PDF 저장';
     $('pdfEditorFinalCheckBtn')?.addEventListener('click',runFinalCheck);
     return true;
   }
@@ -204,7 +204,7 @@
     const direct=$('downloadBtn');
     if(check){
       check.disabled=busy||direct?.disabled===true;
-      check.textContent=busy?(message||'인쇄 전 검사 중...'):'✓ 인쇄 전 검사 후 저장';
+      check.textContent=busy?'검사 중…':'검사 후 저장';
     }
   }
 

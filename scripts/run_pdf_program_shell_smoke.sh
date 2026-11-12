@@ -149,6 +149,7 @@ run_product_case "pdf-precision-edit-tools-smoke.html" "$OUT_DIR/pdf-precision-e
 reset_profile
 run_product_case "pdf-orientation-scale-regression-smoke.html" "$OUT_DIR/pdf-orientation-scale-regression-smoke-dom.html" 'data-pdf-orientation-scale-regression-smoke="pass"' 'PASS: legacy rotation stays canonical and corner resize is outward-grow inward-shrink'
 reset_profile
+run_product_case "pdf-compact-output-controls-smoke.html" "$OUT_DIR/pdf-compact-output-controls-dom.html" 'data-pdf-compact-output-smoke="pass"' 'PASS: compact two-row output dock, accessible white text in disabled/enabled states, preserved preview/save/reset/preflight actions'
 run_product_case "pdf-output-save-actions-smoke.html" "$OUT_DIR/pdf-output-save-smoke-dom.html" 'data-pdf-output-save-smoke="pass"' 'PASS: direct PDF save and print preflight save remain actionable after preview state recovery'
 reset_profile
 run_product_case "pdf-page-list-quick-add-smoke.html" "$OUT_DIR/pdf-page-list-quick-add-smoke-dom.html" 'data-pdf-page-list-quick-add-smoke="pass"' 'PASS: retired page-list quick add stays removed while upload-order staging remains intact'

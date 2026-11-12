@@ -11,7 +11,7 @@ def test_runtime_boot_uses_canonical_owners_for_live_workflow_modules():
  assert f"const VERSION='{release_version()}'" in runtime
 def test_pdf_editor_final_check_reuses_generated_output_without_manual_reupload():
  source=read("js/pdf-editor-final-check.js")
- for marker in ("인쇄 전 검사 후 저장","바로 PDF 저장","apiProcessPdf(sources,settings","apiPreflightCheck(file","checkedBlob=blob","downloadBlob(checkedBlob","검사 완료 PDF 저장","문제 있어도 PDF 저장"):assert marker in source
+ for marker in ("인쇄 전 검사 후 PDF 저장","download.textContent='PDF 저장'","apiProcessPdf(sources,settings","apiPreflightCheck(file","checkedBlob=blob","downloadBlob(checkedBlob","검사 완료 PDF 저장","문제 있어도 PDF 저장"):assert marker in source
 def test_static_home_keeps_current_programs_only():
  home=read("index.html")
  for label in ("스마트 인쇄배치","표지 디자인","PDF배치","PDF편집","PDF 유틸리티"):assert label in home
