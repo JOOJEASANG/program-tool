@@ -32,20 +32,21 @@ def test_home_is_print_first_from_initial_source_not_generic_category_runtime():
         assert legacy not in source
 
 
-def test_pdf_workspace_keeps_controls_in_one_sidebar_with_page_list_collapse_exception():
+def test_pdf_workspace_separates_print_setup_and_page_management_with_accessible_collapsible_options():
     sidebar = text("js/pdf-editor/simple-sidebar-ui.js")
     ui_runtime = text("js/pdf-editor/ui-runtime.js")
     shell = text("js/program-shell-unify.js")
     for marker in (
-        "single-sidebar-page-list-collapsible-hotfix-v4",
+        "stage:'two-sidebar-print-workflow-v2'",
         "neutralizeToolRail()",
         "restoreOutputRail()",
-        "keepSectionsOpen()",
+        "organizeWorkspace()",
+        "organizeRightSidebar()",
         "flex-wrap:nowrap!important",
-        ".sec-body.hidden{display:block!important",
+        ".sec.pdf-ui-closed>.sec-body.hidden{display:none!important}",
         "#thumbSection>#sb-pages.hidden{display:none!important}",
-        "if(sec.id==='thumbSection')",
-        "if(head.closest('#thumbSection'))",
+        "const defaultSections=new Set(['upload','paper','nup','output']);",
+        "document.addEventListener('keydown',blockToggle,true)",
         ".ps-sidebar-toggle",
         "pdf-output-dock-v2",
         "aria-label','로그아웃",
@@ -60,10 +61,10 @@ def test_pdf_workspace_keeps_controls_in_one_sidebar_with_page_list_collapse_exc
         "setInterval(",
     ):
         assert forbidden not in sidebar
-    assert "/js/pdf-editor/simple-sidebar-ui.js?v=20261021-3" in ui_runtime
+    assert "/js/pdf-editor/simple-sidebar-ui.js?v=20261112-1" in ui_runtime
     assert "/js/pdf-editor/workspace-layout.js" not in ui_runtime
     assert "/js/pdf-editor/workflow-ui.js" not in ui_runtime
     assert "/js/pdf-editor/ui-runtime.js?v=${PDF_UI_RUNTIME_VERSION}" in shell
-    assert "workspaceStage:'pdf-single-sidebar-v2'" in shell
-    assert "uiRuntimeStage:'pdf-editor-always-visible-sidebar-runtime-v2'" in shell
+    assert "workspaceStage:'pdf-two-sidebars-v3'" in shell
+    assert "uiRuntimeStage:'pdf-editor-two-sidebar-workflow-runtime-v3'" in shell
     assert "stage:'pdf-tools-headerless-unified-shell'" in shell
