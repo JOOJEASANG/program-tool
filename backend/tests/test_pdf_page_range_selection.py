@@ -31,7 +31,7 @@ def test_range_selection_file_scope_ui_and_drag_mode_keep_sorting_separate():
         "Number(page.page_index) + 1",
     ):
         assert marker in source
-    for marker in ("범위 선택", "홀수", "짝수", "드래그 선택", "원본 페이지"):
+    for marker in ("직접 선택", "Shift+클릭", "드래그", "파일별 페이지"):
         assert marker in manual
 
 def test_selection_range_semantics_in_node():

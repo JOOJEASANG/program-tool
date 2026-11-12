@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="ko">
 <head><meta charset="utf-8"><title>PDF right page list selection and icons regression</title>
-<script>history.replaceState(null, "", "/pdf-editor/index.html?select-icons-smoke=1");</script>
+<script>history.replaceState(null, "", "/pdf-editor/index.html?app=layout&select-icons-smoke=1");</script>
 <style>
  #thumbArea{display:grid;grid-template-columns:repeat(4,75px);gap:6px}
  .thumb-item{width:75px}.thumb-wrap{display:block;position:relative;width:75px;height:98px;border:1px solid #ddd}
@@ -10,9 +10,16 @@
 <body data-pdf-page-select-icons-smoke="running">
 <pre id="result">RUNNING</pre>
 <div id="pageSidebar" class="page-sidebar">
- <div id="sb-pages">
-  <div class="thumb-hint"></div>
-  <div id="thumbArea"></div>
+ <div id="thumbSection" class="sec">
+  <div class="sec-head" data-sec="pages">
+   <span class="sec-title">파일별 페이지</span>
+   <span class="slide-count" id="slideCount">4/4p</span>
+   <span class="sec-arrow">▾</span>
+  </div>
+  <div id="sb-pages">
+   <div class="thumb-hint"></div>
+   <div id="thumbArea"></div>
+  </div>
  </div>
 </div>
 <div id="previewInfo">미리보기</div>
@@ -58,8 +65,9 @@
  document.getElementById('previewScroll').scrollTo=()=>{};
  window.renderThumbs();
 </script>
-<script src="/js/pdf-editor/page-selection-preview-focus.js?v=20261112-2"></script>
-<script src="/js/pdf-editor/page-count-hint.js?v=20261112-2"></script>
+<script src="/js/pdf-editor/app-boundary.js?v=20261112-1"></script>
+<script src="/js/pdf-editor/page-selection-preview-focus.js?v=20261112-4"></script>
+<script src="/js/pdf-editor/page-count-hint.js?v=20261112-4"></script>
 <script src="/js/pdf-editor/file-navigation.js?v=20261112-1"></script>
 <script src="/js/pdf-editor/page-list-icons.js?v=20261112-2"></script>
 <script>
@@ -82,6 +90,20 @@
   await sleep(350);
   if(!window.PdfEditorPageSelection||!window.PdfPageProductivity)fail('both editing modules not loaded');
   if(!get('#pageSelectionToolbar')||!get('#pageProductivityPanelV3'))fail('selection and batch toolbars missing');
+  if(!document.documentElement.classList.contains('pdf-direct-thumb-selection'))fail('direct thumbnail mode not initialized');
+  if(!get('#pageListSelectAll')||get('#pageListSelectAll').textContent!=='전체 선택')fail('compact in-list select-all missing');
+  const header=get('#thumbSection>.sec-head');
+  if(header?.dataset.layoutCollapseBound!=='1')fail('standalone layout did not install heading capture handler');
+  const directAll=get('#pageListSelectAll');
+  directAll.dispatchEvent(new KeyboardEvent('keydown',{key:'Enter',bubbles:true,cancelable:true}));
+  if(get('#sb-pages').hidden)fail('Enter on selection button collapsed page list');
+  directAll.click();
+  if(get('#sb-pages').hidden)fail('click on selection button collapsed page list');
+  await sleep(35);
+  check(4,'direct all button within capture-enabled heading');
+  directAll.click();
+  if(get('#sb-pages').hidden)fail('clearing selection collapsed page list');
+  await sleep(35);check(0,'direct clear within capture-enabled heading');
   if(document.querySelectorAll('#thumbArea .page-select-check').length!==0)fail('duplicate page checkboxes present');
   if(document.querySelectorAll('#thumbArea .pdf-page-select-checkbox').length!==4)fail('one permanent checkbox per thumbnail not present');
   if(!get('.pdf-file-action-row'))fail('per-file menu was not rendered');
@@ -97,36 +119,45 @@
     fail('checkbox remains checked after second thumbnail click');
   click(2);await sleep(35);check(1,'plain click selects page in second file');
   if(!window.PdfEditorPageSelection.selectedIds.has(3))fail('other file page was not selected');
-  click(0);await sleep(35);check(1,'plain click on another page replaces selection');
-  if(!window.PdfEditorPageSelection.selectedIds.has(1))fail('plain click replacement chose wrong page');
-  click(2,{ctrlKey:true});await sleep(35);check(2,'Ctrl multi-select across files');
-  click(3,{shiftKey:true});await sleep(35);check(2,'Shift range select from last anchor');
+  click(0);await sleep(35);check(2,'plain click adds another page directly');
+  if(!window.PdfEditorPageSelection.selectedIds.has(1)||!window.PdfEditorPageSelection.selectedIds.has(3))
+    fail('plain click should preserve separate selected thumbnails');
+  click(2,{ctrlKey:true});await sleep(35);check(1,'Ctrl click removes selected page');
+  click(3,{shiftKey:true});await sleep(35);check(2,'Shift selects continuous pages from anchor');
   const firstCheck=get('#thumbArea .thumb-item[data-id="3"] .pdf-page-select-checkbox');
   firstCheck.click();await sleep(35);check(1,'checkbox deselect');
+  if(parsedPages[2].excluded)fail('checkbox click unexpectedly excluded page');
   firstCheck.click();await sleep(35);check(2,'checkbox reselect');
+  if(parsedPages[2].excluded)fail('checkbox selection must not change PDF page visibility');
   if(firstCheck.checked!==true)fail('selected checkbox not checked');
   window.PdfEditorPageSelection.clearSelection();
   await sleep(35);check(0,'clear selection API');
+  get('#pageListSelectAll').click();
+  await sleep(35);check(4,'page-list heading selects all pages');
+  if(get('#pageListSelectAll').textContent!=='전체 해제')fail('page-list heading select-all did not toggle');
+  get('#pageListSelectAll').click();
+  await sleep(35);check(0,'page-list heading clears all pages');
+  if(get('#pageListSelectAll').textContent!=='전체 선택')fail('page-list heading deselect did not toggle');
   const fileHeader=get('#thumbArea [data-file-nav-header="true"]');
   if(!fileHeader)fail('file header absent');
   if(fileHeader.querySelectorAll('.pdf-file-select-btn').length!==1)
     fail('per-file select and clear must use one toggle');
-  const fileToggle=fileHeader.querySelector('.pdf-file-select-btn');
-  fileToggle.click();
+  const activeFileToggle=()=>get('#thumbArea [data-file-nav-header="true"] .pdf-file-select-btn');
+  activeFileToggle().click();
   await sleep(35);check(2,'file-specific select');
   if([...window.PdfPageProductivity.selectedIds].some(id=>id>2))fail('file select included wrong pages');
-  if(!fileToggle.classList.contains('is-clear')||fileToggle.querySelector('.pdf-page-action-label')?.textContent!=='파일 해제')
+  if(!activeFileToggle().classList.contains('is-clear')||activeFileToggle().querySelector('.pdf-page-action-label')?.textContent!=='파일 해제')
     fail('file selection button did not switch to deselect');
-  if(!fileToggle.title.includes('해제')||fileToggle.getAttribute('aria-pressed')!=='true')
+  if(!activeFileToggle().title.includes('해제')||activeFileToggle().getAttribute('aria-pressed')!=='true')
     fail('file selection toggle accessibility state not updated');
-  fileToggle.click();
+  activeFileToggle().click();
   await sleep(35);check(0,'file-specific clear');
-  if(fileToggle.classList.contains('is-clear')||fileToggle.querySelector('.pdf-page-action-label')?.textContent!=='파일 선택')
+  if(activeFileToggle().classList.contains('is-clear')||activeFileToggle().querySelector('.pdf-page-action-label')?.textContent!=='파일 선택')
     fail('file selection button did not switch back to all');
   click(2);await sleep(35);check(1,'other file selected');
-  fileToggle.dispatchEvent(new MouseEvent('click',{bubbles:true,cancelable:true,ctrlKey:true}));
+  activeFileToggle().dispatchEvent(new MouseEvent('click',{bubbles:true,cancelable:true,ctrlKey:true}));
   await sleep(35);check(3,'Ctrl + file select preserves other file');
-  fileToggle.click();await sleep(35);check(1,'file deselect preserves other file');
+  activeFileToggle().click();await sleep(35);check(1,'file deselect preserves other file');
   if(!window.PdfEditorPageSelection.selectedIds.has(3))fail('per-file clear affected unrelated file');
   const buttons=[
    '.pdf-file-select-btn:not(.is-clear)','.pdf-file-delete-btn',
@@ -158,13 +189,33 @@
   // restore one checkbox, and recreate iconized per-file actions.
   click(1);await sleep(25);check(1,'before rerender');
   window.renderThumbs();await sleep(110);check(1,'after rerender');
+  if(get('#pageListSelectAll')?.textContent!=='전체 선택')fail('page-list heading control did not persist after thumbnail rerender');
   if(document.querySelectorAll('#thumbArea .page-select-check').length!==0)fail('rerender added duplicate page checkbox');
   // The file navigator and SVG menu decorators are async observers.
   // Wait for the new header to be decorated instead of a fixed rAF delay.
   for(let attempt=0;attempt<35&&!get('.pdf-file-delete-btn svg.pdf-page-action-icon');attempt++)await sleep(20);
   if(!get('.pdf-file-delete-btn svg.pdf-page-action-icon'))fail('rerender dropped file action icons');
+  // A real user may import 81+ pages: all page checkboxes must remain direct
+  // and the compact header must be able to select and clear the entire set.
+  for(let id=5;id<=81;id++){
+    parsedPages.push({
+      id,pageType:'pdf',file_index:1,page_index:id-3,sourceFile:'두번째.pdf',
+      pdfPage:{id},thumbCanvas:makeCanvas(),excluded:false,rotation:0
+    });
+  }
+  window.renderThumbs();
+  await sleep(280);
+  if(document.querySelectorAll('#thumbArea .pdf-page-select-checkbox').length!==81)
+    fail('81-page import did not render one selector on each thumbnail');
+  window.PdfEditorPageSelection.clearSelection();
+  click(0);click(80);await sleep(30);check(2,'81-page nonadjacent direct select');
+  if(parsedPages[0].excluded||parsedPages[80].excluded)fail('81-page selection excluded PDF pages');
+  get('#pageListSelectAll').click();
+  await sleep(40);check(81,'81-page select all via page-list heading');
+  get('#pageListSelectAll').click();
+  await sleep(40);check(0,'81-page clear all via page-list heading');
   document.body.dataset.pdfPageSelectIconsSmoke='pass';
-  get('#result').textContent='PASS: unified single/Ctrl/Shift/checkbox/file selection with one checkbox, active batch actions, and Korean SVG icon menus';
+  get('#result').textContent='PASS: direct independent thumbnail/checkbox/Shift/file selection, compact in-list select all, preserved batch actions and Korean SVG icons';
  }catch(error){
   document.body.dataset.pdfPageSelectIconsSmoke='fail';
   get('#result').textContent='FAIL: '+String(error.stack||error);

@@ -61,7 +61,7 @@ def test_pdf_workspace_separates_print_setup_and_page_management_with_accessible
         "setInterval(",
     ):
         assert forbidden not in sidebar
-    assert "/js/pdf-editor/simple-sidebar-ui.js?v=20261112-1" in ui_runtime
+    assert "/js/pdf-editor/simple-sidebar-ui.js?v=20261112-2" in ui_runtime
     assert "/js/pdf-editor/workspace-layout.js" not in ui_runtime
     assert "/js/pdf-editor/workflow-ui.js" not in ui_runtime
     assert "/js/pdf-editor/ui-runtime.js?v=${PDF_UI_RUNTIME_VERSION}" in shell
