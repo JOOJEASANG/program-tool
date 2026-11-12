@@ -384,8 +384,16 @@
     #pageSidebar .page-productivity-jump>#pageJumpInputV3,
     #pageSidebar .page-productivity-jump>#pageJumpInputV3+button{display:none!important}
     #pageSidebar #pageProductivityPanelV3 .page-productivity-jump{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}
-    #pageSidebar #thumbArea .page-selection-mark,
+    /* A selected page must be visibly selected. Only hide the legacy
+       duplicate "선택" pseudo-badge, never the actual selection checkmark. */
     #pageSidebar #thumbArea .thumb-item[data-batch-selected="true"]::after{display:none!important}
+    html.pdf-direct-thumb-selection #pageSidebar #thumbArea .thumb-item.page-selected .page-selection-mark{
+      display:flex!important;background:#2563eb!important;color:#fff!important}
+    html.pdf-direct-thumb-selection #pageSidebar #thumbArea .thumb-item.page-selected .thumb-wrap{
+      outline:3px solid #2563eb!important;outline-offset:1px!important;
+      box-shadow:0 0 0 4px rgba(37,99,235,.15)!important}
+    html.pdf-direct-thumb-selection #pageSidebar #thumbArea .pdf-page-select-checkbox{
+      display:block!important;visibility:visible!important;opacity:1!important}
     #pageSidebar #thumbSection>.sec-head{padding:9px 11px!important;background:#f8fafc}
     #pageSidebar #thumbArea .thumb-file-sep-label{max-width:185px}
     #pageSidebar :is(summary,button,select,input):focus-visible{outline:2px solid #2563eb;outline-offset:2px}
