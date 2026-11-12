@@ -78,6 +78,37 @@ def test_8page_bleed_has_no_center_gutter_and_preserves_all_three_trim_bleeds():
         src.close()
 
 
+def test_rotated_180_left_page_crops_opposite_source_edge():
+    src=source_document()
+    # This page will be physically on the left of the fold, but after a
+    # 180-degree turn its SOURCE left edge faces the fold.
+    src[7].draw_rect(
+        fitz.Rect(0,0,3*MM_TO_PT,303*MM_TO_PT),
+        fill=(0,1,0),color=None,
+    )
+    job=request()
+    job.pages[7].rotation=180
+    out=build_pdf_document([src],job)
+    try:
+        color=pixel_at_mm(out[0],457/2-0.7,152.5)
+        assert color[0]>180 and color[1]<100 and color[2]<100,color
+    finally:
+        out.close()
+        src.close()
+
+
+def test_bleed_mode_rejects_90_degree_pages_that_cannot_fit_one_side():
+    src=source_document()
+    job=request()
+    job.pages[7].rotation=90
+    try:
+        with pytest.raises(ValueError,match="0° 또는 180°"):
+            out=build_pdf_document([src],job)
+            out.close()
+    finally:
+        src.close()
+
+
 def test_bleed_mode_checks_each_source_page_size_without_scaling():
     src=source_document(width=215,height=303)
     try:
@@ -118,5 +149,5 @@ def test_browser_preview_and_export_share_the_same_imposed_side_crop():
     assert "booklet_bleed_inner_mm: getBookletBleedMm()" in html
     assert "foldCell?(column===0?'left':'right'):null" in layout
     assert "settings.booklet_bleed_inner_mm =" in layout
-    assert "if booklet_fold_side == \"left\":" in engine
+    assert "inner_edge_is_right = (booklet_fold_side == \"left\")" in engine
     assert "clip_rect.x0 += crop" in engine
