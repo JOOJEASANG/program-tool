@@ -80,7 +80,12 @@ function decorate(button,shape,label,fallback){
  const state=shape+':'+label;
  if(button.dataset.pdfIcon===state&&button.querySelector('.pdf-page-action-icon'))return;
  // Preserve existing descriptive titles, especially file names in delete controls.
- const description=button.dataset.pdfIconDescription||button.getAttribute('aria-label')||button.title||fallback||label;
+ // Selection toggles change their purpose; use the controller's current
+ // title instead of freezing the previous button description in dataset.
+ const stateful=button.matches('.pdf-file-select-btn[data-file-select-toggle="true"],#pageSelectionToolbar [data-selection-action="all"],#pageSelectionToolbar [data-selection-action="clear"]');
+ const description=stateful
+   ? (button.title||fallback||label)
+   : (button.dataset.pdfIconDescription||button.getAttribute('aria-label')||button.title||fallback||label);
  button.dataset.pdfIconDescription=description;
  button.setAttribute('aria-label',description);
  if(!button.title)button.title=description;
