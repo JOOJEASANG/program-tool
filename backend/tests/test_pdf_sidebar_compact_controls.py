@@ -49,6 +49,7 @@ def test_file_buttons_are_distinguishable_from_global_buttons():
 def test_both_sidebars_keep_functions_and_reveal_only_necessary_options():
     html = read("pdf-editor/index.html")
     script = read("js/pdf-editor/simple-sidebar-ui.js")
+    selection = read("js/pdf-editor/page-selection-preview-focus.js")
     ui = read("js/pdf-editor/ui-runtime.js")
     shell = read("js/program-shell-unify.js")
     runner = read("scripts/run_pdf_program_shell_smoke.sh")
@@ -71,7 +72,7 @@ def test_both_sidebars_keep_functions_and_reveal_only_necessary_options():
         assert marker in script
     for marker in ("pageSelectionAdvanced", "pageSelectedMarginDetails",
                    "pageJumpInputV3+button", "pdfPageJumpDetails"):
-        assert marker in html or marker in script
+        assert marker in html or marker in script or marker in selection
     assert "simple-sidebar-ui.js?v=20261112-1" in ui
     assert "PDF_UI_RUNTIME_VERSION='20261112-1'" in shell
     assert "pdf-two-sidebars-workflow-smoke.html" in runner
