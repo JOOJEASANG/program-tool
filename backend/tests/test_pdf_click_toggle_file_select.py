@@ -20,7 +20,8 @@ def test_single_global_all_clear_toggle_reacts_to_exact_selection():
     assert 'data-selection-action="all" aria-pressed="false"' in src
     assert '<button type="button" class="page-selection-btn" data-selection-action="clear"' not in src
     assert "const allSelected = total > 0 && selectedIds.size === total;" in src
-    assert "allToggle.dataset.selectionAction = allSelected ? 'clear' : 'all';" in src
+    assert "const nextAction = allSelected ? 'clear' : 'all';" in src
+    assert "allToggle.dataset.selectionAction = nextAction;" in src
     assert "allToggle.textContent = allSelected ? '해제' : '전체';" in src
     assert "allToggle.setAttribute('aria-pressed', String(allSelected));" in src
     assert "allToggle.disabled = total === 0;" in src
