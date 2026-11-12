@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="ko"><head><meta charset="utf-8"><title>PDF selected page margins output smoke</title></head>
+<body data-pdf-selected-page-margins-smoke="running">
+ <pre id="result">RUNNING</pre>
+ <div id="pageSidebar">
+  <section id="pageSelectedMarginPanel" hidden>
+   <span id="pageSelectedMarginCount">0페이지</span>
+   <input id="pageSelectedMarginLeft" type="number" min="0" max="80">
+   <input id="pageSelectedMarginRight" type="number" min="0" max="80">
+   <input id="pageSelectedMarginTop" type="number" min="0" max="80">
+   <input id="pageSelectedMarginBottom" type="number" min="0" max="80">
+   <button id="pageSelectedMarginApply" disabled>선택 페이지에 적용</button>
+   <button id="pageSelectedMarginReset" disabled>개별 여백 초기화</button>
+   <div id="pageSelectedMarginStatus"></div>
+  </section>
+  <div id="thumbSection" style="display:block">
+   <div id="thumbArea">
+     <div class="thumb-item" data-id="1"><div class="thumb-wrap">1</div></div>
+     <div class="thumb-item" data-id="2"><div class="thumb-wrap">2</div></div>
+     <div class="thumb-item" data-id="3"><div class="thumb-wrap">3</div></div>
+   </div>
+  </div>
+ </div>
+ <div id="individualPaperMarginsV2"></div>
+ <input id="marginH" type="number" value="10"><input id="marginV" type="number" value="10">
+ <input id="marginLeft" type="number" value="10"><input id="marginRight" type="number" value="10">
+ <input id="marginTop" type="number" value="10"><input id="marginBottom" type="number" value="10">
+ <script>
+  window.parsedPages=[1,2,3].map(id=>({id,pageType:'pdf',page_index:id-1,file_index:0,sourceFile:'sample.pdf',excluded:false}));
+  window.uploadedFiles=[{name:'sample.pdf'}];
+  window.previewRequests=0;
+  window.schedulePreview=()=>{window.previewRequests++;};
+  window.collectEditorState=()=>({name:'sample'});
+  window.loadEditorSession=async()=>true;
+  const chosen=new Set();
+  window.PdfEditorPageSelection={
+    selectedIds:chosen,
+    snapshotSelectedIds:()=>[...chosen],
+  };
+ </script>
+ <script src="/js/pdf-editor/layout-export.js?v=20261112-1"></script>
+ <script src="/js/pdf-editor/page-selected-margins.js?v=20261112-1"></script>
+ <script>
+ (async()=>{
+  const $=id=>document.getElementById(id);
+  const wait=ms=>new Promise(resolve=>setTimeout(resolve,ms));
+  const fail=message=>{throw Error(message);};
+  const selection=(...ids)=>{
+    chosen.clear();ids.forEach(id=>chosen.add(id));
+    document.dispatchEvent(new CustomEvent('pdf-page-selection-change',{detail:{count:chosen.size}}));
+  };
+  const edit=(edge,value)=>{
+    const input=$('pageSelectedMargin'+edge);
+    input.value=String(value);
+    input.dispatchEvent(new Event('input',{bubbles:true}));
+  };
+  try {
+    await wait(40);
+    const api=window.PdfEditorLayoutExport;
+    if(!api?.applySelectedPageMargins||!window.PdfSelectedPageMargins)fail('selected-page margin API missing');
+    if(!$('pageSelectedMarginApply').disabled)fail('apply should be disabled before selecting');
+    if($('pageSelectedMarginPanel').hidden)fail('margin control should show after PDF upload');
+    selection(2);await wait(35);
+    if($('pageSelectedMarginApply').disabled||$('pageSelectedMarginCount').textContent!=='1페이지')fail('one-page selection did not activate margin control');
+    if($('pageSelectedMarginLeft').value!=='10')fail('initial margin should inherit global setting');
+    edit('Left',12);edit('Top',0);
+    $('pageSelectedMarginApply').click();
+    if(parsedPages[1].cellMargins?.left!==12||parsedPages[1].cellMargins?.top!==0)fail('selected page override not applied, including zero');
+    if(parsedPages[0].cellMargins||parsedPages[2].cellMargins)fail('unselected pages were changed');
+    if(api.pageCellMargins(parsedPages[1]).left!==12||api.pageCellMargins(parsedPages[1]).top!==0)fail('effective margins incorrect');
+    const output=api.patchSettings({pages:[{file_index:0,page_index:0},{file_index:0,page_index:1},{file_index:0,page_index:2}]});
+    if(output.pages[1].content_margin_left_mm!==12||output.pages[1].content_margin_top_mm!==0)fail('export did not receive selected margin values');
+    if(output.pages[0].content_margin_left_mm!==null||output.pages[2].content_margin_top_mm!==null)fail('export leaked margins to unselected pages');
+    const saved=window.collectEditorState();
+    if(saved.pageCellMargins?.[1]?.left!==12||saved.pageCellMargins?.[1]?.top!==0)fail('saved session missed individual margins');
+    selection(1,2);await wait(35);
+    if($('pageSelectedMarginLeft').value!==''||$('pageSelectedMarginLeft').placeholder!=='혼합')fail('mixed page margin not displayed');
+    edit('Right',18);$('pageSelectedMarginApply').click();
+    if(parsedPages[0].cellMargins?.right!==18||parsedPages[1].cellMargins?.right!==18)fail('multi-page right override failed');
+    if(parsedPages[0].cellMargins?.left!==undefined||parsedPages[1].cellMargins?.left!==12)fail('mixed left side was overwritten');
+    selection(2);await wait(35);$('pageSelectedMarginReset').click();
+    if(parsedPages[1].cellMargins!==undefined)fail('reset did not clear selected page override');
+    if(parsedPages[0].cellMargins?.right!==18)fail('reset touched unselected page');
+    if(api.pageCellMargins(parsedPages[1]).left!==10)fail('reset did not restore inherited global margin');
+    selection();await wait(35);
+    if(!$('pageSelectedMarginApply').disabled||!$('pageSelectedMarginReset').disabled)fail('margin actions not disabled after deselect');
+    if(window.previewRequests<2)fail('margin edits did not request preview redraw');
+    document.body.dataset.pdfSelectedPageMarginsSmoke='pass';
+    $('result').textContent='PASS: right sidebar selected-page margins apply, mixed values, zero overrides, save, export and reset without changing other pages';
+  }catch(error){
+    document.body.dataset.pdfSelectedPageMarginsSmoke='fail';
+    $('result').textContent='FAIL: '+String(error.stack||error);
+  }
+ })();
+ </script>
+</body></html>
