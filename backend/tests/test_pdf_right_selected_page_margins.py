@@ -56,7 +56,7 @@ def test_selected_page_margin_panel_uses_exact_same_engine_and_has_mixed_state()
         'id="pageSelectedMarginReset"',
         'id="pageSelectedMarginCount"',
         'id="pageSelectedMarginStatus"',
-        'page-selected-margins.js?v=20261112-1',
+        'page-selected-margins.js?v=20261112-2',
     ):
         assert marker in html
     for marker in (
