@@ -9,7 +9,7 @@
   const NUP_VALUES = [1, 2, 4, 6, 8, 9];
   // Layout uses the same selection Set as thumbnail clicks/Ctrl/Shift/menu.
   // Advanced routes without that controller keep their original local Set.
-  const selectedIds = window.PdfEditorPageSelection?.selectedIds || new Set();
+  let selectedIds = window.PdfEditorPageSelection?.selectedIds || new Set();
   const undoStack = [];
   const redoStack = [];
   const fileIdentityMap = new WeakMap();
@@ -27,7 +27,14 @@
 
   const byId = (id) => document.getElementById(id);
   function unifiedSelection() {
-    return window.PdfEditorPageSelection?.selectedIds === selectedIds;
+    const shared = window.PdfEditorPageSelection?.selectedIds;
+    // The page selection controller can arrive after this helper on a slow load.
+    // Always converge on its one Set instead of showing a second selection UI.
+    if (shared && selectedIds !== shared) {
+      selectedIds.forEach(id => shared.add(id));
+      selectedIds = shared;
+    }
+    return Boolean(shared && selectedIds === shared);
   }
   function syncPrimarySelection() {
     if (unifiedSelection()) window.PdfEditorPageSelection.syncSelectionUi?.();
@@ -733,7 +740,7 @@
     setSelectionMode,
     selectAllPages,
     clearSelection,
-    selectedIds,
+    get selectedIds() { return selectedIds; },
     contextSelectionIdsForPage,
     runContextAction,
     undo,
