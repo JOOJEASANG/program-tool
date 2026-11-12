@@ -51,9 +51,9 @@ def test_file_and_page_action_icons_have_labels_and_preserve_existing_actions():
 
 
 def test_versions_and_manual_and_browser_regression():
-    assert "page-selection-preview-focus.js?v=20261112-3" in ROUTE.read_text(encoding="utf-8")
-    assert "page-count-hint.js?v=20261112-3" in CORE.read_text(encoding="utf-8")
-    assert "page-count-hint.js?v=20261112-3" in LOADER.read_text(encoding="utf-8")
+    assert "page-selection-preview-focus.js?v=20261112-4" in ROUTE.read_text(encoding="utf-8")
+    assert "page-count-hint.js?v=20261112-4" in CORE.read_text(encoding="utf-8")
+    assert "page-count-hint.js?v=20261112-4" in LOADER.read_text(encoding="utf-8")
     assert "updated: '2026-11-12'" in MANUAL.read_text(encoding="utf-8")
     assert "같은 선택 상태" in MANUAL.read_text(encoding="utf-8")
     assert "pdf-page-select-icons-smoke.html" in RUNNER.read_text(encoding="utf-8")
