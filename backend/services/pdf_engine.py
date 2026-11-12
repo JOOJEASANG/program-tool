@@ -376,6 +376,7 @@ def _render_adjusted_source_page(
     clip_rect: fitz.Rect,
     rotation: float,
     horizontal_align: str = "center",
+    fold_inner_shift_pt: float = 0.0,
 ) -> None:
     """Render one adjusted source through a cell-sized PDF clipping surface.
 
@@ -392,7 +393,7 @@ def _render_adjusted_source_page(
         horizontal_align,
     )
     scale = float(getattr(page_info, "content_scale", 1.0) or 1.0)
-    offset_x = float(getattr(page_info, "offset_x_mm", 0.0) or 0.0) * pdf_ops.MM_TO_PT
+    offset_x = float(getattr(page_info, "offset_x_mm", 0.0) or 0.0) * pdf_ops.MM_TO_PT + fold_inner_shift_pt
     offset_y = float(getattr(page_info, "offset_y_mm", 0.0) or 0.0) * pdf_ops.MM_TO_PT
     width = local_fit.width * scale
     height = local_fit.height * scale
@@ -479,6 +480,7 @@ def _render_actual_size_source_page(
     width_pt: float,
     height_pt: float,
     horizontal_align: str = "center",
+    fold_inner_shift_pt: float = 0.0,
 ) -> fitz.Rect:
     bound_w, bound_h = _rotated_physical_bounds(width_pt, height_pt, rotation)
     offset_x = float(getattr(page_info, "offset_x_mm", 0.0) or 0.0) * pdf_ops.MM_TO_PT
@@ -512,9 +514,16 @@ def _render_actual_size_source_page(
     clip_doc = fitz.open()
     try:
         clip_page = clip_doc.new_page(width=cell_rect.width, height=cell_rect.height)
+        # A booklet's physical leaf size is unchanged. Only its artwork can
+        # move toward the fold; this cell-sized temporary page clips the
+        # overflow, so a shifted source never paints onto its facing page.
+        painted_target = fitz.Rect(
+            local_target.x0 + fold_inner_shift_pt, local_target.y0,
+            local_target.x1 + fold_inner_shift_pt, local_target.y1,
+        )
         _show_source_page(
             clip_page,
-            local_target,
+            painted_target,
             src_doc,
             source_page_index,
             rotation,
@@ -575,6 +584,7 @@ def _render_source_page(
     add_border: bool,
     placement_size_pt: tuple[float, float] | None = None,
     horizontal_align: str = "center",
+    fold_inner_shift_pt: float = 0.0,
 ) -> None:
     src_doc = src_docs[page_info.file_index]
     src_page = src_doc[page_info.page_index]
@@ -611,6 +621,7 @@ def _render_source_page(
                 width_pt,
                 height_pt,
                 horizontal_align,
+                fold_inner_shift_pt=fold_inner_shift_pt,
             )
             if add_border:
                 shape = out_page.new_shape()
@@ -632,7 +643,7 @@ def _render_source_page(
             rotation,
             horizontal_align,
         )
-        adjusted = _page_has_placement_adjustment(page_info)
+        adjusted = _page_has_placement_adjustment(page_info) or abs(fold_inner_shift_pt) > 1e-9
         if adjusted:
             _render_adjusted_source_page(
                 out_page,
@@ -643,6 +654,7 @@ def _render_source_page(
                 clip_rect,
                 rotation,
                 horizontal_align,
+                fold_inner_shift_pt=fold_inner_shift_pt,
             )
         else:
             _show_source_page(
@@ -868,6 +880,11 @@ def build_pdf_document(
                         inherited,
                         fold_inner_edge=("right" if align == "right" else "left") if spine else None,
                     )
+                    inner_shift = float(getattr(request, "booklet_inner_shift_mm", 0.0) or 0.0)
+                    fold_inner_shift_pt = (
+                        inner_shift * pdf_ops.MM_TO_PT * (1 if align == "right" else -1)
+                        if spine else 0.0
+                    )
                     _render_source_page(
                         out_page,
                         sources,
@@ -878,6 +895,7 @@ def build_pdf_document(
                         request.add_border,
                         placement_size_pt=placement_size_pt,
                         horizontal_align=align,
+                        fold_inner_shift_pt=fold_inner_shift_pt,
                     )
 
             if bool(getattr(request, "repeat_cell_overlays", False)) and not booklet_enabled:
