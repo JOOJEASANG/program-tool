@@ -21,7 +21,7 @@ def test_pdf_tools_remove_fixed_header_without_losing_actions():
         "document.getElementById('userName')",
         "oldNav.remove()",
         "stage:'pdf-tools-headerless-unified-shell'",
-        "workflowStage:'pdf-all-controls-visible-v1'",
+        "workflowStage:'pdf-progressive-controls-v2'",
     ):
         assert marker in source
 
