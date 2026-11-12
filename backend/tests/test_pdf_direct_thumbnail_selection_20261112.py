@@ -60,3 +60,14 @@ def test_batch_actions_and_file_specific_controls_are_preserved():
     assert "pdf-page-select-icons-smoke.html" in runner
     assert "for(let id=5;id<=81;id++)" in browser
     assert "81-page select all via page-list heading" in browser
+
+
+def test_selection_toggle_is_not_swallowed_by_capture_phase_collapse_handlers():
+    standalone=read("js/pdf-editor/app-boundary.js")
+    sidebar=read("js/pdf-editor/simple-sidebar-ui.js")
+    browser=read("tests/browser/pdf-page-select-icons-smoke.html")
+    assert "if (event.target?.closest?.('button,input,select,textarea,a,[contenteditable=\"true\"]')) return;" in standalone
+    assert "if(header&&!event.target?.closest?.('button,input,select,textarea,a,[contenteditable=\"true\"]')" in sidebar
+    assert "const directAll=get('#pageListSelectAll');" in browser
+    assert "within capture-enabled heading" in browser
+    assert "if(get('#sb-pages').hidden)fail('click on selection button collapsed page list')" in browser
