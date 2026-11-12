@@ -111,6 +111,11 @@
     head.setAttribute('role','button');
     head.tabIndex=0;
     const toggle=event=>{
+      // Buttons inside the section heading (such as the thumbnail-list
+      // select-all toggle) must keep their own click/keyboard actions.
+      // This listener is registered during capture, so stopping bubbling
+      // from the child button alone cannot protect it.
+      if (event.target?.closest?.('button,input,select,textarea,a,[contenteditable="true"]')) return;
       event.preventDefault();
       event.stopImmediatePropagation();
       const collapsed=!(body.hidden||body.classList.contains('hidden')||body.style.display==='none');
