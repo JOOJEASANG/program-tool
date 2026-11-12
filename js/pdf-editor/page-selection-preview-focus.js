@@ -100,8 +100,43 @@
     document.head.appendChild(style);
   }
 
+  function ensureListSelectionControls() {
+    const heading = byId('thumbSection')?.querySelector(':scope > .sec-head');
+    if (!heading) return;
+    let count = byId('pageListSelectionCount');
+    if (!count) {
+      count = document.createElement('span');
+      count.id = 'pageListSelectionCount';
+      count.className = 'pdf-direct-selected-count';
+      count.setAttribute('aria-live', 'polite');
+      count.hidden = true;
+      heading.insertBefore(count, byId('slideCount') || heading.querySelector('.sec-arrow'));
+    }
+    if (byId('pageListSelectAll')) return;
+    const toggle = document.createElement('button');
+    toggle.id = 'pageListSelectAll';
+    toggle.className = 'pdf-direct-select-all';
+    toggle.type = 'button';
+    toggle.textContent = '전체 선택';
+    toggle.title = '현재 작업의 모든 페이지를 선택 또는 해제합니다.';
+    toggle.setAttribute('aria-label', '전체 페이지 선택');
+    toggle.setAttribute('aria-pressed', 'false');
+    toggle.addEventListener('click', (event) => {
+      event.preventDefault();
+      // The section heading itself collapses the page list. This action
+      // must never close it or toggle a page's hidden/visible state.
+      event.stopPropagation();
+      event.stopImmediatePropagation();
+      const total = editorReady() ? parsedPages.filter(page => pageId(page) !== null).length : 0;
+      if (total && selectedIds.size === total) clearSelection();
+      else selectAll();
+    });
+    heading.insertBefore(toggle, heading.querySelector('.sec-arrow'));
+  }
+
   function ensureToolbar() {
     const area = byId('thumbArea');
+    ensureListSelectionControls();
     if (!area) return;
     if (byId('pageSelectionToolbar')) {
       syncRangeScopeOptions();
@@ -171,7 +206,7 @@
       setRangeStatus(isFile ? '파일의 원본 페이지 번호 기준으로 입력하세요.' : '전체 작업의 현재 편집 순서 기준으로 입력하세요.');
     });
     const hint = area.parentElement.querySelector('.thumb-hint');
-    if (hint) hint.textContent = '클릭=선택/재클릭 해제 · Ctrl+클릭=다중 선택 · Shift+클릭=범위 · 드래그=순서 변경';
+    if (hint) hint.textContent = '페이지 클릭/체크 = 개별 선택·해제 · Shift+클릭 = 연속 선택 · 드래그 = 순서 변경';
   }
 
   function setRangeStatus(message, error = false) {
@@ -370,14 +405,22 @@
         checkbox = document.createElement('input');
         checkbox.type = 'checkbox';
         checkbox.className = 'pdf-page-select-checkbox';
-        checkbox.setAttribute('aria-label', '이 페이지 선택');
-        checkbox.addEventListener('change', () => {
+        checkbox.addEventListener('click', (event) => {
+          // The original thumbnail click excluded pages. Do not let a
+          // checkbox click reach that handler, even on an unselected page.
+          event.stopPropagation();
           const target = pageById(Number(item.dataset.id));
-          if (target) selectPage(target, { ctrlKey: true, metaKey: false, shiftKey: false });
+          if (target) selectPage(target, {
+            ctrlKey: !event.shiftKey || event.ctrlKey || event.metaKey,
+            metaKey: event.metaKey,
+            shiftKey: event.shiftKey,
+          });
         });
         wrap.appendChild(checkbox);
       }
       checkbox.checked = selected;
+      checkbox.setAttribute('aria-label', `${parsedPages.indexOf(pageById(id)) + 1}페이지 ${selected ? '선택 해제' : '선택'}`);
+      item.tabIndex = 0;
       let mark = wrap.querySelector('.page-selection-mark');
       if (selected && !mark) {
         mark = document.createElement('span');
@@ -389,11 +432,26 @@
     if (!painting) syncSidebarSourceThumbs();
     const count = byId('pageSelectionCount');
     if (count) count.textContent = `선택 ${selectedIds.size}개`;
+    // The selection controls now belong to the page-list heading and each
+    // thumbnail. Keep the old offscreen toolbar for API/legacy compatibility.
+    const directCount = byId('pageListSelectionCount');
+    if (directCount) {
+      directCount.hidden = selectedIds.size === 0;
+      directCount.textContent = `${selectedIds.size}개 선택`;
+    }
     // One space-saving button toggles between select-all and deselect-all.
     // When selection changes by file header, thumbnail or checkbox, keep its
     // caption and semantics in sync with the exact selected-page count.
     const total = editorReady() ? parsedPages.filter(page => pageId(page) !== null).length : 0;
     const allSelected = total > 0 && selectedIds.size === total;
+    const listToggle = byId('pageListSelectAll');
+    if (listToggle) {
+      listToggle.textContent = allSelected ? '전체 해제' : '전체 선택';
+      listToggle.title = allSelected ? '전체 페이지 선택 해제' : '전체 페이지 선택';
+      listToggle.setAttribute('aria-label', listToggle.title);
+      listToggle.setAttribute('aria-pressed', String(allSelected));
+      listToggle.disabled = total === 0;
+    }
     const allToggle = byId('pageSelectionToolbar')?.querySelector('[data-selection-action="all"],[data-selection-action="clear"]');
     if (allToggle) {
       const nextAction = allSelected ? 'clear' : 'all';
@@ -575,7 +633,13 @@
       if (!page) return;
       event.preventDefault();
       event.stopImmediatePropagation();
-      selectPage(page, event);
+      // Ordinary clicks add/remove pages directly. Shift selects a continuous
+      // range; Ctrl/Cmd are optional, no separate selection mode is needed.
+      selectPage(page, {
+        ctrlKey: !event.shiftKey || event.ctrlKey || event.metaKey,
+        metaKey: event.metaKey,
+        shiftKey: event.shiftKey,
+      });
     }, true);
 
     area.addEventListener('keydown', (event) => {
@@ -587,7 +651,11 @@
       if (!page) return;
       event.preventDefault();
       event.stopImmediatePropagation();
-      selectPage(page, event);
+      selectPage(page, {
+        ctrlKey: !event.shiftKey || event.ctrlKey || event.metaKey,
+        metaKey: event.metaKey,
+        shiftKey: event.shiftKey,
+      });
     }, true);
 
     area.addEventListener('contextmenu', (event) => {
@@ -962,6 +1030,7 @@
       return;
     }
     parsedPages.forEach(rememberSourceThumb);
+    document.documentElement.classList.add('pdf-direct-thumb-selection');
     ensureToolbar();
     installClickSelection();
     installPointerPaintSelection();
