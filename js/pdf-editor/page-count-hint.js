@@ -7,7 +7,9 @@
 
   const HISTORY_LIMIT = 30;
   const NUP_VALUES = [1, 2, 4, 6, 8, 9];
-  const selectedIds = new Set();
+  // Layout uses the same selection Set as thumbnail clicks/Ctrl/Shift/menu.
+  // Advanced routes without that controller keep their original local Set.
+  const selectedIds = window.PdfEditorPageSelection?.selectedIds || new Set();
   const undoStack = [];
   const redoStack = [];
   const fileIdentityMap = new WeakMap();
@@ -24,6 +26,12 @@
   let nextFileIdentity = 1;
 
   const byId = (id) => document.getElementById(id);
+  function unifiedSelection() {
+    return window.PdfEditorPageSelection?.selectedIds === selectedIds;
+  }
+  function syncPrimarySelection() {
+    if (unifiedSelection()) window.PdfEditorPageSelection.syncSelectionUi?.();
+  }
 
   function editorReady() {
     try {
@@ -241,6 +249,7 @@
     if (!selectionMode) clearSelection();
     updatePanelState();
     queueDecorateThumbnails();
+    syncPrimarySelection();
   }
 
   function selectAllPages() {
@@ -250,6 +259,7 @@
     lastAnchorIndex = parsedPages.length ? parsedPages.length - 1 : -1;
     updatePanelState();
     queueDecorateThumbnails();
+    syncPrimarySelection();
   }
 
   function clearSelection() {
@@ -257,6 +267,7 @@
     lastAnchorIndex = -1;
     updatePanelState();
     queueDecorateThumbnails();
+    syncPrimarySelection();
   }
 
   function toggleSelectedPage(id, checked, shiftKey) {
@@ -280,18 +291,27 @@
     lastAnchorIndex = index;
     updatePanelState();
     queueDecorateThumbnails();
+    syncPrimarySelection();
   }
 
   function decorateThumbnails() {
     decorateFrame = 0;
     const area = byId('thumbArea');
     if (!area || !editorReady()) return;
-    area.classList.toggle('selection-mode', selectionMode);
+    // In the standard PDF layout, the main controller already renders one
+    // permanent, clickable checkbox per page. Never overlay a second checkbox.
+    const unified = unifiedSelection();
+    area.classList.toggle('selection-mode', selectionMode && !unified);
 
     document.querySelectorAll('#thumbArea .thumb-item').forEach((item) => {
       const rawId = item.dataset.id;
       const id = canonicalPageId(rawId);
       if (id === null) return;
+      if (unified) {
+        item.querySelector(':scope > .page-select-check')?.remove();
+        item.dataset.batchSelected = selectedIds.has(id) ? 'true' : 'false';
+        return;
+      }
       let checkbox = item.querySelector(':scope > .page-select-check');
       if (!checkbox) {
         checkbox = document.createElement('input');
@@ -406,7 +426,7 @@
   // The checkbox model is the single source of truth for right-click group work.
   // Freeze IDs when the menu opens: each action must use those original pages.
   function contextSelectionIdsForPage(page) {
-    if (!selectionMode || !page || !selectedIds.has(page.id) || selectedIds.size < 2) return [];
+    if ((!selectionMode && !unifiedSelection()) || !page || !selectedIds.has(page.id) || selectedIds.size < 2) return [];
     return selectedPagesInOrder().map((entry) => entry.id);
   }
 
@@ -600,6 +620,7 @@
     }
     updatePanelState();
     queueDecorateThumbnails();
+    syncPrimarySelection();
     scheduleCountHint();
     if (typeof showStatus === 'function') {
       showStatus(`${label} 완료`, 'success');
@@ -610,7 +631,9 @@
   function updatePanelState() {
     const panel = ensurePanel();
     if (!panel) return;
-    panel.classList.toggle('selecting', selectionMode);
+    // Actions are available as soon as a single page is selected, even if
+    // "다중 선택" was not manually enabled first.
+    panel.classList.toggle('selecting', selectionMode || (unifiedSelection() && selectedIds.size > 0));
     const modeButton = byId('pageSelectionModeBtnV3');
     if (modeButton) {
       modeButton.classList.toggle('active', selectionMode);
@@ -677,6 +700,11 @@
     if (window.__pdfPageProductivityEventsV4) return;
     window.__pdfPageProductivityEventsV4 = true;
     document.addEventListener('change', scheduleCountHint, true);
+    document.addEventListener('pdf-page-selection-change', () => {
+      if (!unifiedSelection()) return;
+      updatePanelState();
+      queueDecorateThumbnails();
+    });
     document.addEventListener('click', (event) => {
       if (event.target?.closest('.nup-btn,.orient-btn,#bookletCheck')) scheduleCountHint();
     }, true);
