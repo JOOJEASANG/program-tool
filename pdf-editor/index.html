@@ -340,8 +340,27 @@
     #pageSidebar #thumbSection{margin-bottom:12px!important}
     #pageSidebar #thumbSection[style*="display: none"],#pageSidebar #thumbSection[style*="display:none"]{display:none!important}
     #pageSidebar #thumbArea{grid-template-columns:repeat(auto-fill,minmax(66px,1fr));}
-    /* The page selection toolbar owns the only global select-all control. */
-    #pageSidebar #pageProductivityPanelV3.single-selection-ui .page-productivity-top{display:none!important}
+    /* Direct, in-list selection replaces the old stacked range/multi-select
+       and page-jump menus. Their APIs remain available for legacy profiles.
+       The compact bulk-action strip only appears after choosing pages. */
+    html.pdf-direct-thumb-selection #pageSidebar #pageSelectionToolbar,
+    html.pdf-direct-thumb-selection #pageSidebar #pdfPageJumpDetails,
+    html.pdf-direct-thumb-selection #pageSidebar #pageProductivityPanelV3.single-selection-ui:not(.selecting){display:none!important}
+    html.pdf-direct-thumb-selection #pageSidebar #pageProductivityPanelV3.single-selection-ui .page-productivity-top{display:none!important}
+    html.pdf-direct-thumb-selection #pageSidebar #thumbArea .pdf-page-select-checkbox{display:block!important}
+    #pageSidebar #thumbSection>.sec-head{display:flex;align-items:center;gap:6px;flex-wrap:nowrap}
+    #pageSidebar #thumbSection>.sec-head .sec-title{flex:0 1 auto;min-width:0;white-space:nowrap}
+    #pageSidebar #pageListSelectionCount:not([hidden]){display:inline-block;white-space:nowrap;color:#1d4ed8;font-size:9px;font-weight:850}
+    #pageSidebar #pageListSelectionCount[hidden]{display:none!important}
+    #pageSidebar #pageListSelectAll{flex:0 0 auto;min-width:63px;min-height:28px;margin:0;border:1px solid #cbd5e1;border-radius:7px;padding:4px 7px;background:#fff;color:#1d4ed8;font-family:inherit;font-size:9px;font-weight:850;cursor:pointer;white-space:nowrap}
+    #pageSidebar #pageListSelectAll[aria-pressed="true"]{background:#dbeafe;border-color:#93c5fd}
+    #pageSidebar #pageListSelectAll:disabled{opacity:.45;cursor:not-allowed}
+    #pageSidebar #pageListSelectAll:focus-visible{outline:2px solid #2563eb;outline-offset:2px}
+    #pageSidebar #thumbSection>.sec-head .slide-count{margin-left:auto;font-size:9px}
+    #pageSidebar #thumbArea .thumb-item:focus-visible{outline:2px solid #2563eb;outline-offset:3px;border-radius:5px}
+    #pageSidebar #pageProductivityPanelV3.single-selection-ui .page-productivity-jump{grid-template-columns:repeat(2,minmax(0,1fr))}
+    #pageSidebar #pageProductivityPanelV3.single-selection-ui .page-productivity-actions{margin-top:8px}
+    #pageSidebar #pageProductivityPanelV3.single-selection-ui .page-productivity-jump button{min-height:30px}
     #pageSidebar .pdf-file-selection-count{display:none!important}
     #pageSidebar :is(.pdf-file-nav-toggle,.pdf-file-order-handle,.pdf-file-select-btn,.pdf-file-delete-btn,.pdf-file-boundary,.page-selection-btn){
       box-sizing:border-box;min-height:32px;border-radius:8px;font-family:inherit;font-weight:800
@@ -847,7 +866,7 @@
       </div>
       <div class="sec-body" id="sb-pages">
         <div class="thumb-area" id="thumbArea"></div>
-        <div class="thumb-hint">클릭으로 선택 · Ctrl/Shift로 여러 페이지 선택 · 드래그로 순서 변경</div>
+        <div class="thumb-hint">페이지 클릭 또는 체크 = 개별 선택·해제 · Shift+클릭 = 연속 선택 · 드래그 = 순서 변경</div>
       </div>
     </div>
 
