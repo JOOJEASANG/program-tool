@@ -518,7 +518,12 @@
         ? pages.flatMap((page) => Array(page.excluded ? 1 : copies).fill(page))
         : pages;
       settings.pages = settings.pages.map((entry, index) => {
-        const inset = pageCellMarginOverrides(expandedSources[index]);
+        // When the preset promises a true 213×303mm leaf on a 305mm sheet,
+        // old manual per-page insets must not silently reduce its height.
+        // Preserve original session overrides; bypass them ONLY for export.
+        const inset = settings.booklet_bleed_inner_mm
+          ? {left:0,right:0,top:0,bottom:0}
+          : pageCellMarginOverrides(expandedSources[index]);
         return { ...entry,
           content_margin_left_mm: inset.left ?? null,
           content_margin_right_mm: inset.right ?? null,
@@ -646,7 +651,9 @@
           // side by the DIFFERENCE between this page's final margin and the
           // existing sheet margin: 10mm global + 0mm override => 0mm final.
           const baseMargins = foldCell?.baseMargins || margins;
-          const finalMargins = pageCellMargins(sourcePage, baseMargins);
+          const finalMargins = $('bookletBleedEnabled')?.checked && spine
+            ? {...baseMargins}
+            : pageCellMargins(sourcePage, baseMargins);
           // A booklet has no gutter: the fold-facing edge of either page
           // must remain exactly on the physical paper centerline. Preserve
           // the other three per-page margin overrides without adding a gap.
