@@ -1770,6 +1770,13 @@ function applyA4BookletBleedPreset() {
   });
   showBorder=false;
   $('showBorder').checked=false;
+  // Never let a subsequent upload replace the chosen printer-sheet size.
+  $('autoDetectSize').checked=false;
+  // Page-number auto reserve would steal several millimeters from a sheet
+  // with only 1mm of vertical clearance and silently break the fold geometry.
+  pnEnabled=false;
+  $('pnEnabled').checked=false;
+  $('pnSettings').style.display='none';
   $('actualSizeCheck').checked=true;
   $('actualSizePreset').value='custom';
   $('actualWidthMm').value='213';
