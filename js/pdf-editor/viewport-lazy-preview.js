@@ -660,6 +660,8 @@
     requestRender,
     focusRenderedOutput,
     navigateOutput,
+    // Keep the selected source in sync with windowed output navigation.
+    selectSourcePage: markSelectedThumbnail,
     getCurrentWindow: () => ({ ...currentWindow }),
     getCurrentOutputIndex: () => currentOutputIndex,
     get coordinatorInstalled() { return coordinatorInstalled; },
