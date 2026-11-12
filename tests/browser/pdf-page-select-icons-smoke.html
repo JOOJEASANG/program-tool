@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="ko">
 <head><meta charset="utf-8"><title>PDF right page list selection and icons regression</title>
-<script>history.replaceState(null, "", "/pdf-editor/index.html?select-icons-smoke=1");</script>
+<script>history.replaceState(null, "", "/pdf-editor/index.html?app=layout&select-icons-smoke=1");</script>
 <style>
  #thumbArea{display:grid;grid-template-columns:repeat(4,75px);gap:6px}
  .thumb-item{width:75px}.thumb-wrap{display:block;position:relative;width:75px;height:98px;border:1px solid #ddd}
@@ -65,8 +65,9 @@
  document.getElementById('previewScroll').scrollTo=()=>{};
  window.renderThumbs();
 </script>
-<script src="/js/pdf-editor/page-selection-preview-focus.js?v=20261112-2"></script>
-<script src="/js/pdf-editor/page-count-hint.js?v=20261112-2"></script>
+<script src="/js/pdf-editor/app-boundary.js?v=20261112-1"></script>
+<script src="/js/pdf-editor/page-selection-preview-focus.js?v=20261112-4"></script>
+<script src="/js/pdf-editor/page-count-hint.js?v=20261112-4"></script>
 <script src="/js/pdf-editor/file-navigation.js?v=20261112-1"></script>
 <script src="/js/pdf-editor/page-list-icons.js?v=20261112-2"></script>
 <script>
@@ -91,6 +92,18 @@
   if(!get('#pageSelectionToolbar')||!get('#pageProductivityPanelV3'))fail('selection and batch toolbars missing');
   if(!document.documentElement.classList.contains('pdf-direct-thumb-selection'))fail('direct thumbnail mode not initialized');
   if(!get('#pageListSelectAll')||get('#pageListSelectAll').textContent!=='전체 선택')fail('compact in-list select-all missing');
+  const header=get('#thumbSection>.sec-head');
+  if(header?.dataset.layoutCollapseBound!=='1')fail('standalone layout did not install heading capture handler');
+  const directAll=get('#pageListSelectAll');
+  directAll.dispatchEvent(new KeyboardEvent('keydown',{key:'Enter',bubbles:true,cancelable:true}));
+  if(get('#sb-pages').hidden)fail('Enter on selection button collapsed page list');
+  directAll.click();
+  if(get('#sb-pages').hidden)fail('click on selection button collapsed page list');
+  await sleep(35);
+  check(4,'direct all button within capture-enabled heading');
+  directAll.click();
+  if(get('#sb-pages').hidden)fail('clearing selection collapsed page list');
+  await sleep(35);check(0,'direct clear within capture-enabled heading');
   if(document.querySelectorAll('#thumbArea .page-select-check').length!==0)fail('duplicate page checkboxes present');
   if(document.querySelectorAll('#thumbArea .pdf-page-select-checkbox').length!==4)fail('one permanent checkbox per thumbnail not present');
   if(!get('.pdf-file-action-row'))fail('per-file menu was not rendered');
