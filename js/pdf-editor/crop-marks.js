@@ -247,7 +247,7 @@
     return true;
   }
 
-  function addMarks(source, mm2px) {
+  function addMarks(source, mm2px, outputIndex = 0) {
     if (!enabled()) return source;
     const config = settings();
     const bleed = config.bleed_mm * mm2px;
@@ -278,6 +278,26 @@
     ctx.restore();
     output.dataset.cropMarksPreview = '1';
     output.dataset.bleedMm = String(config.bleed_mm);
+    // The actual exported sheet expands beyond the requested trim sheet.
+    // Carry that output geometry forward so screen-only preview guides draw
+    // relative to its real physical edge, not the original A4/A3 edge.
+    const outerMm = config.bleed_mm + config.mark_length_mm
+      + config.mark_offset_mm + config.edge_padding_mm;
+    const pxPerMm = Number(mm2px) > 0 ? Number(mm2px) : 96/25.4;
+    output.dataset.paperWidthMm = String(output.width / pxPerMm);
+    output.dataset.paperHeightMm = String(output.height / pxPerMm);
+    output.dataset.trimPaperWidthMm = String(source.width / pxPerMm);
+    output.dataset.trimPaperHeightMm = String(source.height / pxPerMm);
+    let globalMargins = {};
+    try { globalMargins = window.PdfEditorLayoutExport?.layoutMargins?.(outputIndex) || {}; }
+    catch (_) {}
+    for (const edge of ['Left','Right','Top','Bottom']) {
+      const key = edge.toLowerCase();
+      const raw = source.dataset['margin'+edge+'Mm'];
+      const original = Number(raw === undefined ? globalMargins[key] : raw);
+      output.dataset['margin'+edge+'Mm'] =
+        String(outerMm + (Number.isFinite(original) ? original : 0));
+    }
     return output;
   }
 
@@ -288,7 +308,7 @@
     if (original.__cropMarksV2) { buildPatched = true; return true; }
     const wrapped = async function cropMarkedPages(mm2px) {
       const pages = await original.apply(this, arguments);
-      return enabled() ? pages.map((canvas) => addMarks(canvas, mm2px)) : pages;
+      return enabled() ? pages.map((canvas,index) => addMarks(canvas, mm2px, index)) : pages;
     };
     wrapped.__cropMarksV2 = true;
     buildAllPages = wrapped;
