@@ -68,6 +68,19 @@ insertSheet(0);
     fail('guide did not follow changed mm margin input');
   if([...ctx.getImageData(210,130,1,1).data].join(',')!==before.join(','))
     fail('screen guide was drawn into the PDF canvas');
+  // A small sheet with invalid 80+80mm requested margins renders using
+  // fallback 3.53mm. The guide must use the real rendered margins.
+  for(const [edge,mm] of Object.entries({Left:3.53,Right:3.53,Top:2.1,Bottom:2.1}))
+    node.dataset['previewMargin'+edge+'Mm']=String(mm);
+  engine.refresh();await sleep(35);
+  if(Math.abs(parseFloat(node.style.getPropertyValue('--pdf-guide-left'))-100*3.53/457)>.01)
+    fail('rendered margin fallback was ignored by the guide');
+  node.classList.add('preview-selection-target');
+  if(getComputedStyle(node).outlineColor!=='rgb(37, 99, 235)')
+    fail('selected output blue outline was hidden by green paper guide');
+  if(!getComputedStyle(node).boxShadow.includes('rgb(15, 118, 110)'))
+    fail('selected output lost the green paper boundary');
+  node.classList.remove('preview-selection-target');
   $('previewGuidesToggle').click();await sleep(30);
   if(node.classList.contains('pdf-paper-guides')||$('previewGuidesToggle').getAttribute('aria-pressed')!=='false')
     fail('hide guide toggle did not work');
@@ -83,6 +96,21 @@ insertSheet(0);
     fail('virtualized sheet did not use its real output index');
   if([...later.querySelector('canvas').getContext('2d').getImageData(210,130,1,1).data].join(',')!==before.join(','))
     fail('guide altered an original PDF preview pixel');
+  // Crop marks enlarge the PDF sheet beyond the originally selected paper.
+  // The solid boundary and dashed margins must match that expanded MediaBox.
+  $('previewScroll').replaceChildren();
+  const marked=insertSheet(8);
+  marked.dataset.previewPaperWidthMm='481';
+  marked.dataset.previewPaperHeightMm='329';
+  marked.dataset.previewTrimWidthMm='457';
+  marked.dataset.previewTrimHeightMm='305';
+  for(const [edge,mm] of Object.entries({Left:32,Right:24,Top:13,Bottom:13}))
+    marked.dataset['previewMargin'+edge+'Mm']=String(mm);
+  await sleep(60);
+  if(!marked.dataset.paperMm.startsWith('481 × 329mm')||!marked.dataset.paperMm.includes('재단 457×305'))
+    fail('expanded crop-mark paper size label is wrong');
+  if(Math.abs(parseFloat(marked.style.getPropertyValue('--pdf-guide-left'))-100*32/481)>.01)
+    fail('crop-mark padding not included in dashed margin offset');
   document.body.dataset.pdfPreviewMarginGuidesSmoke='pass';
   $('result').textContent='PASS: solid paper-size outline, dashed mm-based margins, toggle, input updates, virtual preview and unmodified PDF canvas';
  }catch(error){
