@@ -41,6 +41,15 @@ def test_sheet_and_margin_guides_are_screen_only_and_use_real_mm():
     assert "guide was drawn into the PDF canvas" in browser
     assert "lazy preview replacement lost guides" in browser
     assert "pdf-preview-margin-guides-smoke.html" in runner
+    crop=read("js/pdf-editor/crop-marks.js")
+    assert "crop-marks.js?v=20261113-1" in route
+    assert "output.dataset.paperWidthMm = String(output.width / pxPerMm)" in crop
+    assert "output.dataset['margin'+edge+'Mm']" in crop
+    assert "addMarks(canvas, mm2px, index)" in crop
+    assert "const actual=EDGES.map(edge=>" in guide
+    assert "preview-selection-target" in guide
+    assert "data-lazy-selected" in guide
+    assert "window.PdfPrintMarks.addMarksToCanvas(source,1,8)" in browser
 
 
 def test_guides_and_page_selection_preserve_server_pdf_generation_contract():
