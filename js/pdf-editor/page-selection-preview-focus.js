@@ -1162,6 +1162,17 @@
     return {width,height};
   }
   function marginFor(node,index){
+    // The actual composed output may have fallback margins when the requested
+    // dimensions are too large for a small sheet, or extra padding/bleed
+    // when crop marks enlarge the PDF MediaBox. Respect those *rendered*
+    // margins before reading the user's requested values.
+    const actual=EDGES.map(edge=>{
+      const attr='previewMargin'+edge.charAt(0).toUpperCase()+edge.slice(1)+'Mm';
+      const raw=node.dataset[attr];
+      return raw===undefined||raw===''?null:Number(raw);
+    });
+    if(actual.every(value=>value!==null&&Number.isFinite(value)))
+      return Object.fromEntries(EDGES.map((edge,i)=>[edge,bounded(actual[i])]));
     let effective=null;
     try{
       effective=window.PdfEditorLayoutExport?.layoutMargins?.(index);
@@ -1199,6 +1210,8 @@
       };
       EDGES.forEach(edge=>node.style.setProperty('--pdf-guide-'+edge,values[edge]+'%'));
       node.dataset.paperMm=fmt(paper.width)+' × '+fmt(paper.height)+'mm';
+      if(node.dataset.previewTrimWidthMm&&node.dataset.previewTrimHeightMm)
+        node.dataset.paperMm+=' · 재단 '+fmt(Number(node.dataset.previewTrimWidthMm))+'×'+fmt(Number(node.dataset.previewTrimHeightMm));
       node.dataset.guideMargins=EDGES.map(edge=>fmt(margins[edge])).join(',');
       node.classList.toggle('pdf-paper-guides',visible);
       // The visual-only pseudo-elements never touch a PDF canvas or print
@@ -1218,7 +1231,14 @@
     style.textContent=`
       #previewScroll .page-preview.pdf-paper-guides{
         position:relative!important;outline:2px solid #0f766e!important;outline-offset:0!important;
-        box-shadow:0 4px 16px rgba(0,0,0,.12),inset 0 0 0 1px rgba(255,255,255,.95)!important;
+        box-shadow:0 4px 16px rgba(0,0,0,.12),inset 0 0 0 2px #0f766e!important;
+      }
+      /* A selected output face still needs its blue highlight. Keep the
+         sheet's solid green edge inside, and selection blue outside. */
+      #previewScroll .page-preview.pdf-paper-guides.preview-selection-target,
+      #previewScroll .page-preview.pdf-paper-guides[data-lazy-selected="true"]{
+        outline:4px solid #2563eb!important;outline-offset:3px!important;
+        box-shadow:inset 0 0 0 2px #0f766e,0 10px 28px rgba(37,99,235,.25)!important;
       }
       #previewScroll .page-preview.pdf-paper-guides::after{
         content:'';position:absolute;box-sizing:border-box;
