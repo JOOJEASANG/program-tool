@@ -29,7 +29,7 @@ def test_crop_marks_module_enables_bounded_reserved_bleed_workspace():
 def test_crop_mark_preview_and_export_share_settings():
     source = MODULE.read_text(encoding="utf-8")
     api = API.read_text(encoding="utf-8")
-    assert "pages.map((canvas) => addMarks(canvas, mm2px))" in source
+    assert "pages.map((canvas,index) => addMarks(canvas, mm2px, index)" in source
     assert "state.cropMarks = settings()" in source
     assert "window.PdfPrintMarks = {" in source
     assert "next.print_marks = window.PdfPrintMarks.settings()" in api
