@@ -54,7 +54,7 @@ def test_versions_and_manual_and_browser_regression():
     assert "page-selection-preview-focus.js?v=20261113-1" in ROUTE.read_text(encoding="utf-8")
     assert "page-count-hint.js?v=20261112-4" in CORE.read_text(encoding="utf-8")
     assert "page-count-hint.js?v=20261112-4" in LOADER.read_text(encoding="utf-8")
-    assert "updated: '2026-11-12'" in MANUAL.read_text(encoding="utf-8")
+    assert "updated: '2026-11-13'" in MANUAL.read_text(encoding="utf-8")
     assert "동일한 선택 상태" in MANUAL.read_text(encoding="utf-8")
     assert "pdf-page-select-icons-smoke.html" in RUNNER.read_text(encoding="utf-8")
     for file in (SELECT,PRODUCT,ICONS):
