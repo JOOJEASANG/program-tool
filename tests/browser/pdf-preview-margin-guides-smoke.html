@@ -1,0 +1,93 @@
+<!doctype html><html lang="ko"><head><meta charset="utf-8">
+<title>PDF layout nonprinting margin guides smoke</title>
+<script>history.replaceState(null,'','/pdf-editor/index.html?app=layout&preview-guides-smoke=1');</script>
+<style>
+*{box-sizing:border-box}body{margin:0;font-family:sans-serif}
+#previewScroll{width:900px;height:700px;overflow:auto;background:#f1f5f9;padding:12px}
+.page-preview{width:457px;background:white}
+.page-preview canvas{display:block;width:100%}
+</style></head>
+<body data-pdf-preview-margin-guides-smoke="running">
+<pre id="result">RUNNING</pre>
+<button id="previewGuidesToggle" aria-pressed="true">여백선 ON</button>
+<input id="marginH" type="number" value="10"><input id="marginV" type="number" value="1">
+<input id="marginLeft" type="number" value="15"><input id="marginRight" type="number" value="12">
+<input id="marginTop" type="number" value="1"><input id="marginBottom" type="number" value="1">
+<div id="previewScroll"></div>
+<script>
+window.getSettings=()=>({pw:457,ph:305,mh:10,mv:1,gp:0});
+window.PdfEditorLayoutExport={
+  layoutMargins:index=>({
+    left:Number(document.getElementById('marginLeft').value)+(index%2?1:0),
+    right:Number(document.getElementById('marginRight').value),
+    top:Number(document.getElementById('marginTop').value),
+    bottom:Number(document.getElementById('marginBottom').value)
+  })
+};
+function insertSheet(index=0){
+ const node=document.createElement('div');
+ node.className='page-preview';node.dataset.outputIndex=String(index);
+ node.dataset.previewPaperWidthMm='457';
+ node.dataset.previewPaperHeightMm='305';
+ const canvas=document.createElement('canvas');canvas.width=457;canvas.height=305;
+ const context=canvas.getContext('2d');
+ context.fillStyle='#dbeafe';context.fillRect(0,0,457,305);
+ context.fillStyle='#dc2626';context.fillRect(200,120,20,20);
+ node.appendChild(canvas);document.getElementById('previewScroll').appendChild(node);
+ return node;
+}
+insertSheet(0);
+</script>
+<script src="/js/pdf-editor/preview-margin-guides.js?v=20261113-1"></script>
+<script>
+(async()=>{
+ const sleep=ms=>new Promise(resolve=>setTimeout(resolve,ms));
+ const fail=m=>{throw Error(m)};
+ const $=id=>document.getElementById(id);
+ try{
+  for(let i=0;i<25&&!window.PdfPreviewMarginGuides;i++)await sleep(20);
+  const engine=window.PdfPreviewMarginGuides;
+  if(!engine)fail('guide runtime did not boot');
+  await sleep(80);
+  const node=document.querySelector('.page-preview');
+  if(!node.classList.contains('pdf-paper-guides'))fail('guide overlay was not attached on first preview render');
+  if(getComputedStyle(node).outlineStyle!=='solid')fail('paper edge is not a solid border');
+  if(getComputedStyle(node,'::after').borderTopStyle!=='dashed')fail('inner work-margin guide is not dashed');
+  if(node.dataset.paperMm!=='457 × 305mm')fail('paper dimensions badge wrong '+node.dataset.paperMm);
+  const left=parseFloat(node.style.getPropertyValue('--pdf-guide-left'));
+  const right=parseFloat(node.style.getPropertyValue('--pdf-guide-right'));
+  const top=parseFloat(node.style.getPropertyValue('--pdf-guide-top'));
+  if(Math.abs(left-100*15/457)>.01||Math.abs(right-100*12/457)>.01||Math.abs(top-100/305)>.01)
+    fail('mm to per-sheet guide inset conversion incorrect');
+  const canvas=node.querySelector('canvas'),ctx=canvas.getContext('2d');
+  const before=[...ctx.getImageData(210,130,1,1).data];
+  $('marginLeft').value='20';
+  $('marginLeft').dispatchEvent(new Event('input',{bubbles:true}));
+  await sleep(45);
+  if(Math.abs(parseFloat(node.style.getPropertyValue('--pdf-guide-left'))-100*20/457)>.01)
+    fail('guide did not follow changed mm margin input');
+  if([...ctx.getImageData(210,130,1,1).data].join(',')!==before.join(','))
+    fail('screen guide was drawn into the PDF canvas');
+  $('previewGuidesToggle').click();await sleep(30);
+  if(node.classList.contains('pdf-paper-guides')||$('previewGuidesToggle').getAttribute('aria-pressed')!=='false')
+    fail('hide guide toggle did not work');
+  $('previewGuidesToggle').click();await sleep(30);
+  if(!node.classList.contains('pdf-paper-guides'))fail('guide show toggle did not restore overlay');
+  // Large job: replacing preview with a virtualized later output sheet
+  // must regenerate the badge and use its actual output index.
+  $('previewScroll').replaceChildren();
+  const later=insertSheet(7);
+  await sleep(60);
+  if(!later.classList.contains('pdf-paper-guides'))fail('lazy preview replacement lost guides');
+  if(Math.abs(parseFloat(later.style.getPropertyValue('--pdf-guide-left'))-100*21/457)>.01)
+    fail('virtualized sheet did not use its real output index');
+  if([...later.querySelector('canvas').getContext('2d').getImageData(210,130,1,1).data].join(',')!==before.join(','))
+    fail('guide altered an original PDF preview pixel');
+  document.body.dataset.pdfPreviewMarginGuidesSmoke='pass';
+  $('result').textContent='PASS: solid paper-size outline, dashed mm-based margins, toggle, input updates, virtual preview and unmodified PDF canvas';
+ }catch(error){
+  document.body.dataset.pdfPreviewMarginGuidesSmoke='fail';
+  $('result').textContent='FAIL: '+String(error.stack||error);
+ }
+})();
+</script></body></html>
