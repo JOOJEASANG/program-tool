@@ -21,12 +21,12 @@ def test_uploaded_thumbnails_get_checkboxes_without_select_all_warmup():
 
 
 def test_sheet_and_margin_guides_are_screen_only_and_use_real_mm():
-    guide=read("js/pdf-editor/preview-margin-guides.js")
+    guide=read("js/pdf-editor/page-selection-preview-focus.js")
     html=read("pdf-editor/index.html")
     route=read("js/pdf-editor/route-runtime.js")
     browser=read("tests/browser/pdf-preview-margin-guides-smoke.html")
     runner=read("scripts/run_pdf_program_shell_smoke.sh")
-    assert "preview-margin-guides.js?v=20261113-1" in route
+    assert "page-selection-preview-focus.js?v=20261113-1" in route
     assert 'id="previewGuidesToggle"' in html
     assert "wrap.dataset.previewPaperWidthMm" in html
     assert "canvas.dataset['margin'+edge+'Mm']" in html
@@ -44,7 +44,7 @@ def test_sheet_and_margin_guides_are_screen_only_and_use_real_mm():
 
 
 def test_guides_and_page_selection_preserve_server_pdf_generation_contract():
-    guide=read("js/pdf-editor/preview-margin-guides.js")
+    guide=read("js/pdf-editor/page-selection-preview-focus.js")
     selection=read("js/pdf-editor/page-selection-preview-focus.js")
     assert "window.PdfPreviewMarginGuides={install" in guide
     assert "previewGuidesToggle" in guide
