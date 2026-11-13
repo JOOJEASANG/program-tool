@@ -63,13 +63,14 @@
  };
  document.getElementById('previewScroll').getBoundingClientRect=()=>({top:0});
  document.getElementById('previewScroll').scrollTo=()=>{};
+ window.rawUploadRenderThumbs=window.renderThumbs;
  window.renderThumbs();
 </script>
 <!-- Load the legacy number-only sidebar BEFORE the selection controller,
      as can happen in production when runtime modules install asynchronously. -->
 <script src="/js/pdf-editor/editor-interaction-polish.js?v=20261112-1"></script>
 <script src="/js/pdf-editor/app-boundary.js?v=20261112-1"></script>
-<script src="/js/pdf-editor/page-selection-preview-focus.js?v=20261112-5"></script>
+<script src="/js/pdf-editor/page-selection-preview-focus.js?v=20261113-1"></script>
 <script>window.__pdfEditorFastMode=true;</script>
 <script src="/js/pdf-editor/viewport-lazy-preview.js?v=20261112-5"></script>
 <script src="/js/pdf-editor/page-count-hint.js?v=20261112-4"></script>
@@ -99,6 +100,19 @@
   if(!get('#pageListSelectAll')||get('#pageListSelectAll').textContent!=='전체 선택')fail('compact in-list select-all missing');
   const header=get('#thumbSection>.sec-head');
   if(header?.dataset.layoutCollapseBound!=='1')fail('standalone layout did not install heading capture handler');
+  // Upload after the initial boot, bypassing any page-list wrapper installed
+  // by a later plugin, reproduces the missing-checkbox real-world bug.
+  window.rawUploadRenderThumbs();
+  document.dispatchEvent(new CustomEvent('pdf-import-committed',{detail:{mode:'add'}}));
+  await sleep(65);
+  if(document.querySelectorAll('#thumbArea .pdf-page-select-checkbox').length!==4)
+    fail('fresh upload did not initialize checkboxes before select-all');
+  const firstUploadedCheck=get('#thumbArea .thumb-item[data-id="2"] .pdf-page-select-checkbox');
+  firstUploadedCheck.click();await sleep(35);
+  check(1,'freshly imported checkbox works before any select-all action');
+  if(!get('#thumbArea .thumb-item[data-id="2"]').classList.contains('page-selected'))
+    fail('fresh upload did not render blue selection outline');
+  firstUploadedCheck.click();await sleep(35);check(0,'fresh upload checkbox can clear selection');
   const directAll=get('#pageListSelectAll');
   directAll.dispatchEvent(new KeyboardEvent('keydown',{key:'Enter',bubbles:true,cancelable:true}));
   if(get('#sb-pages').hidden)fail('Enter on selection button collapsed page list');
