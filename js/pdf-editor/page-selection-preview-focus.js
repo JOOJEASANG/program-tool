@@ -612,6 +612,30 @@
     document.addEventListener('pointercancel', finish, true);
   }
 
+  let thumbImportObserver = null;
+  let thumbImportSyncQueued = false;
+
+  function installThumbImportSync() {
+    const area = byId('thumbArea');
+    if (!area || thumbImportObserver || typeof MutationObserver !== 'function') return;
+    // Third-party file navigators may replace renderThumbs() after we patch
+    // it. Observe the actual page list rather than relying on wrapper order.
+    // Only watch direct children: adding checkboxes/badges cannot retrigger it.
+    thumbImportObserver = new MutationObserver(() => {
+      if (thumbImportSyncQueued) return;
+      const incomplete = [...area.querySelectorAll('.thumb-item')]
+        .some(item => !item.querySelector('.thumb-wrap .pdf-page-select-checkbox'));
+      if (!incomplete) return;
+      thumbImportSyncQueued = true;
+      queueMicrotask(() => {
+        thumbImportSyncQueued = false;
+        ensureToolbar();
+        syncSelectionUi();
+      });
+    });
+    thumbImportObserver.observe(area, { childList: true });
+  }
+
   function installClickSelection() {
     const area = byId('thumbArea');
     if (!area || area.dataset.pageSelectionBoundV2) return;
@@ -1047,6 +1071,7 @@
     document.documentElement.classList.add('pdf-direct-thumb-selection');
     ensureToolbar();
     installClickSelection();
+    installThumbImportSync();
     installPointerPaintSelection();
     setDragSelectMode(dragSelectMode);
     patchRenderThumbs();
@@ -1056,6 +1081,9 @@
       window.__pdfPageSelectionImportResetV1 = true;
       document.addEventListener('pdf-import-committed', event => {
         if (event?.detail?.mode === 'new') clearSelection();
+        // Make the first checkbox clickable immediately after import, without
+        // making users click "select all" just to initialize the markers.
+        queueMicrotask(() => { ensureToolbar(); syncSelectionUi(); });
       });
       byId('resetBtn')?.addEventListener('click', clearSelection);
     }
