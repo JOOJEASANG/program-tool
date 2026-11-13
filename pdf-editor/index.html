@@ -3136,8 +3136,12 @@ function displayPreview(pages, autoFit = false) {
       // Only metadata reaches the preview wrapper. Guide lines are DOM/CSS
       // decorations; they MUST NOT be painted into an exported PDF canvas.
       const paperSize = getSettings();
-      wrap.dataset.previewPaperWidthMm = String(paperSize.pw);
-      wrap.dataset.previewPaperHeightMm = String(paperSize.ph);
+      wrap.dataset.previewPaperWidthMm = String(Number(canvas.dataset.paperWidthMm) || paperSize.pw);
+      wrap.dataset.previewPaperHeightMm = String(Number(canvas.dataset.paperHeightMm) || paperSize.ph);
+      if (canvas.dataset.trimPaperWidthMm && canvas.dataset.trimPaperHeightMm) {
+        wrap.dataset.previewTrimWidthMm = canvas.dataset.trimPaperWidthMm;
+        wrap.dataset.previewTrimHeightMm = canvas.dataset.trimPaperHeightMm;
+      }
       for (const edge of ['Left','Right','Top','Bottom']) {
         const mm = canvas.dataset['margin'+edge+'Mm'];
         if (mm !== undefined) wrap.dataset['previewMargin'+edge+'Mm'] = mm;
