@@ -157,6 +157,7 @@ reset_profile
 run_product_case "pdf-layout-sidebar-title-smoke.html" "$OUT_DIR/pdf-layout-sidebar-title-smoke-dom.html" 'data-pdf-layout-sidebar-title-smoke="pass"' 'PASS: layout PDF editor compact toolbar, sticky zoom, file reorder and clean defaults'
 reset_profile
 run_product_case "pdf-layout-selected-margin-smoke.html" "$OUT_DIR/pdf-selected-margin-smoke-dom.html" 'data-pdf-selected-margin-smoke="pass"' 'PASS: selected-page and per-file insets, fold clipping, booklet artwork shift and imposed-side 3mm bleed'
+run_product_case "pdf-preview-margin-guides-smoke.html" "$OUT_DIR/pdf-preview-margin-guides-smoke-dom.html" 'data-pdf-preview-margin-guides-smoke="pass"' 'PASS: solid paper-size outline, dashed mm-based margins, toggle, input updates, virtual preview and unmodified PDF canvas'
 reset_profile
 run_product_case "pdf-session-preview-stability-smoke.html" "$OUT_DIR/pdf-session-preview-stability-dom.html" 'data-pdf-session-preview-stability="pass"' 'PASS: restored session status updates do not loop or duplicate PDF preview rendering'
 reset_profile

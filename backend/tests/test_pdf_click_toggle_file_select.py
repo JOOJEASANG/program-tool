@@ -57,7 +57,7 @@ def test_icons_and_compact_toolbar_track_the_same_toggle_state():
     assert "const description=stateful" in icons
     assert "panel.classList.toggle('single-selection-ui',unifiedSelection());" in productivity
     assert ".page-productivity-panel.single-selection-ui .page-productivity-top{display:none!important}" in productivity
-    assert "page-selection-preview-focus.js?v=20261112-5" in ROUTE.read_text(encoding="utf-8")
+    assert "page-selection-preview-focus.js?v=20261113-1" in ROUTE.read_text(encoding="utf-8")
     assert "file-navigation.js?v=20261112-2" in ROUTE.read_text(encoding="utf-8")
     assert "page-count-hint.js?v=20261112-4" in CORE.read_text(encoding="utf-8")
     assert "page-count-hint.js?v=20261112-4" in LOADER.read_text(encoding="utf-8")

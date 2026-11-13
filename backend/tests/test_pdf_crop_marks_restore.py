@@ -10,7 +10,7 @@ API = ROOT / "js" / "api.js"
 def test_crop_marks_are_loaded_only_for_pdf_editor():
     register = REGISTER.read_text(encoding="utf-8")
     assert "pdfCropMarksScript" in register
-    assert "/js/pdf-editor/crop-marks.js?v=20260731-4" in register
+    assert "/js/pdf-editor/crop-marks.js?v=20261113-1" in register
     assert register.count("pdfCropMarksScript") == 1
     assert LOADER.read_text(encoding="utf-8").count("'/js/pdf-editor/") == 8
 
@@ -29,7 +29,7 @@ def test_crop_marks_module_enables_bounded_reserved_bleed_workspace():
 def test_crop_mark_preview_and_export_share_settings():
     source = MODULE.read_text(encoding="utf-8")
     api = API.read_text(encoding="utf-8")
-    assert "pages.map((canvas) => addMarks(canvas, mm2px))" in source
+    assert "pages.map((canvas,index) => addMarks(canvas, mm2px, index)" in source
     assert "state.cropMarks = settings()" in source
     assert "window.PdfPrintMarks = {" in source
     assert "next.print_marks = window.PdfPrintMarks.settings()" in api

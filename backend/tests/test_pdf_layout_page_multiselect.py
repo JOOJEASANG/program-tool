@@ -11,7 +11,7 @@ MANUAL = ROOT / "js" / "program-manuals" / "pdf-editor.js"
 def test_layout_route_loads_page_selection_before_generic_thumbnail_navigation():
     route = ROUTE_RUNTIME.read_text(encoding="utf-8")
 
-    selection_path = "/js/pdf-editor/page-selection-preview-focus.js?v=20261112-5"
+    selection_path = "/js/pdf-editor/page-selection-preview-focus.js?v=20261113-1"
     loader_path = "/js/pdf-editor/loader.js?v=20261021-3"
     assert "pdfLayoutPageSelectionScriptV1" in route
     assert f"src:'{selection_path}',app:'layout'" in route
@@ -85,7 +85,7 @@ def test_sidebar_stays_source_portrait_while_output_rotation_updates_preview_sou
 def test_pdf_editor_manual_documents_multiselect_shortcuts_and_batch_context_menu():
     manual = MANUAL.read_text(encoding="utf-8")
 
-    assert "updated: '2026-11-12'" in manual
+    assert "updated: '2026-11-13'" in manual
     assert "Ctrl 키를 따로 누르지 않아도" in manual
     assert "Shift+클릭" in manual
     assert "전체 선택" in manual
