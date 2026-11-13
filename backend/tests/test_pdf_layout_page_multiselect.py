@@ -85,7 +85,7 @@ def test_sidebar_stays_source_portrait_while_output_rotation_updates_preview_sou
 def test_pdf_editor_manual_documents_multiselect_shortcuts_and_batch_context_menu():
     manual = MANUAL.read_text(encoding="utf-8")
 
-    assert "updated: '2026-11-12'" in manual
+    assert "updated: '2026-11-13'" in manual
     assert "Ctrl 키를 따로 누르지 않아도" in manual
     assert "Shift+클릭" in manual
     assert "전체 선택" in manual
