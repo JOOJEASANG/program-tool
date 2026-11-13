@@ -13,6 +13,8 @@
 <input id="marginH" type="number" value="10"><input id="marginV" type="number" value="1">
 <input id="marginLeft" type="number" value="15"><input id="marginRight" type="number" value="12">
 <input id="marginTop" type="number" value="1"><input id="marginBottom" type="number" value="1">
+<input id="cropMarksEnabled" type="checkbox" checked>
+<input id="printBleedMm" value="3"><input id="cropMarkLengthMm" value="5"><input id="cropMarkOffsetMm" value="2">
 <div id="previewScroll"></div>
 <script>
 window.getSettings=()=>({pw:457,ph:305,mh:10,mv:1,gp:0});
@@ -39,6 +41,7 @@ function insertSheet(index=0){
 insertSheet(0);
 </script>
 <script src="/js/pdf-editor/page-selection-preview-focus.js?v=20261113-1"></script>
+<script src="/js/pdf-editor/crop-marks.js?v=20261113-1"></script>
 <script>
 (async()=>{
  const sleep=ms=>new Promise(resolve=>setTimeout(resolve,ms));
@@ -100,12 +103,19 @@ insertSheet(0);
   // The solid boundary and dashed margins must match that expanded MediaBox.
   $('previewScroll').replaceChildren();
   const marked=insertSheet(8);
-  marked.dataset.previewPaperWidthMm='481';
-  marked.dataset.previewPaperHeightMm='329';
-  marked.dataset.previewTrimWidthMm='457';
-  marked.dataset.previewTrimHeightMm='305';
-  for(const [edge,mm] of Object.entries({Left:32,Right:24,Top:13,Bottom:13}))
-    marked.dataset['previewMargin'+edge+'Mm']=String(mm);
+  const source=document.createElement('canvas');
+  source.width=457;source.height=305;
+  for(const [edge,mm] of Object.entries({Left:20,Right:12,Top:1,Bottom:1}))
+    source.dataset['margin'+edge+'Mm']=String(mm);
+  const exported=window.PdfPrintMarks.addMarksToCanvas(source,1,8);
+  if(exported.width!==481||exported.height!==329)
+    fail('crop marks did not expand the output sheet by 12mm on every side');
+  marked.dataset.previewPaperWidthMm=exported.dataset.paperWidthMm;
+  marked.dataset.previewPaperHeightMm=exported.dataset.paperHeightMm;
+  marked.dataset.previewTrimWidthMm=exported.dataset.trimPaperWidthMm;
+  marked.dataset.previewTrimHeightMm=exported.dataset.trimPaperHeightMm;
+  for(const edge of ['Left','Right','Top','Bottom'])
+    marked.dataset['previewMargin'+edge+'Mm']=exported.dataset['margin'+edge+'Mm'];
   await sleep(60);
   if(!marked.dataset.paperMm.startsWith('481 × 329mm')||!marked.dataset.paperMm.includes('재단 457×305'))
     fail('expanded crop-mark paper size label is wrong');
