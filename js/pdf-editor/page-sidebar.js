@@ -18,6 +18,13 @@
     const backdrop=document.getElementById('pageSidebarBackdrop');
     const empty=document.getElementById('pageSidebarEmpty');
     if(!app||!sidebar||!section||!toggle||!close||!grip||!backdrop||!empty)return;
+    // Keep one high-contrast disclosure style for the PDF page list.
+    if(!document.getElementById('pdfRightSidebarUxStylesV2')){
+      const style=document.createElement('style');
+      style.id='pdfRightSidebarUxStylesV2';
+      style.textContent="\n#pdfEditorApp #pageSidebarToggle{\n  display:inline-flex!important;align-items:center!important;justify-content:center!important;\n  flex:0 0 auto!important;min-width:133px!important;min-height:40px!important;\n  padding:8px 12px!important;border:1px solid #12487f!important;border-radius:10px!important;\n  background:#174b85!important;color:#fff!important;\n  font:900 12px/1.2 Pretendard,\"Noto Sans KR\",sans-serif!important;\n  letter-spacing:0!important;box-shadow:0 3px 9px rgba(15,57,103,.18)!important;\n  white-space:nowrap!important;cursor:pointer!important}\n#pdfEditorApp #pageSidebarToggle[aria-expanded=\"true\"]{\n  background:#e8f2ff!important;color:#15477f!important;border-color:#6ea1dd!important;\n  box-shadow:inset 0 0 0 1px rgba(39,111,203,.12)!important}\n#pdfEditorApp #pageSidebarToggle:hover{filter:brightness(1.08)!important}\n#pdfEditorApp #pageSidebarToggle:focus-visible,#pageSidebar #pageSidebarClose:focus-visible,\n#pageSidebar #pageSidebarResize:focus-visible{outline:3px solid #2563eb!important;outline-offset:2px!important}\n#pageSidebar #pageSidebarClose{\n  flex:0 0 40px!important;width:40px!important;min-width:40px!important;\n  height:40px!important;min-height:40px!important;border-radius:10px!important;\n  border:1px solid #bed0e4!important;background:#fff!important;\n  color:#213c5e!important;font-size:24px!important;line-height:1!important;cursor:pointer!important}\n#pageSidebar #pageSidebarClose:hover{background:#e8f2ff!important;border-color:#7ea9dd!important}\n#pageSidebar .page-sidebar-heading{font-size:15px!important;font-weight:900!important;color:#173252!important}\n#pageSidebar #pageSidebarResize{width:14px!important;background:rgba(220,232,245,.48);border-left:1px solid #cbd9e8!important}\n#pageSidebar #pageSidebarResize::after{\n  content:'';position:absolute;top:50%;left:4px;width:5px;height:40px;\n  border-radius:5px;background:repeating-linear-gradient(to bottom,#7594b5 0 3px,transparent 3px 7px);\n  transform:translateY(-50%);pointer-events:none}\n#pageSidebar #pageSidebarResize:hover{background:#dbeafe!important}\n@media(max-width:1450px){\n  #pdfEditorApp .preview-info{flex-wrap:wrap!important;gap:7px!important}\n  #pdfEditorApp .preview-info>.preview-zoom{\n    flex:1 1 100%!important;width:100%!important;min-width:0!important;max-width:100%!important;\n    overflow-x:auto!important;overflow-y:visible!important;justify-content:flex-start!important;\n    scrollbar-width:thin!important;padding-bottom:3px!important}\n}\n@media(max-width:1180px){\n  body[data-program-shell=\"compact\"] #pageSidebar{top:0!important}\n  body[data-program-shell=\"compact\"] #pageSidebarBackdrop:not([hidden]){inset:0!important}\n}\n@media(prefers-reduced-motion:reduce){#pdfEditorApp #pageSidebarToggle{transition:none!important}}\n";
+      document.head.appendChild(style);
+    }
     let open=false,hadPages=false,manuallyClosed=false;
     let drag=null;
     const wide=()=>window.innerWidth>breakpoint;
@@ -40,7 +47,15 @@
     function syncBackdrop(){
       backdrop.hidden=!open||wide();
     }
+    function updateToggleLabel(){
+      const action=open?'접기':'펼치기';
+      const label='페이지 목록 '+action;
+      toggle.textContent='☷ '+label;
+      toggle.setAttribute('aria-label',label);
+      toggle.setAttribute('title',label);
+    }
     function setOpen(next,userAction=false){
+      const restoreFocus=!next&&sidebar.contains(document.activeElement);
       open=!!next;
       if(userAction)manuallyClosed=!open;
       app.classList.toggle('page-sidebar-open',open);
@@ -48,9 +63,10 @@
       // Closed thumbnail widgets must not remain keyboard-focusable.
       sidebar.inert=!open;
       toggle.setAttribute('aria-expanded',open?'true':'false');
-      toggle.setAttribute('title',open?'오른쪽 페이지 목록 닫기':'오른쪽 페이지 목록 열기');
+      updateToggleLabel();
       syncBackdrop();
-      if(!open&&sidebar.contains(document.activeElement))toggle.focus();
+      if(restoreFocus)toggle.focus();
+      else if(open&&userAction&&!wide())close.focus();
     }
     function hasPages(){
       return !section.hidden&&section.style.display!=='none';
@@ -58,7 +74,7 @@
     function syncPageState(){
       const pages=hasPages();
       empty.hidden=pages;
-      toggle.textContent=pages?'☷ 페이지 목록':'☷ 페이지';
+      updateToggleLabel();
       // Auto-open only when the first uploaded file appears on a wide screen.
       // For phones and compact desktops, never cover the preview unexpectedly.
       if(pages&&!hadPages&&!manuallyClosed&&wide())setOpen(true);
@@ -113,7 +129,7 @@
     window.PdfEditorRightPageSidebar={
       get open(){return open;},get width(){return width;},
       show(){setOpen(true,true);},hide(){setOpen(false,true);},
-      sync:syncPageState,version:'2026-11-12'
+      sync:syncPageState,version:'2026-11-16'
     };
   }
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init,{once:true});
