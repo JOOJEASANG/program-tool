@@ -246,8 +246,25 @@ function showUser(user){
   document.getElementById('sbUserEmail').textContent=user.email||'';
   document.getElementById('sbLogout').onclick=()=>auth.signOut().then(()=>location.reload());
 }
-const sidebar=document.getElementById('sidebar');const overlay=document.getElementById('sbOverlay');const menuToggle=document.getElementById('menuToggle');menuToggle.onclick=()=>{const open=sidebar.classList.toggle('open');overlay.classList.toggle('open',open);menuToggle.setAttribute('aria-expanded',String(open));};overlay.onclick=()=>{sidebar.classList.remove('open');overlay.classList.remove('open');menuToggle.setAttribute('aria-expanded','false');};
-document.querySelectorAll('.nav-item[data-cat]').forEach(btn=>{btn.onclick=()=>{switchCat(btn.dataset.cat);sidebar.classList.remove('open');overlay.classList.remove('open');menuToggle.setAttribute('aria-expanded','false');};});
+const sidebar=document.getElementById('sidebar');const overlay=document.getElementById('sbOverlay');const menuToggle=document.getElementById('menuToggle');
+function setSidebarOpen(open,restoreFocus=false){
+  const next=Boolean(open);
+  sidebar.classList.toggle('open',next);
+  overlay.classList.toggle('open',next);
+  menuToggle.setAttribute('aria-expanded',String(next));
+  menuToggle.setAttribute('aria-label',next?'메뉴 닫기':'메뉴 열기');
+  menuToggle.title=next?'메뉴 닫기':'메뉴 열기';
+  if(!next&&restoreFocus)menuToggle.focus();
+}
+menuToggle.onclick=()=>setSidebarOpen(!sidebar.classList.contains('open'));
+overlay.onclick=()=>setSidebarOpen(false,true);
+document.addEventListener('keydown',event=>{
+  if(event.key==='Escape'&&sidebar.classList.contains('open')){
+    event.preventDefault();
+    setSidebarOpen(false,true);
+  }
+});
+document.querySelectorAll('.nav-item[data-cat]').forEach(btn=>{btn.onclick=()=>{switchCat(btn.dataset.cat);setSidebarOpen(false);};});
 document.getElementById('search').oninput=e=>{searchQuery=e.target.value;renderGrid();};
 const legalModal=document.getElementById('legalModal');const legalFrame=document.getElementById('legalFrame');const legalTitle=document.getElementById('legalTitle');function openLegal(url,title){legalTitle.textContent=title;legalFrame.src=url;legalModal.classList.add('open');document.body.style.overflow='hidden';}function closeLegal(){legalModal.classList.remove('open');document.body.style.overflow='';legalFrame.src='about:blank';}document.querySelectorAll('[data-legal]').forEach(btn=>btn.onclick=()=>openLegal(btn.dataset.legal,btn.dataset.title));document.getElementById('legalClose').onclick=closeLegal;legalModal.onclick=e=>{if(e.target===legalModal)closeLegal();};document.addEventListener('keydown',e=>{if(e.key==='Escape'&&legalModal.classList.contains('open'))closeLegal();});
 document.querySelectorAll('[data-current-year]').forEach(el=>el.textContent=new Date().getFullYear());
