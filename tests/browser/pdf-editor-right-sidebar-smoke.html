@@ -39,6 +39,9 @@ document.addEventListener('DOMContentLoaded',()=>{
     try{
       const api=window.PdfEditorRightPageSidebar;
       if(!api||api.open)fail('closed default panel missing');
+      if(!toggle.textContent.includes('펼치기')||toggle.getAttribute('aria-label')!=='페이지 목록 펼치기')fail('collapsed page-list button has no visible, descriptive label');
+      if(parseFloat(getComputedStyle(toggle).minHeight)<40)fail('page-list toggle hit target must be at least 40px');
+      if(parseFloat(getComputedStyle(close).height)<40)fail('page-list close button is too small');
       if(!right.inert||right.getAttribute('aria-hidden')!=='true')fail('closed panel still focusable');
       if(document.querySelectorAll('#thumbArea').length!==1||!right.contains(document.getElementById('thumbArea')))fail('thumbnail DOM is duplicated or not in right panel');
       if(!document.getElementById('sb-upload').closest('aside')||right.contains(document.getElementById('sb-upload')))fail('left controls moved unexpectedly');
@@ -49,6 +52,8 @@ document.addEventListener('DOMContentLoaded',()=>{
       if(document.getElementById('pageSidebarEmpty').hidden!==true)fail('empty hint remains after upload');
       if(!api.open)toggle.click();
       if(!api.open||right.inert||toggle.getAttribute('aria-expanded')!=='true')fail('page list toggle did not open');
+      if(!toggle.textContent.includes('접기')||toggle.getAttribute('aria-label')!=='페이지 목록 접기')fail('open page-list button must say 접기');
+      if(window.innerWidth<=1180&&document.activeElement!==close)fail('compact drawer did not focus its close button');
       if(window.innerWidth<=1180&&backdrop.hidden)fail('narrow screen backdrop missing');
       if(window.innerWidth>1180){
         const before=api.width;
@@ -59,6 +64,8 @@ document.addEventListener('DOMContentLoaded',()=>{
       }
       close.click();
       if(api.open||!right.inert||toggle.getAttribute('aria-expanded')!=='false')fail('close did not restore preview width');
+      if(!toggle.textContent.includes('펼치기'))fail('closing the page list did not restore visible 펼치기 label');
+      if(window.innerWidth>1180&&parseFloat(getComputedStyle(grip).width)<14)fail('page-list resize target remains too narrow');
       // Manual closing remains in effect until a new upload/reset cycle.
       api.sync();
       if(api.open)fail('manual close preference was ignored after sync');
