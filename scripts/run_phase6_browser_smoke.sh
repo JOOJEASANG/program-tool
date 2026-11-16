@@ -43,3 +43,4 @@ PY
 run_page "auth-surface-polish-v3-smoke.html" "Auth Phase 6 mobile accessibility smoke" "auth-surface-polish-v3-smoke-dom.html"
 run_page "approval-surface-polish-v3-smoke.html" "Approval Phase 6 mobile accessibility smoke" "approval-surface-polish-v3-smoke-dom.html"
 run_page "legal-surface-polish-v3-smoke.html" "Legal Phase 6 mobile accessibility smoke" "legal-surface-polish-v3-smoke-dom.html"
+run_page "program-suite-unified-ux-smoke.html" "All programs unified UX at 360px" "program-suite-unified-ux-smoke-dom.html"
