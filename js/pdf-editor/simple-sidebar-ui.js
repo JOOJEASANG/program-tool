@@ -131,6 +131,49 @@
         filter:brightness(1.07)!important}
       body[data-program-kind="pdf-editor"] .app>aside:first-of-type #resetBtn:hover{background:#e2e9f2!important}
       body[data-program-kind="pdf-editor"] .app>aside:first-of-type :is(.sec-body,summary):focus-visible{outline:2px solid #2563eb;outline-offset:1px}
+
+      /* Larger, explicit expand/collapse targets; never change the PDF layout engine. */
+      body[data-program-kind="pdf-editor"] .app>aside:first-of-type .sec.pdf-ui-toggle>.sec-head{
+        min-height:52px!important;gap:8px!important;padding:8px 10px 8px 12px!important;
+        background:#f8fbff!important;cursor:pointer!important;transition:background-color .16s ease!important}
+      body[data-program-kind="pdf-editor"] .app>aside:first-of-type .sec.pdf-ui-toggle>.sec-head:hover{
+        background:#ebf4ff!important}
+      body[data-program-kind="pdf-editor"] .app>aside:first-of-type .sec.pdf-ui-toggle>.sec-head .sec-title{
+        min-width:0!important;font-size:12.5px!important;font-weight:900!important;color:#173252!important}
+      body[data-program-kind="pdf-editor"] .app>aside:first-of-type .sec.pdf-ui-toggle>.sec-head .sec-arrow,
+      body[data-program-kind="pdf-editor"] #pageSidebar #thumbSection>.sec-head .sec-arrow{
+        display:inline-flex!important;align-items:center!important;justify-content:center!important;
+        flex:0 0 auto!important;min-width:72px!important;min-height:34px!important;
+        padding:0 9px!important;border:1px solid #92b7ed!important;border-radius:9px!important;
+        background:#eaf3ff!important;color:#174b96!important;font-size:12px!important;
+        font-weight:900!important;line-height:1.2!important;white-space:nowrap!important;
+        letter-spacing:0!important;transform:none!important;box-shadow:0 1px 2px rgba(12,58,118,.06)!important}
+      body[data-program-kind="pdf-editor"] .app>aside:first-of-type .sec.pdf-ui-closed>.sec-head .sec-arrow,
+      body[data-program-kind="pdf-editor"] #pageSidebar #thumbSection>.sec-head.collapsed .sec-arrow{
+        background:#f1f5f9!important;border-color:#bdcddd!important;color:#36516c!important;transform:none!important}
+      body[data-program-kind="pdf-editor"] .app>aside:first-of-type .sec.pdf-ui-toggle>.sec-head:focus-visible,
+      body[data-program-kind="pdf-editor"] #pageSidebar #thumbSection>.sec-head:focus-visible{
+        outline:3px solid #2563eb!important;outline-offset:-3px!important}
+      body[data-program-kind="pdf-editor"] #pageSidebar #thumbSection>.sec-head{
+        min-height:50px!important;gap:5px!important;padding:7px 9px!important;background:#f8fbff!important;cursor:pointer!important}
+      body[data-program-kind="pdf-editor"] #pageSidebar #thumbSection>.sec-head:hover{background:#ebf4ff!important}
+      body[data-program-kind="pdf-editor"] #pageSidebar #thumbSection>.sec-head .sec-title{
+        font-size:12px!important;font-weight:900!important;color:#173252!important}
+      body[data-program-kind="pdf-editor"] #pageSidebar #thumbSection>.sec-head .sec-arrow{
+        min-width:64px!important;padding:0 6px!important}
+      body[data-program-kind="pdf-editor"] :is(#pdfActualSizeDisclosure,#pdfFileMarginsDetails,#pdfPageJumpDetails,#pageSelectedMarginDetails)>summary{
+        min-height:42px!important;display:flex!important;align-items:center!important;
+        color:#243d5b!important;font-size:12px!important;line-height:1.4!important;cursor:pointer!important}
+      body[data-program-kind="pdf-editor"] :is(#pdfActualSizeDisclosure,#pdfFileMarginsDetails,#pdfPageJumpDetails,#pageSelectedMarginDetails)>summary:focus-visible{
+        outline:3px solid #2563eb!important;outline-offset:-3px!important}
+      @media(max-width:520px){
+        body[data-program-kind="pdf-editor"] .app>aside:first-of-type .sec.pdf-ui-toggle>.sec-head .sec-title{font-size:12px!important}
+        body[data-program-kind="pdf-editor"] .app>aside:first-of-type .sec.pdf-ui-toggle>.sec-head .sec-badge{display:none!important}
+      }
+      @media(prefers-reduced-motion:reduce){
+        body[data-program-kind="pdf-editor"] .app>aside:first-of-type .sec-head,
+        body[data-program-kind="pdf-editor"] .sec-head .sec-arrow{transition:none!important}
+      }
       @media(max-width:760px){body[data-program-kind="pdf-editor"] .app>aside:first-of-type{padding:10px!important}body[data-program-kind="pdf-editor"] #previewScroll .preview-row{min-width:max-content}}
       @media(max-width:980px){body[data-program-kind="pdf-editor"]{overflow:auto!important}body[data-program-kind="pdf-editor"] .app{grid-template-columns:1fr!important;height:auto!important;min-height:100vh!important}body[data-program-kind="pdf-editor"] .app>aside:first-of-type,body[data-program-kind="pdf-editor"] .app>main{grid-column:1!important;width:100%!important;height:auto!important;position:relative!important;overflow:visible!important}}
     `;
@@ -236,6 +279,14 @@
         }
         const title=head.querySelector('.sec-title');
         if(title&&names[key]&&title.textContent!==names[key])title.textContent=names[key];
+        if(key!=='output'){
+          let arrow=head.querySelector(':scope>.sec-arrow');
+          if(!arrow){arrow=document.createElement('span');arrow.className='sec-arrow';head.appendChild(arrow);}
+          const action=isOpen?'⌃ 접기':'⌄ 펼치기';
+          if(arrow.textContent!==action)arrow.textContent=action;
+          arrow.setAttribute('aria-hidden','true');
+          head.setAttribute('aria-label',(names[key]||title?.textContent||'설정')+' '+(isOpen?'접기':'펼치기'));
+        }
       }
       if(body)body.classList.toggle('hidden',!isOpen);
     }
@@ -265,6 +316,18 @@
       if(heading.getAttribute('role')!=='button')heading.setAttribute('role','button');
       if(heading.tabIndex!==0)heading.tabIndex=0;
       if(pages.id)heading.setAttribute('aria-controls',pages.id);
+      let arrow=heading.querySelector(':scope>.sec-arrow');
+      if(!arrow){arrow=document.createElement('span');arrow.className='sec-arrow';heading.appendChild(arrow);}
+      const action=expanded?'⌃ 접기':'⌄ 펼치기';
+      if(arrow.textContent!==action)arrow.textContent=action;
+      arrow.setAttribute('aria-hidden','true');
+      heading.setAttribute('aria-label','파일별 페이지 '+(expanded?'접기':'펼치기'));
+      // Selection controls inside the header must not collapse the page list.
+      heading.querySelectorAll('button').forEach(button=>{
+        if(button.dataset.pdfHeaderClickGuard==='1')return;
+        button.dataset.pdfHeaderClickGuard='1';
+        button.addEventListener('click',event=>event.stopPropagation());
+      });
     }
     // Per-file overrides belong with file/page management. Move the *existing*
     // controls, preserving their handlers, instead of creating a second editor.
@@ -341,6 +404,6 @@
     sync();[80,220,600,1200,2200].forEach(delay=>setTimeout(queue,delay));}
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot();
 
-  const api={sync,removePrintOutputToolLabel,stage:'two-sidebar-print-workflow-v2',revision:'stepwise-sidebar-and-file-margin-grouping-v1'};
+  const api={sync,removePrintOutputToolLabel,stage:'two-sidebar-print-workflow-v2',revision:'accessible-large-disclosure-controls-v2'};
   window.PdfEditorSimpleSidebarUi=api;window.PdfEditorWorkflowUi=api;window.PdfEditorWorkspaceLayout=api;
 })();
