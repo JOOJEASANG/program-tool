@@ -28,7 +28,7 @@ def test_pdf_page_list_has_moved_to_right_of_preview_without_duplication():
     assert 'id="pageSidebarBackdrop"' in source
     assert 'page-sidebar-open' in source
     assert 'grid-template-columns:360px minmax(0,1fr) var(--page-sidebar-width)!important' in source
-    assert 'pdf-editor/page-sidebar.js?v=20261112-1' in source
+    assert 'pdf-editor/page-sidebar.js?v=20261116-1' in source
 
 
 def test_right_panel_keeps_existing_thumbnail_editing_dom_hooks():
@@ -60,7 +60,7 @@ def test_right_panel_script_parses_and_manual_browser_check_updated():
     r = subprocess.run(["node", "--check", str(JS)], capture_output=True, text=True, cwd=ROOT)
     assert r.returncode == 0, r.stdout + r.stderr
     manual = MANUAL.read_text(encoding="utf-8")
-    assert "updated: '2026-11-13'" in manual
+    assert "updated: '2026-11-16'" in manual
     assert "오른쪽 페이지 목록" in manual
     assert "왼쪽 페이지 목록" not in manual
     assert "tests/browser/pdf-editor-right-sidebar-smoke.html" == "tests/browser/" + BROWSER.name
