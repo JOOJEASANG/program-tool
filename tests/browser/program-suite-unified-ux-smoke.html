@@ -10,6 +10,8 @@
     body{margin:0;font-family:Arial,sans-serif}
     .sidebar,.advanced-sidebar,.control-panel{padding:12px}
     button{cursor:pointer}
+    #pdfEditorApp .preview-shell{border:1px solid #ddd}
+    main.container .workspace{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}
   </style>
 </head>
 <body data-phase6-smoke="running" data-program-suite-ux-smoke="running">
@@ -62,7 +64,7 @@
     min('.layout-app .top-actions .sidebar-action','minHeight',39);
     root.dataset.suiteScreen='pdf-layout';
     const shell=document.querySelector('#pdfEditorApp .preview-shell');
-    if(getComputedStyle(shell).borderTopStyle!=='solid')fail('layout preview boundary is absent');
+    if(getComputedStyle(shell).borderTopColor!=='rgb(203, 217, 233)')fail('layout preview border did not use shared palette');
     root.dataset.suiteScreen='pdf-edit';
     min('.advanced-app .tool-btn','minHeight',38);
     min('.advanced-app .number-grid input','minHeight',36);
