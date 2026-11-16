@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="ko" data-home-static-professional="1">
+<html lang="ko" data-home-static-professional="1" data-suite-screen="home">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
@@ -144,6 +144,7 @@ html.ps-ui-v2 .search:focus,html.ps-ui-v2 .search:focus-visible{outline:0!import
 @media(max-width:520px){.banner{flex-direction:column;align-items:flex-start;gap:14px}.quick-chip{font-size:11px;padding:8px 11px}.tb-user-name{display:none}}
 </style>
 <link rel="stylesheet" href="/css/studio-workspace.css?v=20261012-2">
+  <link rel="stylesheet" href="/css/program-suite-ux-20261116.css?v=20261116-1">
 </head>
 <body data-home-suite="categorized-programs-v2">
 <div id="loading"><div class="spin"></div></div>
@@ -245,8 +246,25 @@ function showUser(user){
   document.getElementById('sbUserEmail').textContent=user.email||'';
   document.getElementById('sbLogout').onclick=()=>auth.signOut().then(()=>location.reload());
 }
-const sidebar=document.getElementById('sidebar');const overlay=document.getElementById('sbOverlay');const menuToggle=document.getElementById('menuToggle');menuToggle.onclick=()=>{const open=sidebar.classList.toggle('open');overlay.classList.toggle('open',open);menuToggle.setAttribute('aria-expanded',String(open));};overlay.onclick=()=>{sidebar.classList.remove('open');overlay.classList.remove('open');menuToggle.setAttribute('aria-expanded','false');};
-document.querySelectorAll('.nav-item[data-cat]').forEach(btn=>{btn.onclick=()=>{switchCat(btn.dataset.cat);sidebar.classList.remove('open');overlay.classList.remove('open');menuToggle.setAttribute('aria-expanded','false');};});
+const sidebar=document.getElementById('sidebar');const overlay=document.getElementById('sbOverlay');const menuToggle=document.getElementById('menuToggle');
+function setSidebarOpen(open,restoreFocus=false){
+  const next=Boolean(open);
+  sidebar.classList.toggle('open',next);
+  overlay.classList.toggle('open',next);
+  menuToggle.setAttribute('aria-expanded',String(next));
+  menuToggle.setAttribute('aria-label',next?'메뉴 닫기':'메뉴 열기');
+  menuToggle.title=next?'메뉴 닫기':'메뉴 열기';
+  if(!next&&restoreFocus)menuToggle.focus();
+}
+menuToggle.onclick=()=>setSidebarOpen(!sidebar.classList.contains('open'));
+overlay.onclick=()=>setSidebarOpen(false,true);
+document.addEventListener('keydown',event=>{
+  if(event.key==='Escape'&&sidebar.classList.contains('open')){
+    event.preventDefault();
+    setSidebarOpen(false,true);
+  }
+});
+document.querySelectorAll('.nav-item[data-cat]').forEach(btn=>{btn.onclick=()=>{switchCat(btn.dataset.cat);setSidebarOpen(false);};});
 document.getElementById('search').oninput=e=>{searchQuery=e.target.value;renderGrid();};
 const legalModal=document.getElementById('legalModal');const legalFrame=document.getElementById('legalFrame');const legalTitle=document.getElementById('legalTitle');function openLegal(url,title){legalTitle.textContent=title;legalFrame.src=url;legalModal.classList.add('open');document.body.style.overflow='hidden';}function closeLegal(){legalModal.classList.remove('open');document.body.style.overflow='';legalFrame.src='about:blank';}document.querySelectorAll('[data-legal]').forEach(btn=>btn.onclick=()=>openLegal(btn.dataset.legal,btn.dataset.title));document.getElementById('legalClose').onclick=closeLegal;legalModal.onclick=e=>{if(e.target===legalModal)closeLegal();};document.addEventListener('keydown',e=>{if(e.key==='Escape'&&legalModal.classList.contains('open'))closeLegal();});
 document.querySelectorAll('[data-current-year]').forEach(el=>el.textContent=new Date().getFullYear());

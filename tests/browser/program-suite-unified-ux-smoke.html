@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="ko" data-suite-screen="home">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>All programs UI and accessibility smoke</title>
+  <link rel="stylesheet" href="/css/program-suite-ux-20261116.css?v=20261116-1">
+  <style>
+    *{box-sizing:border-box}
+    body{margin:0;font-family:Arial,sans-serif}
+    .sidebar,.advanced-sidebar,.control-panel{padding:12px}
+    button{cursor:pointer}
+    #pdfEditorApp .preview-shell{border:1px solid #ddd}
+    main.container .workspace{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}
+  </style>
+</head>
+<body data-phase6-smoke="running" data-program-suite-ux-smoke="running">
+<pre id="result">RUNNING</pre>
+<aside class="sidebar">
+  <button class="nav-item" type="button">전체 프로그램</button>
+  <button id="menuToggle" type="button" aria-expanded="false">☰</button>
+</aside>
+<div class="print-checker-page">
+  <aside class="sidebar">
+    <div class="sb-title">인쇄파일 검토</div>
+    <a class="sb-nav-back" href="#">홈으로</a>
+    <button class="product-card" type="button">포스터 검토</button>
+  </aside>
+</div>
+<div class="layout-app">
+  <aside class="sidebar"><div class="sidebar-top"><div class="top-actions">
+    <button class="sidebar-action" type="button">편집저장</button>
+  </div></div></aside>
+</div>
+<div id="pdfEditorApp"><div class="preview-shell"><div class="preview-info"><button id="pageSidebarToggle" type="button">페이지 목록</button></div></div></div>
+<div class="advanced-app"><aside class="advanced-sidebar">
+  <div class="tool-section"><div class="section-title">선택 페이지 편집</div><button class="tool-btn" type="button">회전</button></div>
+  <div class="number-grid"><label>위쪽<input type="number" value="3"></label></div>
+</aside></div>
+<div class="maker-shell"><aside class="control-panel">
+  <details class="control-section" id="aiTestDetails"><summary><span>1</span><span><strong>인쇄 규격</strong><small>책등 설정</small></span><span class="section-state">준비</span></summary><div class="section-body">규격 입력</div></details>
+</aside></div>
+<header class="suite-topbar"><a class="suite-back" href="#" aria-label="홈">←</a></header>
+<main class="container"><section class="workspace"><div class="panel"><div class="panel-title">PDF 검사</div><button class="action-btn" type="button">검사 실행</button></div></section></main>
+<div class="tool-modal-box"><button class="tool-modal-close" aria-label="닫기">×</button></div>
+<script>
+(async()=>{
+  const root=document.documentElement,result=document.getElementById('result');
+  const fail=(message)=>{throw new Error(message)};
+  const min=(selector,property,limit)=>{
+    const element=document.querySelector(selector);
+    if(!element)fail('missing '+selector);
+    const value=parseFloat(getComputedStyle(element)[property]);
+    if(!Number.isFinite(value)||value<limit)fail(selector+' '+property+' '+value+' < '+limit);
+  };
+  try{
+    root.dataset.suiteScreen='home';
+    min('#menuToggle','minHeight',44);
+    min('.sidebar .nav-item','minHeight',44);
+    root.dataset.suiteScreen='print-checker';
+    min('.print-checker-page .product-card','minHeight',64);
+    min('.print-checker-page .sb-nav-back','minHeight',38);
+    root.dataset.suiteScreen='smart-print';
+    min('.layout-app .top-actions .sidebar-action','minHeight',39);
+    root.dataset.suiteScreen='pdf-layout';
+    const shell=document.querySelector('#pdfEditorApp .preview-shell');
+    if(getComputedStyle(shell).borderTopColor!=='rgb(203, 217, 233)')fail('layout preview border did not use shared palette');
+    root.dataset.suiteScreen='pdf-edit';
+    min('.advanced-app .tool-btn','minHeight',38);
+    min('.advanced-app .number-grid input','minHeight',36);
+    root.dataset.suiteScreen='ai-cover';
+    const details=document.getElementById('aiTestDetails');
+    const summary=details.querySelector('summary');
+    min('.maker-shell .control-section>summary','minHeight',66);
+    if(!getComputedStyle(summary,'::after').content.includes('펼치기'))fail('cover disclosure does not visibly say 펼치기');
+    summary.click();
+    if(!details.open||!getComputedStyle(summary,'::after').content.includes('접기'))fail('cover disclosure does not visibly say 접기 after click');
+    root.dataset.suiteScreen='pdf-tools';
+    min('.suite-back','width',44);
+    root.dataset.suiteScreen='preflight';
+    min('.tool-modal-close','width',44);
+    if(getComputedStyle(document.querySelector('.action-btn')).borderTopStyle!=='solid')fail('preflight action border is not visible');
+    const narrow=matchMedia('(max-width:400px)').matches;
+    if(narrow&&getComputedStyle(document.querySelector('.workspace')).gridTemplateColumns.split(' ').length>1)fail('preflight mobile layout is not single column');
+    document.body.dataset.phase6Smoke='pass';
+    document.body.dataset.programSuiteUxSmoke='pass';
+    result.textContent='PASS: 8 programs share readable controls, accessible native disclosure and compact screen layouts';
+  }catch(error){
+    document.body.dataset.phase6Smoke='fail';
+    document.body.dataset.programSuiteUxSmoke='fail';
+    result.textContent='FAIL: '+String(error?.stack||error);
+  }
+})();
+</script>
+</body></html>
