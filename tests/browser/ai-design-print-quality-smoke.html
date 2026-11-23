@@ -38,6 +38,14 @@
   modes.find(button=>button.dataset.previewMode==='compare').click();
   assert($('previewGrid').dataset.previewMode==='compare','comparison preview did not restore');
   assert($('processBtn').disabled,'processing incorrectly enabled before file upload');
+  assert($('edgeJumpBtn').disabled,'edge inspector should be disabled without results');
+  assert($('previewZoom')?.value==='1','preview should start fitted to pane');
+  assert($('guideToggle').checked,'guides should be initially visible');
+  $('expandPreviewBtn').click();
+  assert($('studio').classList.contains('preview-expanded'),'wide preview did not hide sidebar');
+  assert($('expandPreviewBtn').getAttribute('aria-pressed')==='true','wide preview button state missing');
+  $('expandPreviewBtn').click();
+  assert(!$('studio').classList.contains('preview-expanded'),'side panel could not be restored');
   const canvas=w.document.createElement('canvas');canvas.width=600;canvas.height=900;
   const ctx=canvas.getContext('2d');ctx.fillStyle='#268079';ctx.fillRect(0,0,600,900);
   const blob=await new Promise(resolve=>canvas.toBlob(resolve,'image/png'));
@@ -51,6 +59,19 @@
   assert($('beforeCanvas').width>1,'original image preview not drawn');
   for(let i=0;i<80&&$('processBtn').disabled;i++)await new Promise(r=>setTimeout(r,50));
   assert(!$('processBtn').disabled,'valid file and trim should enable correction');
+  const beforeFitWidth=$('beforeCanvas').width;
+  $('previewZoom').value='2';
+  $('previewZoom').dispatchEvent(new w.Event('change'));
+  await w.DesignBleedEnhancer.state.renderQueue;
+  assert($('beforeCanvas').width>beforeFitWidth*1.35,'200% zoom did not render a larger canvas');
+  $('previewZoom').value='1';
+  $('previewZoom').dispatchEvent(new w.Event('change'));
+  await w.DesignBleedEnhancer.state.renderQueue;
+  $('guideToggle').checked=false;
+  $('guideToggle').dispatchEvent(new w.Event('change'));
+  assert(!$('guideToggle').checked,'guides could not be hidden to reveal actual fill');
+  $('guideToggle').checked=true;
+  $('guideToggle').dispatchEvent(new w.Event('change'));
   $('sizePreset').value='a4';$('sizePreset').dispatchEvent(new w.Event('change'));
   assert(Number($('trimWidth').value)===210&&Number($('trimHeight').value)===297,'paper preset failed');
   assert($('outputSize').textContent.includes('216.0×303.0mm'),'3mm bleed size math failed');
@@ -59,6 +80,39 @@
   $('trimWidth').value='210';$('trimWidth').dispatchEvent(new w.Event('input'));
   assert(!$('processBtn').disabled,'restored trim dimension did not enable processing');
   assert($('saveBtn').disabled,'download enabled without proof and correction');
+  // Exercise the separate 4x render from the completed PDF. A controlled PDF
+  // page mock fills pixels with color so this proves the inspector displays
+  // source content rather than a decorative/blank preview.
+  const realPageColor=[232,115,72];
+  const fakeResult={
+    getPage:async()=>({
+      getViewport:({scale})=>({width:216*72/25.4*scale,height:303*72/25.4*scale}),
+      render:({canvasContext})=>{
+        canvasContext.fillStyle='rgb('+realPageColor.join(',')+')';
+        canvasContext.fillRect(0,0,canvasContext.canvas.width,canvasContext.canvas.height);
+        return {promise:Promise.resolve()};
+      }
+    }),
+    destroy:async()=>{}
+  };
+  const enhancer=w.DesignBleedEnhancer;
+  enhancer.state.resultPdf=fakeResult;
+  enhancer.state.resultSettings={trim_width_mm:210,trim_height_mm:297,bleed_mm:3};
+  enhancer.setEdgeSide('top');
+  await enhancer.state.renderQueue;
+  assert($('edgeInspectEmpty').hidden,'edge inspector still shows empty placeholder');
+  assert($('edgeInspectCanvas').width>100,'rendered top edge is too small');
+  const topCtx=$('edgeInspectCanvas').getContext('2d');
+  const px=topCtx.getImageData(3,3,1,1).data;
+  assert(px[0]===232&&px[1]===115&&px[2]===72,'edge inspector does not render actual PDF pixels');
+  $('edgePosition').value='100';
+  $('edgePosition').dispatchEvent(new w.Event('change'));
+  await enhancer.state.renderQueue;
+  assert($('edgeInspectStatus').textContent.includes('끝 부분'),'edge inspector end-position selection failed');
+  enhancer.setEdgeSide('left');
+  await enhancer.state.renderQueue;
+  assert($('edgeInspectStatus').textContent.includes('90°'),'side-edge rotation inspection missing');
+  assert($('edgeInspectCanvas').width>$('edgeInspectCanvas').height,'side edge should be displayed horizontally');
   $('resetBtn').click();
   assert($('processBtn').disabled,'reset retained invalid active file');
   assert($('fileInfo').hidden,'reset should clear file');

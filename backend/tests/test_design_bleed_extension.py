@@ -55,6 +55,25 @@ def test_a4_trim_remains_vector_and_bleed_is_outside_trim():
         out.close()
 
 
+def test_all_four_bleed_sides_are_filled_with_source_background():
+    # A colored full-bleed source must produce colored outer pixels, not
+    # white canvas at the positions where a real guillotine may cut.
+    result = extend_print_bleed(make_pdf(), filename="customer.pdf", bleed_mm=3)
+    doc = fitz.open(stream=result.pdf, filetype="pdf")
+    try:
+        pix = doc[0].get_pixmap(matrix=fitz.Matrix(1, 1), colorspace=fitz.csRGB, alpha=False)
+        bpx = int(round(1.5 * PT_PER_MM))
+        mid_x, mid_y = pix.width // 2, pix.height // 2
+        for x, y in ((mid_x, bpx), (mid_x, pix.height - bpx - 1),
+                     (bpx, mid_y), (pix.width - bpx - 1, mid_y)):
+            red, green, blue = pix.pixel(x, y)[:3]
+            assert blue > 155 and green > 75 and red < 120, (
+                "Bleed has unfilled or unexpected background", (x, y), (red, green, blue)
+            )
+    finally:
+        doc.close()
+
+
 def test_multipage_pdf_each_page_is_extended_independently():
     source = make_pdf(((210, 297), (148, 210)))
     result = extend_print_bleed(source, filename="leaflet.pdf", bleed_mm=2, edge_mode="edge")

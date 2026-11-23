@@ -9,7 +9,7 @@
   <title>인쇄 디자인 보완 · Program Studio</title>
   <link rel="icon" href="/favicon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css">
-  <link rel="stylesheet" href="/css/design-bleed-enhancer.css?v=20261123-2">
+  <link rel="stylesheet" href="/css/design-bleed-enhancer.css?v=20261123-3">
   <link rel="stylesheet" href="/css/program-suite-ux-20261116.css?v=20261116-1">
 </head>
 <body>
@@ -120,6 +120,16 @@
           <label class="page-field" for="pageSelect"><span>페이지</span>
             <select id="pageSelect" disabled><option value="1">1</option></select>
           </label>
+          <button type="button" class="expand-preview-btn" id="expandPreviewBtn" aria-pressed="false" title="왼쪽 설정 패널을 숨겨 미리보기를 넓게 표시">미리보기 넓게</button>
+          <button type="button" class="expand-preview-btn edge-jump-btn" id="edgeJumpBtn" disabled title="실제 PDF 도련 채움 확대 검사로 이동">도련 확대 검사</button>
+          <label class="page-field zoom-field" for="previewZoom"><span>확대</span>
+            <select id="previewZoom" aria-label="미리보기 확대 비율">
+              <option value="1">화면 맞춤</option>
+              <option value="1.5">150%</option>
+              <option value="2">200%</option>
+              <option value="3">300%</option>
+            </select>
+          </label>
           <div class="view-switch" role="group" aria-label="비교 표시 방식">
             <button type="button" class="view-btn active" data-preview-mode="compare" aria-pressed="true">나란히</button>
             <button type="button" class="view-btn" data-preview-mode="original" aria-pressed="false">원본</button>
@@ -132,11 +142,44 @@
           <strong>인쇄물 비교 화면</strong>
           <span>파란선: 재단 위치 · 초록 점선: 안전여백</span>
         </div>
-<div class="legend"><span><i class="legend-bleed"></i>도련 외곽</span><span><i class="legend-trim"></i>재단선</span><span><i class="legend-safe"></i>안전여백</span></div>
+<div class="legend">
+          <span><i class="legend-bleed"></i>도련 외곽</span><span><i class="legend-trim"></i>재단선</span><span><i class="legend-safe"></i>안전여백</span>
+          <label class="guide-visibility" for="guideToggle"><input type="checkbox" id="guideToggle" checked> 안내선 표시</label>
+        </div>
           <div class="preview-grid" id="previewGrid" data-preview-mode="compare">
             <div class="preview-card"><h3>원본 디자인</h3><div class="canvas-frame"><canvas id="beforeCanvas" role="img" aria-label="업로드 원본 파일 미리보기"></canvas><p class="canvas-empty" id="beforeEmpty">원본 파일을 올려주세요.</p></div><small>원본은 수정하거나 덮어쓰지 않습니다.</small></div>
             <div class="preview-card"><h3>도련 보완 결과</h3><div class="canvas-frame"><canvas id="afterCanvas" role="img" aria-label="도련이 추가된 결과 미리보기"></canvas><p class="canvas-empty" id="afterEmpty">도련을 생성하면 여기서 비교할 수 있습니다.</p></div><small>안내선은 미리보기 전용이며 PDF에는 인쇄되지 않습니다.</small></div>
           </div>
+      </section>
+      <section class="bleed-inspector" id="bleedInspector" aria-label="실제 도련 배경 확대 검사">
+        <div class="inspector-head">
+          <div>
+            <span class="workspace-kicker">ACTUAL PDF EDGE INSPECTION</span>
+            <h2>도련 채움 확대 확인</h2>
+            <p>결과 PDF의 실제 픽셀을 확대해 재단선 밖 배경이 이어졌는지 검사합니다.</p>
+          </div>
+          <label class="edge-position-field" for="edgePosition"><span>가장자리 확인 위치</span>
+            <select id="edgePosition"><option value="0">시작 부분</option><option value="25">25%</option><option value="50" selected>가운데</option><option value="75">75%</option><option value="100">끝 부분</option></select>
+          </label>
+          <div class="inspector-edge-tabs" role="group" aria-label="확대할 도련 위치">
+            <button type="button" class="edge-btn active" data-edge="top" aria-pressed="true">상단</button>
+            <button type="button" class="edge-btn" data-edge="bottom" aria-pressed="false">하단</button>
+            <button type="button" class="edge-btn" data-edge="left" aria-pressed="false">왼쪽</button>
+            <button type="button" class="edge-btn" data-edge="right" aria-pressed="false">오른쪽</button>
+          </div>
+        </div>
+        <div class="inspector-stage">
+          <div class="edge-preview-frame">
+            <canvas id="edgeInspectCanvas" role="img" aria-label="PDF에서 확대한 실제 도련과 재단 경계"></canvas>
+            <p id="edgeInspectEmpty" class="edge-empty">도련을 생성하면 상·하·좌·우 가장자리를 확대해 확인할 수 있습니다.</p>
+          </div>
+          <div class="inspector-explanation">
+            <div class="inspection-key"><span class="key-color bleed-key"></span><strong>추가된 도련</strong><span id="edgeBleedSize">사방 3mm</span></div>
+            <div class="inspection-key"><span class="key-color trim-key"></span><strong>얇은 재단 경계선</strong><span>선 안쪽은 원본 디자인</span></div>
+            <p id="edgeInspectStatus" role="status" aria-live="polite">결과 PDF가 준비되면 확대 검사를 표시합니다.</p>
+            <p class="inspection-warning">이 화면은 도련을 임의로 칠한 예시가 아니라 <strong>완성 PDF를 직접 렌더링</strong>한 모습입니다. 흰색이 보인다면 원본 배경이 흰색이거나 도련이 흰색으로 확장되었을 수 있습니다.</p>
+          </div>
+        </div>
       </section>
       <div class="workspace-bottom">
         <section class="export-panel" aria-label="인쇄용 PDF 다운로드">
@@ -165,6 +208,6 @@
   <script defer src="https://www.gstatic.com/firebasejs/9.23.0/firebase-storage-compat.js"></script>
   <script defer src="/js/firebase-config.js"></script>
   <script defer src="https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js"></script>
-  <script defer src="/js/design-bleed-enhancer.js?v=20261123-2"></script>
+  <script defer src="/js/design-bleed-enhancer.js?v=20261123-3"></script>
 </body>
 </html>
