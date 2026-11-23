@@ -31,10 +31,14 @@
     };
   }
 
+  function trimRequired() {
+    return Boolean($('autoFitTrim')?.checked || $('cropMarks')?.checked);
+  }
+
   function validateTrimConfig({ showStatus = false, focus = false } = {}) {
     const trim = trimConfig();
-    if (trim.valid) return trim;
-    const message = '재단크기는 필수입력입니다. 재단 가로와 세로를 2~2,000mm 범위로 입력해 주세요.';
+    if (trim.valid || !trimRequired()) return trim;
+    const message = '완성 크기 자동 맞춤 또는 재단표시를 사용하려면 재단 가로·세로를 2~2,000mm로 입력해 주세요.';
     if (showStatus) setStatus(message, 'error');
     if (focus) {
       const target = !(Number($('trimGuideWidth')?.value) >= 2) ? $('trimGuideWidth') : $('trimGuideHeight');
@@ -200,14 +204,39 @@
     const layout = window.SmartPrintLayout;
     if (!button || !layout) return;
     const hasItems = Boolean(layout.state?.items?.length);
-    const trimValid = trimConfig().valid;
-    if (hasItems && !trimValid) {
-      if (!button.disabled) button.disabled = true;
-      return;
-    }
-    if (recalculate && hasItems && trimValid && !layout.state?.busy) {
+    const needsTrim = trimRequired();
+    const validTrim = trimConfig().valid;
+    const pendingSizes = Boolean(window.SmartPrintLayoutEnhancements?.hasPendingSizes?.());
+    if (recalculate && hasItems && (!needsTrim || validTrim) && !layout.state?.busy) {
       layout.recalculate?.();
     }
+    const disabled = !hasItems || !layout.state?.plan || Boolean(layout.state?.busy)
+      || (needsTrim && !validTrim) || pendingSizes;
+    if (button.disabled !== disabled) button.disabled = disabled;
+
+    const readiness = $('downloadReadiness');
+    if (!readiness) return;
+    const reason = !hasItems ? ''
+      : needsTrim && !validTrim ? 'STEP 3의 재단 가로·세로를 모두 입력하면 PDF 저장 버튼이 활성화됩니다.'
+      : !layout.state?.plan ? '현재 크기와 출력 용지에 배치할 수 없습니다. 위 오류 안내와 용지·여백 설정을 확인해 주세요.'
+      : pendingSizes ? '이미지 크기 변경을 PDF에 적용하는 중입니다.'
+      : layout.state.busy ? '파일을 처리하는 중입니다.'
+      : '';
+    readiness.textContent = reason;
+    readiness.hidden = !reason;
+  }
+
+  function syncTrimRequiredUi() {
+    const required = trimRequired();
+    for (const [id, label] of [['trimGuideWidth', '재단 가로 mm'], ['trimGuideHeight', '재단 세로 mm']]) {
+      const input = $(id);
+      if (!input) continue;
+      input.required = required;
+      input.setAttribute('aria-required', String(required));
+      const heading = input.closest('label')?.querySelector('span');
+      if (heading) heading.textContent = label + (required ? ' · 필수' : ' · 선택');
+    }
+    refreshDownloadState();
   }
 
   function bindRequiredTrim() {
@@ -218,22 +247,18 @@
       enabled.setAttribute('aria-hidden', 'true');
     }
     ['trimGuideWidth', 'trimGuideHeight'].forEach(id => {
-      const input = $(id);
-      if (!input) return;
-      input.required = true;
-      input.setAttribute('aria-required', 'true');
-      input.addEventListener('input', () => {
+      $(id)?.addEventListener('input', () => {
         scheduleNumberingOverlay();
-        refreshDownloadState({ recalculate: trimConfig().valid });
+        refreshDownloadState({ recalculate: true });
       });
-      input.addEventListener('change', () => {
+      $(id)?.addEventListener('change', () => {
         scheduleNumberingOverlay();
-        refreshDownloadState({ recalculate: trimConfig().valid });
+        refreshDownloadState({ recalculate: true });
       });
     });
+    ['autoFitTrim', 'cropMarks'].forEach(id => $(id)?.addEventListener('change', syncTrimRequiredUi));
 
-    const button = $('downloadBtn');
-    button?.addEventListener('click', event => {
+    $('downloadBtn')?.addEventListener('click', event => {
       try {
         validateTrimConfig({ showStatus: true, focus: true });
         validateNumberingConfig();
@@ -243,20 +268,27 @@
       }
     }, true);
 
+    const button = $('downloadBtn');
     if (button && !downloadObserver) {
       downloadObserver = new MutationObserver(() => refreshDownloadState());
       downloadObserver.observe(button, { attributes: true, attributeFilter: ['disabled'] });
     }
     const list = $('fileList');
     if (list) new MutationObserver(() => requestAnimationFrame(() => refreshDownloadState())).observe(list, { childList: true });
-    refreshDownloadState();
+    syncTrimRequiredUi();
   }
 
   function finalizedSettings(raw) {
     const settings = raw && typeof raw === 'object' ? raw : {};
     const trim = validateTrimConfig({ showStatus: true });
-    settings.trim_width_mm = trim.widthMm;
-    settings.trim_height_mm = trim.heightMm;
+    if (trim.valid) {
+      settings.trim_width_mm = trim.widthMm;
+      settings.trim_height_mm = trim.heightMm;
+    } else {
+      // Optional, incomplete measurements must not be sent as 0mm to the API.
+      delete settings.trim_width_mm;
+      delete settings.trim_height_mm;
+    }
     settings.auto_fit_trim = Boolean($('autoFitTrim')?.checked);
     settings.fit_mode = $('fitMode')?.value || 'contain';
     settings.numbering = validateNumberingConfig(numberingConfig());
@@ -340,6 +372,8 @@
       if ($('trimGuideHeight')) $('trimGuideHeight').value = '';
       const enabled = $('trimGuideEnabled');
       if (enabled) enabled.checked = true;
+      window.SmartPrintLayoutEnhancements?.updateTrimControls?.();
+      syncTrimRequiredUi();
       updateNumberingControls();
       refreshDownloadState();
       scheduleNumberingOverlay();

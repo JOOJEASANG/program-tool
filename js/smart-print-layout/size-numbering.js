@@ -725,7 +725,7 @@
     if ($('numberingFont')) $('numberingFont').value = 'helvetica-bold';
     if ($('numberingFontSize')) $('numberingFontSize').value = '9';
     if ($('numberingTransparent')) $('numberingTransparent').checked = false;
-    if ($('trimGuideEnabled')) $('trimGuideEnabled').checked = false;
+    if ($('trimGuideEnabled')) $('trimGuideEnabled').checked = true;
     if ($('trimGuideWidth')) $('trimGuideWidth').value = '';
     if ($('trimGuideHeight')) $('trimGuideHeight').value = '';
     if ($('autoFitTrim')) $('autoFitTrim').checked = true;
@@ -776,7 +776,10 @@
     updateTrimControls();
     syncEditors();
     scheduleOverlay();
-    window.SmartPrintLayoutEnhancements = { numberingConfig, trimGuideConfig, scheduleOverlay };
+    window.SmartPrintLayoutEnhancements = {
+      numberingConfig, trimGuideConfig, scheduleOverlay, updateTrimControls,
+      hasPendingSizes: () => Boolean(dirtyItems.size || pendingRebuilds.size || rebuildTimers.size),
+    };
     document.documentElement.dataset.smartLayoutSizeNumbering = 'v2-number-range-trim';
   }
 

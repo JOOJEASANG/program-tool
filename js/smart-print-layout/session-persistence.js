@@ -382,6 +382,9 @@
       }
 
       $('resetBtn')?.click();
+      // The editor reset hooks finish on animation frames; restore saved sizes
+      // only AFTER those hooks, otherwise they clear the restored trim fields.
+      await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
       applySavedSettings(saved.settings);
 
       const transfer = new DataTransfer();
