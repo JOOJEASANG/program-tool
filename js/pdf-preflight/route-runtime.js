@@ -26,7 +26,7 @@
     {id:'pdfUtilityFinalizeScriptV1',src:'/js/pdf-utility-finalize.js?v=20260831-2'},
     {id:'pdfAllInOneStage1ScriptV1',src:'/js/pdf-all-in-one-stage1.js?v=20260831-2'},
     {id:'pdfPrintReadinessScriptV1',src:'/js/pdf-print-readiness.js?v=20260831-1'},
-    {id:'pdfPrintAutoFixScriptV1',src:'/js/pdf-print-auto-fix.js?v=20260831-1'},
+    {id:'pdfPrintAutoFixScriptV1',src:'/js/pdf-print-auto-fix.js?v=20261123-4'},
     {id:'pdfLargeOutputTilingScriptV1',src:'/js/pdf-large-output-tiling.js?v=20261029-1'},
     {id:'pdfPreflightWorkflowV2Script',src:'/js/pdf-preflight/workflow-v2.js?v=20260831-1'},
     {id:'pdfPreflightOutputToolDockScriptV1',src:'/js/pdf-preflight/output-panel-tool-dock.js?v=20260903-3'},

@@ -63,8 +63,6 @@
   async function readBlob(resp){const type=resp.headers.get('content-type')||'';if(!type.includes('application/json'))return resp.blob();const data=await resp.json();if(data?.delivery==='storage'&&data.download_url){const out=await fetch(data.download_url,{cache:'no-store'});if(!out.ok)throw new Error('완성 파일을 내려받지 못했습니다.');return out.blob();}throw new Error('완성 PDF 정보가 올바르지 않습니다.');}
   async function pdfTool(op,file,params={}){fileValid(file);const form=new FormData();form.append('file',file);form.append('params',JSON.stringify(params));if(params.quality)form.append('quality',params.quality);if(params.password!==undefined)form.append('password',params.password);const resp=await fetch(`/api/pdf-tools/${op}`,{method:'POST',headers:{Authorization:`Bearer ${await token()}`},body:form});if(!resp.ok)throw new Error(await readError(resp));return {blob:await readBlob(resp),headers:resp.headers};}
   async function preflight(file){fileValid(file);if(file.size>20*1024*1024)throw new Error('문서 진단의 직접 업로드는 20MB 이하를 지원합니다.');const form=new FormData();form.append('file',file);const resp=await fetch('/api/preflight/check',{method:'POST',headers:{Authorization:`Bearer ${await token()}`},body:form});if(!resp.ok)throw new Error(await readError(resp));return resp.json();}
-  async function autoFix(file,params){fileValid(file);if(file.size>20*1024*1024)throw new Error('안전 자동 수정의 직접 업로드는 20MB 이하를 지원합니다.');const form=new FormData();form.append('file',file);form.append('params',JSON.stringify(params));const resp=await fetch('/api/preflight/auto-fix',{method:'POST',headers:{Authorization:`Bearer ${await token()}`},body:form});if(!resp.ok)throw new Error(await readError(resp));return readBlob(resp);}
-
   function basePanel(tool,extra='',accept='.pdf,application/pdf',multiple=false){
     const root=document.createElement('section');root.className='pdfud-card';root.dataset.pdfudTool=tool.name;
     root.innerHTML=`<div class="pdfud-grid"><div class="pdfud-panel"><h3>${esc(tool.name)}</h3><div class="pdfud-copy">${esc(tool.desc||'파일을 선택하면 이 화면에서 바로 작업합니다.')}</div><label class="pdfud-file">📂 ${multiple?'파일 선택':'PDF 파일 선택'}<input class="pdfud-file-input" type="file" accept="${esc(accept)}" ${multiple?'multiple':''}></label><div class="pdfud-selected" role="status" aria-live="polite"></div>${extra}<button type="button" class="pdfud-run" disabled>실행</button><div class="pdfud-status"></div></div><div class="pdfud-panel pdfud-result"><div class="pdfud-empty">처리 결과와 미리보기가 이곳에 표시됩니다.</div></div></div>`;
@@ -88,7 +86,25 @@
 
   function mountPreflight(tool){const root=basePanel(tool);stage().appendChild(root);let file=null;const input=root.querySelector('.pdfud-file-input');input.addEventListener('change',()=>{file=input.files?.[0]||null;selected(root,file);});root.querySelector('.pdfud-run').textContent='진단 시작';root.querySelector('.pdfud-run').addEventListener('click',async()=>{const btn=root.querySelector('.pdfud-run');try{fileValid(file);btn.disabled=true;setStatus(root,'문서를 진단하는 중...');const report=await preflight(file);const checks=Array.isArray(report.checks)?report.checks:[];root.querySelector('.pdfud-result').innerHTML=`<div class="pdfud-result-head"><div class="pdfud-score">${Number(report.score||0)}</div><div><strong>${esc(report.filename||file.name)}</strong><div class="pdfud-copy" style="margin:3px 0 0">${Number(report.page_count||0)}페이지 · 항목 ${checks.length}개</div></div></div><div class="pdfud-checks">${checks.map(c=>`<div class="pdfud-check ${esc(c.severity||'')}"><strong>${c.severity==='fail'?'❌':c.severity==='warning'?'⚠️':'✅'} ${esc(c.label||'검사 항목')}</strong><p>${esc(c.detail||'')}</p></div>`).join('')}</div>`;setStatus(root,'진단이 완료되었습니다.');}catch(error){setStatus(root,error.message||'진단 중 오류가 발생했습니다.',true);}finally{btn.disabled=false;}});}
 
-  function mountFix(tool){const extra='<div class="pdfud-field"><label><input data-opt="normalize" type="checkbox" checked> 페이지 크기 표준화</label></div><div class="pdfud-field"><label>빈 페이지 보정</label><select data-opt="pad"><option value="none" selected>추가 안 함</option><option value="even">짝수 페이지 맞춤</option><option value="multiple_of_4">4의 배수 맞춤</option></select></div>';const root=basePanel(tool,extra);stage().appendChild(root);let file=null;const input=root.querySelector('.pdfud-file-input');input.addEventListener('change',()=>{file=input.files?.[0]||null;selected(root,file);});root.querySelector('.pdfud-run').textContent='안전 수정 실행';root.querySelector('.pdfud-run').addEventListener('click',async()=>{const btn=root.querySelector('.pdfud-run');try{fileValid(file);btn.disabled=true;setStatus(root,'안전 수정 중...');const blob=await autoFix(file,{normalize_page_size:root.querySelector('[data-opt="normalize"]').checked,pad_mode:root.querySelector('[data-opt="pad"]').value});const name=`${filenameBase(file)}_인쇄안전수정.pdf`;download(blob,name);root.querySelector('.pdfud-result').innerHTML='<div class="pdfud-empty"><div><strong style="display:block;color:#166534;font-size:15px">안전 수정 완료</strong><p>수정된 PDF 다운로드가 시작되었습니다.</p></div></div>';setStatus(root,'완료되었습니다.');}catch(error){setStatus(root,error.message||'수정 중 오류가 발생했습니다.',true);}finally{btn.disabled=false;}});}
+  function mountFix(tool){
+    const root=basePanel(tool);
+    stage().appendChild(root);
+    const input=root.querySelector('.pdfud-file-input');
+    const legacyRun=root.querySelector('.pdfud-run');
+    // Print corrections have their own mandatory preview/confirmation buttons.
+    if(legacyRun)legacyRun.hidden=true;
+    let file=null;
+    const widget=window.PdfPrintAutoFix?.mountStandalone(root,()=>file);
+    if(!widget){
+      setStatus(root,'인쇄 보정 화면을 준비하지 못했습니다. 새로고침 후 다시 시도해 주세요.',true);
+      return;
+    }
+    input.addEventListener('change',()=>{
+      file=input.files?.[0]||null;
+      selected(root,file);
+      widget.sync();
+    });
+  }
 
   function loadScript(id,src,ready){return new Promise((resolve,reject)=>{if(ready?.())return resolve();let el=$(id);if(el){el.addEventListener('load',()=>resolve(),{once:true});el.addEventListener('error',()=>reject(new Error('필요한 라이브러리를 불러오지 못했습니다.')),{once:true});return;}el=document.createElement('script');el.id=id;el.src=src;el.onload=()=>resolve();el.onerror=()=>reject(new Error('필요한 라이브러리를 불러오지 못했습니다.'));document.head.appendChild(el);});}
   async function ensurePdfLib(){await loadScript('pdfudPdfLib',LIBS.pdfLib,()=>Boolean(window.PDFLib));return window.PDFLib;}
