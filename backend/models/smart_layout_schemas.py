@@ -22,6 +22,7 @@ class SmartLayoutRequest(BaseModel):
     gap_mm: float = Field(default=3.0, ge=0.0, le=50.0)
     allow_rotate: bool = False
     auto_fill: bool = False
+    auto_fit_trim: bool = False
     side_mode: Literal['auto', 'single', 'duplex'] = 'auto'
     flip_edge: Literal['long', 'short'] = 'long'
     crop_marks: bool = False

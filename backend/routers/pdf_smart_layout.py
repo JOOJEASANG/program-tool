@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import logging
+from dataclasses import replace
 import re
 from firebase_admin import firestore as fa_firestore
 
@@ -112,7 +113,7 @@ def smart_layout(uid: str):
         return _error('스마트 배치 설정이 올바르지 않습니다.', 422, 'SMART_LAYOUT_INVALID_SETTINGS')
 
     try:
-        trim_width_mm, trim_height_mm = parse_trim_size(raw_settings, required=settings.crop_marks)
+        trim_width_mm, trim_height_mm = parse_trim_size(raw_settings, required=settings.crop_marks or settings.auto_fit_trim)
     except ValueError as exc:
         return _error(str(exc), 422, 'SMART_LAYOUT_INVALID_TRIM')
 
@@ -154,6 +155,10 @@ def _render_smart_result(uid, raw_settings, settings, trim_width_mm, trim_height
 
         render_docs, combined_docs = _prepare_separate_back_files(docs, settings.jobs, filenames)
         source_items, duplex = inspect_sources(render_docs, settings.jobs, filenames, settings.side_mode)
+        if settings.auto_fit_trim:
+            if trim_width_mm is None or trim_height_mm is None:
+                raise ValueError('자동 맞춤을 사용하려면 완성 가로·세로를 입력해 주세요.')
+            source_items = [replace(item, width_mm=trim_width_mm, height_mm=trim_height_mm) for item in source_items]
         if settings.auto_fill:
             plan = build_auto_fill_layout_plan(
                 source_items,
@@ -182,7 +187,7 @@ def _render_smart_result(uid, raw_settings, settings, trim_width_mm, trim_height
         # The legacy renderer draws marks on the uploaded page edge. Render the
         # layout without those marks, then draw them at the required finished
         # trim size entered in STEP 3.
-        output = render_layout_pdf(render_docs, plan, gap_mm=settings.gap_mm, crop_marks=False)
+        output = render_layout_pdf(render_docs, plan, gap_mm=settings.gap_mm, crop_marks=False, keep_proportion=settings.auto_fit_trim)
         output = apply_trim_crop_marks(
             output,
             plan,
@@ -242,7 +247,7 @@ def smart_layout_storage(uid: str):
         body = request.get_json(force=True) or {}
         raw_settings = body.get('settings') or {}
         settings = SmartLayoutRequest.model_validate(raw_settings)
-        trim_width_mm, trim_height_mm = parse_trim_size(raw_settings, required=settings.crop_marks)
+        trim_width_mm, trim_height_mm = parse_trim_size(raw_settings, required=settings.crop_marks or settings.auto_fit_trim)
         paths = body.get('storage_paths')
         source_session_doc = body.get('source_session_doc')
         retain_temp_sources = body.get('retain_temp_sources') is True

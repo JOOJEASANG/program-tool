@@ -140,3 +140,33 @@ def test_auto_fill_uses_one_maximized_sheet_per_uploaded_pdf():
     assert {p.file_index for p in plan.sheets[1]} == {1}
     assert len(plan.sheets[0]) > 1
     assert len(plan.sheets[1]) > 1
+
+
+def test_oversized_pdf_fits_target_size_without_distorting_content():
+    """Layout uses finished size; content remains proportionate with white bars."""
+    source = fitz.open()
+    try:
+        page = source.new_page(width=300 * MM_TO_PT, height=150 * MM_TO_PT)
+        page.draw_rect(page.rect, color=(0, 0, 0), fill=(0, 0, 0), overlay=True)
+        fitted_item = SourceItem(0, "oversized.pdf", 90.0, 90.0, 1, 1)
+        plan = build_auto_fill_layout_plan(
+            [fitted_item], 210.0, 297.0, 5.0, 3.0, False, False, "long"
+        )
+        assert len(plan.sheets[0]) > 1
+        assert all(p.width_mm == 90 and p.height_mm == 90 for p in plan.sheets[0])
+        output_bytes = render_layout_pdf(
+            [source], plan, gap_mm=3.0, crop_marks=False, keep_proportion=True
+        )
+        output = fitz.open(stream=output_bytes, filetype="pdf")
+        try:
+            placement = plan.sheets[0][0]
+            pix = output[0].get_pixmap(alpha=False)
+            def rgb_at(x_mm, y_mm):
+                return pix.pixel(round(x_mm * MM_TO_PT), round(y_mm * MM_TO_PT))[:3]
+            cx = placement.x_mm + 45
+            assert min(rgb_at(cx, placement.y_mm + 5)) > 240
+            assert max(rgb_at(cx, placement.y_mm + 45)) < 40
+        finally:
+            output.close()
+    finally:
+        source.close()

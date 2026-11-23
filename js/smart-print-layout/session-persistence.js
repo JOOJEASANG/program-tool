@@ -87,6 +87,9 @@
       sideMode: $('sideMode')?.value || 'auto',
       flipEdge: $('flipEdge')?.value || 'long',
       cropMarks: Boolean($('cropMarks')?.checked),
+      autoFitTrim: Boolean($('autoFitTrim')?.checked),
+      trimWidthMm: Number($('trimGuideWidth')?.value || 0),
+      trimHeightMm: Number($('trimGuideHeight')?.value || 0),
     };
   }
 
@@ -326,6 +329,10 @@
     if ($('sideMode') && ['auto', 'single', 'duplex'].includes(saved.sideMode)) $('sideMode').value = saved.sideMode;
     if ($('flipEdge') && ['long', 'short'].includes(saved.flipEdge)) $('flipEdge').value = saved.flipEdge;
     if ($('cropMarks')) $('cropMarks').checked = Boolean(saved.cropMarks);
+    // Legacy saved sessions did not automatically resize originals.
+    if ($('autoFitTrim')) $('autoFitTrim').checked = saved.autoFitTrim === undefined ? false : Boolean(saved.autoFitTrim);
+    if ($('trimGuideWidth')) $('trimGuideWidth').value = Number(saved.trimWidthMm) >= 2 ? saved.trimWidthMm : '';
+    if ($('trimGuideHeight')) $('trimGuideHeight').value = Number(saved.trimHeightMm) >= 2 ? saved.trimHeightMm : '';
     layoutApi()?.recalculate?.();
   }
 

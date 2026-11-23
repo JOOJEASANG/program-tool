@@ -509,8 +509,9 @@
     const sourceDisplayHeight = placement.rotated ? sourceWidth : sourceHeight;
     const trimDisplayWidth = placement.rotated ? trimHeightSource : trimWidthSource;
     const trimDisplayHeight = placement.rotated ? trimWidthSource : trimHeightSource;
-    const guideWidthMm = trimDisplayWidth * placement.width / Math.max(.001, sourceDisplayWidth);
-    const guideHeightMm = trimDisplayHeight * placement.height / Math.max(.001, sourceDisplayHeight);
+    const fitted = Boolean($('autoFitTrim')?.checked);
+    const guideWidthMm = fitted ? placement.width : trimDisplayWidth * placement.width / Math.max(.001, sourceDisplayWidth);
+    const guideHeightMm = fitted ? placement.height : trimDisplayHeight * placement.height / Math.max(.001, sourceDisplayHeight);
     const left = (placement.x + (placement.width - guideWidthMm) / 2) * scale;
     const top = (placement.y + (placement.height - guideHeightMm) / 2) * scale;
     const width = guideWidthMm * scale;
@@ -529,7 +530,7 @@
 
     const guide = document.createElement('span');
     guide.className = 'trim-guide-preview';
-    if (trimDisplayWidth > sourceDisplayWidth + .2 || trimDisplayHeight > sourceDisplayHeight + .2) guide.classList.add('is-over');
+    if (!fitted && (trimDisplayWidth > sourceDisplayWidth + .2 || trimDisplayHeight > sourceDisplayHeight + .2)) guide.classList.add('is-over');
     guide.style.left = `${left}px`;
     guide.style.top = `${top}px`;
     guide.style.width = `${width}px`;
@@ -725,6 +726,7 @@
     if ($('trimGuideEnabled')) $('trimGuideEnabled').checked = false;
     if ($('trimGuideWidth')) $('trimGuideWidth').value = '';
     if ($('trimGuideHeight')) $('trimGuideHeight').value = '';
+    if ($('autoFitTrim')) $('autoFitTrim').checked = true;
     dirtyItems.clear();
     rebuildTimers.forEach(clearTimeout);
     rebuildTimers.clear();
