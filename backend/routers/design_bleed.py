@@ -115,7 +115,8 @@ def extend_storage(uid):
     if safe_filename is None:
         return _error("지원하지 않는 원본 파일입니다.", 400, "DESIGN_BLEED_STORAGE_NAME")
     with tempfile.TemporaryDirectory(prefix="design-bleed-") as root:
-        source = Path(root) / safe_filename
+        # Use a fixed server-side path; the uploaded name is never a filesystem path.
+        source = Path(root) / "source.bin"
         try:
             blob = get_bucket().blob(storage_path)
             blob.reload()
