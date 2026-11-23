@@ -97,7 +97,7 @@ def extend_direct(uid):
 def extend_storage(uid):
     data = request.get_json(silent=True) or {}
     storage_path = str(data.get("storage_path") or "")
-    prefix = f"design_bleed_temp/{uid}/"
+    prefix = f"preflight_temp/{uid}/"
     parts = storage_path.split("/")
     if (not storage_path.startswith(prefix) or len(parts) != 4 or
             not SESSION.fullmatch(parts[2]) or not SOURCE_NAME.fullmatch(parts[3])):

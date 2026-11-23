@@ -17,8 +17,8 @@ from PIL import Image, ImageOps, UnidentifiedImageError
 
 PT_PER_MM = 72.0 / 25.4
 MAX_PAGES = 80
-MAX_RASTER_PIXELS = 36_000_000
-BORDER_RENDER_DPI = 144
+MAX_RASTER_PIXELS = 45_000_000
+BORDER_RENDER_DPI = 300
 MAX_IMAGE_PIXELS = 64_000_000
 ALLOWED_EXTENSIONS = {".pdf", ".jpg", ".jpeg", ".png", ".webp"}
 MODES = {"mirror", "edge"}

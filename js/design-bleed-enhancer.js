@@ -271,7 +271,7 @@
     const st=await storage();
     const session=Date.now().toString(36)+'_'+Math.random().toString(36).slice(2,10);
     const extension=fileExt(file);
-    const sourcePath='design_bleed_temp/'+user.uid+'/'+session+'/source.'+extension;
+    const sourcePath='preflight_temp/'+user.uid+'/'+session+'/source.'+extension;
     try{
       status('대용량 원본을 임시 업로드하는 중입니다.');
       await st.ref(sourcePath).put(file,{contentType:MIME[extension]||'application/octet-stream'});
