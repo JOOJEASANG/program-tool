@@ -16,7 +16,7 @@ def test_design_studio_retains_original_detailed_review_route_and_ai_generator()
     assert "https://api-7a5qpwzezq-uc.a.run.app" in maker_js
     assert "resolveApiUrl" in maker_js
     assert "X-Request-ID" in maker_js
-    assert "/js/design-bleed-enhancer.js?v=20261123-1" in maker_html
+    assert "/js/design-bleed-enhancer.js?v=20261123-2" in maker_html
     assert "/api/preflight/ai-design/cover-image" not in maker_js
 
 
