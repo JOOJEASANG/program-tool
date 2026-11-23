@@ -125,6 +125,7 @@
     $('guideToggle').checked=true;
     $('edgeJumpBtn').disabled=true;
     state.edgeSide='top';
+    $('edgePosition').value='50';
     document.querySelectorAll('button[data-edge]').forEach(button=>{
       const isTop=button.dataset.edge==='top';
       button.classList.toggle('active',isTop);
@@ -256,24 +257,27 @@
   // Calculate a real physical crop (3mm of newly extended bleed + 12mm
   // inside trim). Unlike CSS scaling an existing small preview, this renders
   // directly from the completed PDF at a much higher sampling density.
-  function edgeSampleRect(settings,side) {
+  function edgeSampleRect(settings,side,position) {
     const b=settings.bleed_mm;
     const width=settings.trim_width_mm+2*b;
     const height=settings.trim_height_mm+2*b;
     const horizontal=side==='top'||side==='bottom';
     const inner=Math.min(12,(horizontal?settings.trim_height_mm:settings.trim_width_mm)*.25);
-    const length=Math.min(58,Math.max(8,(horizontal?width:height)-2*b));
+    const crossSize=horizontal?width:height;
+    const length=Math.min(58,Math.max(8,crossSize-2*b));
+    const ratio=Math.max(0,Math.min(100,Number(position)||0))/100;
+    const shift=(crossSize-length)*ratio;
     if(horizontal){
-      return {x:(width-length)/2,y:side==='top'?0:height-b-inner,
+      return {x:shift,y:side==='top'?0:height-b-inner,
         w:length,h:b+inner,seam:side==='top'?b:inner,vertical:false};
     }
-    return {x:side==='left'?0:width-b-inner,y:(height-length)/2,
+    return {x:side==='left'?0:width-b-inner,y:shift,
       w:b+inner,h:length,seam:side==='left'?b:inner,vertical:true};
   }
   async function drawEdgeInspector(doc,pageNumber,side,token) {
     if(!doc||!state.resultSettings||token!==state.actionId)return;
     const s=state.resultSettings;
-    const crop=edgeSampleRect(s,side);
+    const crop=edgeSampleRect(s,side,$('edgePosition').value);
     const pdfPage=await doc.getPage(pageNumber);
     if(token!==state.actionId||state.resultPdf!==doc)return;
     const viewport=pdfPage.getViewport({scale:4});
@@ -309,7 +313,8 @@
     $('edgeInspectEmpty').hidden=true;
     $('edgeBleedSize').textContent='추가된 바깥 영역 '+s.bleed_mm+'mm';
     const names={top:'상단',bottom:'하단',left:'왼쪽',right:'오른쪽'};
-    $('edgeInspectStatus').textContent=names[side]+' 도련 확대: '+s.bleed_mm+
+    const location=$('edgePosition').selectedOptions[0]?.textContent||'가운데';
+    $('edgeInspectStatus').textContent=names[side]+' '+location+' 도련 확대: '+s.bleed_mm+
       'mm 바깥 확장 + 안쪽 '+Math.round((crop.vertical?crop.w:crop.h)-s.bleed_mm)+'mm까지 실제 PDF 표시'+
       (crop.vertical?' (보기 편하게 90° 회전)':'')+
       '. 파란 점선이 재단 경계입니다.';
@@ -499,6 +504,7 @@
     document.querySelectorAll('button[data-edge]').forEach(button=>{
       button.addEventListener('click',()=>setEdgeSide(button.dataset.edge));
     });
+    $('edgePosition').addEventListener('change',()=>{void queueEdgeInspector();});
     $('sizePreset').addEventListener('change',updatePreset);
     ['trimWidth','trimHeight','bleedMm','edgeMode','fitMode','productType'].forEach(id=>{
       $(id).addEventListener('change',()=>{

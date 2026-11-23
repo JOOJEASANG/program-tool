@@ -105,6 +105,10 @@
   const topCtx=$('edgeInspectCanvas').getContext('2d');
   const px=topCtx.getImageData(3,3,1,1).data;
   assert(px[0]===232&&px[1]===115&&px[2]===72,'edge inspector does not render actual PDF pixels');
+  $('edgePosition').value='100';
+  $('edgePosition').dispatchEvent(new w.Event('change'));
+  await enhancer.state.renderQueue;
+  assert($('edgeInspectStatus').textContent.includes('끝 부분'),'edge inspector end-position selection failed');
   enhancer.setEdgeSide('left');
   await enhancer.state.renderQueue;
   assert($('edgeInspectStatus').textContent.includes('90°'),'side-edge rotation inspection missing');

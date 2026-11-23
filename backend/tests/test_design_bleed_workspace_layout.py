@@ -71,7 +71,7 @@ def test_larger_zoomable_canvas_and_real_bleed_proof_are_accessible():
     css=read("css/design-bleed-enhancer.css")
     js=read("js/design-bleed-enhancer.js")
     manual=read("js/program-manuals/ai-design-maker.js")
-    for control in ('previewZoom','expandPreviewBtn','edgeJumpBtn','guideToggle',
+    for control in ('previewZoom','expandPreviewBtn','edgeJumpBtn','guideToggle','edgePosition',
                     'bleedInspector','edgeInspectCanvas','edgeInspectStatus','edgeInspectEmpty',
                     'edgeBleedSize'):
         assert f'id="{control}"' in html
@@ -79,7 +79,7 @@ def test_larger_zoomable_canvas_and_real_bleed_proof_are_accessible():
         assert f'data-edge="{edge}"' in html
     for zoom in ('value="1.5"','value="2"','value="3"'):
         assert zoom in html
-    assert "function edgeSampleRect(settings,side)" in js
+    assert "function edgeSampleRect(settings,side,position)" in js
     assert "transform:[1,0,0,1,-left,-top]" in js
     assert "function drawEdgeInspector(doc,pageNumber,side,token)" in js
     assert "function setEdgeSide(side)" in js
@@ -94,3 +94,4 @@ def test_larger_zoomable_canvas_and_real_bleed_proof_are_accessible():
     assert "300%" in manual
     assert "안내선 표시" in manual
     assert "90도" in manual
+    assert "시작·25%·가운데·75%·끝" in manual
