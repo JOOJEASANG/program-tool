@@ -98,6 +98,7 @@ def test_frontend_and_routes_offer_new_print_workflow():
     assert "양면 인쇄용 짝수" not in frontend
     assert "소책자용 4의 배수" not in frontend
     assert "PdfPrintAutoFix?.mountStandalone" in bridge
+    assert "host.replaceChildren()" in frontend
     assert "pdfPrintAutoFixScriptV1" in runtime
     assert "/api/preflight/auto-fix" in frontend
     assert '@preflight_auto_fix_bp.route("/auto-fix"' in router
