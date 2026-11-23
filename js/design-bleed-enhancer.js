@@ -17,7 +17,7 @@
     file:null, sourcePdf:null, sourceImage:null, originalSize:null,
     resultPdf:null, resultBlob:null, pages:0, loading:false, preparing:false,
     actionId:0, renderQueue:Promise.resolve(), resultSettings:null,
-    originalDpi:null
+    originalDpi:null, edgeSide:'top'
   };
 
   function status(message, type='') {
@@ -87,6 +87,8 @@
     $('confirmCheck').checked=false;
     $('reviewText').textContent='도련 생성이 끝나면 실제 치수와 주의사항을 안내합니다.';
     $('afterEmpty').hidden=false;
+    $('edgeJumpBtn').disabled=true;
+    clearEdgeInspector();
     const prior=state.resultPdf;state.resultPdf=null;
     void destroy(prior);
     const canvas=$('afterCanvas');canvas.width=canvas.height=1;
@@ -119,6 +121,16 @@
     $('afterCanvas').width=$('afterCanvas').height=1;
     $('confirmCheck').checked=false;
     $('reviewText').textContent='도련 생성이 끝나면 실제 치수와 주의사항을 안내합니다.';
+    $('previewZoom').value='1';
+    $('guideToggle').checked=true;
+    $('edgeJumpBtn').disabled=true;
+    state.edgeSide='top';
+    document.querySelectorAll('button[data-edge]').forEach(button=>{
+      const isTop=button.dataset.edge==='top';
+      button.classList.toggle('active',isTop);
+      button.setAttribute('aria-pressed',String(isTop));
+    });
+    clearEdgeInspector();
     sizeSummary();ready();status('파일을 업로드하면 시작할 수 있습니다.');
   }
   function populatePages(n) {
@@ -173,17 +185,23 @@
       state.loading=false;sizeSummary();ready();
     }
   }
-  // Single-page inspection can use more of the right-side workspace; comparison
-  // stays capped to keep both originals comfortably visible side-by-side.
+  // Let the user inspect the *actual* PDF at 150–300% without shrinking it
+  // back to the width of the canvas card. The viewport scrolls at larger zoom.
   function previewRenderWidth() {
     const grid=$('previewGrid');
     const single=grid?.dataset.previewMode!=='compare';
-    const available=grid?.clientWidth||840;
-    return Math.min(single?900:540,Math.max(420,single?available-76:(available-54)/2));
+    const available=grid?.clientWidth||880;
+    return Math.max(260,Math.min(single?1500:760,single?available-58:(available-48)/2));
+  }
+  function previewScale(baseWidth,baseHeight) {
+    const zoom=Number($('previewZoom')?.value)||1;
+    const fitted=Math.min(previewRenderWidth()/baseWidth,1000/baseHeight);
+    // Limit enormous PDFs and pathological zoom levels to a safe canvas size.
+    const safe=Math.min(fitted*zoom,Math.sqrt(7000000/(baseWidth*baseHeight)),3000/Math.max(baseWidth,baseHeight));
+    return Math.max(0.001,safe);
   }
   function drawImage(image,canvas) {
-    const maxWidth=previewRenderWidth(), maxHeight=720;
-    const scale=Math.min(maxWidth/image.width,maxHeight/image.height,1);
+    const scale=previewScale(image.width,image.height);
     canvas.width=Math.max(1,Math.round(image.width*scale));
     canvas.height=Math.max(1,Math.round(image.height*scale));
     const ctx=canvas.getContext('2d',{alpha:false});
@@ -193,8 +211,7 @@
   async function drawPdf(doc,pageNumber,canvas) {
     const page=await doc.getPage(pageNumber);
     const natural=page.getViewport({scale:1});
-    const scale=Math.min(previewRenderWidth()/natural.width,720/natural.height);
-    const viewport=page.getViewport({scale});
+    const viewport=page.getViewport({scale:previewScale(natural.width,natural.height)});
     canvas.width=Math.max(1,Math.round(viewport.width));
     canvas.height=Math.max(1,Math.round(viewport.height));
     const ctx=canvas.getContext('2d',{alpha:false});
@@ -202,7 +219,7 @@
     await page.render({canvasContext:ctx,viewport,background:'#fff'}).promise;
   }
   function guideLines(canvas) {
-    if(!state.resultSettings||!canvas.width)return;
+    if(!state.resultSettings||!canvas.width||!$('guideToggle').checked)return;
     const s=state.resultSettings;
     const totalW=s.trim_width_mm+2*s.bleed_mm;
     const totalH=s.trim_height_mm+2*s.bleed_mm;
@@ -210,16 +227,18 @@
     const w=s.trim_width_mm/totalW*canvas.width,h=s.trim_height_mm/totalH*canvas.height;
     const ctx=canvas.getContext('2d');
     ctx.save();
-    ctx.lineWidth=1.5;ctx.strokeStyle='#de6767';ctx.setLineDash([6,4]);
-    ctx.strokeRect(.75,.75,canvas.width-1.5,canvas.height-1.5);
-    ctx.strokeStyle='#2563eb';ctx.setLineDash([7,4]);ctx.strokeRect(x,y,w,h);
+    // Hairline-only guides. They are not part of the exported PDF.
+    ctx.lineWidth=0.7;ctx.strokeStyle='#cc6471';ctx.setLineDash([3,5]);
+    ctx.strokeRect(.5,.5,canvas.width-1,canvas.height-1);
+    ctx.lineWidth=0.85;ctx.strokeStyle='#2563eb';ctx.setLineDash([4,5]);
+    ctx.strokeRect(x,y,w,h);
     const safe=readNumber('safetyMm'), sx=safe/totalW*canvas.width,sy=safe/totalH*canvas.height;
-    ctx.strokeStyle='#0f9488';ctx.setLineDash([4,4]);
+    ctx.lineWidth=0.7;ctx.strokeStyle='#0f9488';ctx.setLineDash([3,5]);
     if(w>2*sx&&h>2*sy)ctx.strokeRect(x+sx,y+sy,w-2*sx,h-2*sy);
     const type=$('productType').value;
     const divisions=type==='leaflet2'?2:type==='leaflet3'?3:0;
     if(divisions){
-      ctx.setLineDash([4,5]);ctx.strokeStyle='#ad6a13';ctx.lineWidth=1;
+      ctx.setLineDash([3,6]);ctx.strokeStyle='#ad6a13';ctx.lineWidth=0.7;
       for(let i=1;i<divisions;i++){
         const xx=x+w*i/divisions;
         ctx.beginPath();ctx.moveTo(xx,y);ctx.lineTo(xx,y+h);ctx.stroke();
@@ -227,20 +246,116 @@
     }
     ctx.restore();
   }
+  function clearEdgeInspector() {
+    const canvas=$('edgeInspectCanvas');
+    if(canvas)canvas.width=canvas.height=1;
+    if($('edgeInspectEmpty'))$('edgeInspectEmpty').hidden=false;
+    if($('edgeInspectStatus'))$('edgeInspectStatus').textContent='결과 PDF가 준비되면 확대 검사를 표시합니다.';
+    if($('edgeBleedSize'))$('edgeBleedSize').textContent='사방 '+(readNumber('bleedMm')||3)+'mm';
+  }
+  // Calculate a real physical crop (3mm of newly extended bleed + 12mm
+  // inside trim). Unlike CSS scaling an existing small preview, this renders
+  // directly from the completed PDF at a much higher sampling density.
+  function edgeSampleRect(settings,side) {
+    const b=settings.bleed_mm;
+    const width=settings.trim_width_mm+2*b;
+    const height=settings.trim_height_mm+2*b;
+    const horizontal=side==='top'||side==='bottom';
+    const inner=Math.min(12,(horizontal?settings.trim_height_mm:settings.trim_width_mm)*.25);
+    const length=Math.min(58,Math.max(8,(horizontal?width:height)-2*b));
+    if(horizontal){
+      return {x:(width-length)/2,y:side==='top'?0:height-b-inner,
+        w:length,h:b+inner,seam:side==='top'?b:inner,vertical:false};
+    }
+    return {x:side==='left'?0:width-b-inner,y:(height-length)/2,
+      w:b+inner,h:length,seam:side==='left'?b:inner,vertical:true};
+  }
+  async function drawEdgeInspector(doc,pageNumber,side,token) {
+    if(!doc||!state.resultSettings||token!==state.actionId)return;
+    const s=state.resultSettings;
+    const crop=edgeSampleRect(s,side);
+    const pdfPage=await doc.getPage(pageNumber);
+    if(token!==state.actionId||state.resultPdf!==doc)return;
+    const viewport=pdfPage.getViewport({scale:4});
+    const pxPerMm=viewport.width/(s.trim_width_mm+2*s.bleed_mm);
+    const left=crop.x*pxPerMm, top=crop.y*pxPerMm;
+    const scratch=document.createElement('canvas');
+    scratch.width=Math.max(1,Math.round(crop.w*pxPerMm));
+    scratch.height=Math.max(1,Math.round(crop.h*pxPerMm));
+    const ctx=scratch.getContext('2d',{alpha:false});
+    ctx.fillStyle='#fff';ctx.fillRect(0,0,scratch.width,scratch.height);
+    await pdfPage.render({canvasContext:ctx,viewport,
+      transform:[1,0,0,1,-left,-top],background:'#fff'}).promise;
+    if(token!==state.actionId||state.resultPdf!==doc||state.edgeSide!==side)return;
+    // One fine seam marker, never a translucent overlay that hides real fill.
+    ctx.save();
+    ctx.lineWidth=0.8;ctx.strokeStyle='#2563eb';ctx.setLineDash([4,5]);
+    const at=crop.seam*pxPerMm;
+    ctx.beginPath();
+    if(crop.vertical){ctx.moveTo(at,0);ctx.lineTo(at,scratch.height);}
+    else{ctx.moveTo(0,at);ctx.lineTo(scratch.width,at);}
+    ctx.stroke();ctx.restore();
+    const output=$('edgeInspectCanvas');
+    if(crop.vertical){
+      // Rotate left/right crops for a wide inspection strip.
+      output.width=scratch.height;output.height=scratch.width;
+      const out=output.getContext('2d',{alpha:false});
+      out.translate(output.width,0);out.rotate(Math.PI/2);
+      out.drawImage(scratch,0,0);
+    }else{
+      output.width=scratch.width;output.height=scratch.height;
+      output.getContext('2d',{alpha:false}).drawImage(scratch,0,0);
+    }
+    $('edgeInspectEmpty').hidden=true;
+    $('edgeBleedSize').textContent='추가된 바깥 영역 '+s.bleed_mm+'mm';
+    const names={top:'상단',bottom:'하단',left:'왼쪽',right:'오른쪽'};
+    $('edgeInspectStatus').textContent=names[side]+' 도련 확대: '+s.bleed_mm+
+      'mm 바깥 확장 + 안쪽 '+Math.round((crop.vertical?crop.w:crop.h)-s.bleed_mm)+'mm까지 실제 PDF 표시'+
+      (crop.vertical?' (보기 편하게 90° 회전)':'')+
+      '. 파란 점선이 재단 경계입니다.';
+  }
+  function queueEdgeInspector() {
+    const token=state.actionId,doc=state.resultPdf,side=state.edgeSide;
+    const pageNumber=Math.max(1,Number($('pageSelect').value)||1);
+    if(!doc){clearEdgeInspector();return Promise.resolve();}
+    state.renderQueue=state.renderQueue.catch(()=>{}).then(()=>
+      drawEdgeInspector(doc,pageNumber,side,token)
+    );
+    return state.renderQueue.catch(error=>{
+      if(token===state.actionId) $('edgeInspectStatus').textContent='확대 검사를 그리지 못했습니다: '+error.message;
+    });
+  }
+  function setEdgeSide(side) {
+    if(!['top','bottom','left','right'].includes(side))return;
+    state.edgeSide=side;
+    document.querySelectorAll('button[data-edge]').forEach(button=>{
+      const active=button.dataset.edge===side;
+      button.classList.toggle('active',active);
+      button.setAttribute('aria-pressed',String(active));
+    });
+    void queueEdgeInspector();
+  }
   function drawPreviews() {
     const pageNumber=Math.max(1,Math.min(state.pages||1,Number($('pageSelect').value||1)));
     const source=state.sourcePdf, result=state.resultPdf, image=state.sourceImage;
+    const token=state.actionId,side=state.edgeSide;
     const run=async()=>{
+      if(token!==state.actionId)return;
       if(source) await drawPdf(source,pageNumber,$('beforeCanvas'));
       else if(image) drawImage(image,$('beforeCanvas'));
+      if(token!==state.actionId)return;
       if(result){
         await drawPdf(result,pageNumber,$('afterCanvas'));
+        if(token!==state.actionId)return;
         guideLines($('afterCanvas'));
         $('afterEmpty').hidden=true;
+        await drawEdgeInspector(result,pageNumber,side,token);
       }
     };
     state.renderQueue=state.renderQueue.catch(()=>{}).then(run);
-    return state.renderQueue.catch(error=>status('미리보기를 표시하지 못했습니다: '+error.message,'error'));
+    return state.renderQueue.catch(error=>{
+      if(token===state.actionId)status('미리보기를 표시하지 못했습니다: '+error.message,'error');
+    });
   }
   async function storage() {
     if(window.storage)return window.storage;
@@ -305,6 +420,7 @@
       const doc=await lib.getDocument({data:new Uint8Array(await blob.arrayBuffer())}).promise;
       if(ticket!==state.actionId){await destroy(doc);return;}
       state.resultPdf=doc;state.resultBlob=blob;state.resultSettings=params;
+      $('edgeJumpBtn').disabled=false;
       await drawPreviews();
       const totalW=params.trim_width_mm+params.bleed_mm*2;
       const totalH=params.trim_height_mm+params.bleed_mm*2;
@@ -340,6 +456,13 @@
     if(size){$('trimWidth').value=size[0].toFixed(1);$('trimHeight').value=size[1].toFixed(1);}
     invalidateResult();
   }
+  function toggleWidePreview() {
+    const expanded=$('studio').classList.toggle('preview-expanded');
+    const button=$('expandPreviewBtn');
+    button.setAttribute('aria-pressed',String(expanded));
+    button.textContent=expanded?'설정 패널 표시':'미리보기 넓게';
+    if(state.file)void drawPreviews();
+  }
   function setPreviewMode(mode) {
     const grid=$('previewGrid');
     if(!grid||!['compare','original','result'].includes(mode))return;
@@ -353,6 +476,10 @@
   }
   function setup() {
     $('resetBtn').addEventListener('click',reset);
+    $('expandPreviewBtn').addEventListener('click',toggleWidePreview);
+    $('edgeJumpBtn').addEventListener('click',()=>{
+      $('bleedInspector').scrollIntoView({behavior:'smooth',block:'start'});
+    });
     $('logoutBtn').addEventListener('click',async()=>{
       if(!window.auth?.currentUser)return;
       $('logoutBtn').disabled=true;
@@ -367,6 +494,11 @@
     $('saveBtn').addEventListener('click',savePdf);
     $('confirmCheck').addEventListener('change',ready);
     $('pageSelect').addEventListener('change',drawPreviews);
+    $('previewZoom').addEventListener('change',drawPreviews);
+    $('guideToggle').addEventListener('change',drawPreviews);
+    document.querySelectorAll('button[data-edge]').forEach(button=>{
+      button.addEventListener('click',()=>setEdgeSide(button.dataset.edge));
+    });
     $('sizePreset').addEventListener('change',updatePreset);
     ['trimWidth','trimHeight','bleedMm','edgeMode','fitMode','productType'].forEach(id=>{
       $(id).addEventListener('change',()=>{
@@ -397,7 +529,7 @@
       $('helpGuide').scrollIntoView({behavior:'smooth',block:'center'});
     });
     reset();
-    window.DesignBleedEnhancer={state,settings,process:processFile,setPreviewMode,version:'2026-11-23-workbench'};
+    window.DesignBleedEnhancer={state,settings,process:processFile,setPreviewMode,setEdgeSide,toggleWidePreview,version:'2026-11-23-bleed-inspector'};
   }
   setup();
   const auth=window.auth;

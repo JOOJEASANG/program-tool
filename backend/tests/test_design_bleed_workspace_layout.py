@@ -40,8 +40,8 @@ def test_all_workflow_ids_are_unique_and_files_stay_upload_first():
                      "saveBtn","pageSelect","helpBtn","resetBtn","helpGuide"):
         assert required in ids
     assert 'id="generateBtn"' not in page
-    assert '/js/design-bleed-enhancer.js?v=20261123-2' in page
-    assert '/css/design-bleed-enhancer.css?v=20261123-2' in page
+    assert '/js/design-bleed-enhancer.js?v=20261123-3' in page
+    assert '/css/design-bleed-enhancer.css?v=20261123-3' in page
 
 
 def test_shared_editor_visual_language_is_responsive_and_not_fake_controls():
@@ -63,3 +63,34 @@ def test_shared_editor_visual_language_is_responsive_and_not_fake_controls():
     assert "화면 구성 · 다른 PDF 편집·배치 도구와 공통" in manual
     assert "나란히 / 원본 / 보완 결과" in manual
     assert "출력용 PDF 저장" in manual
+
+
+
+def test_larger_zoomable_canvas_and_real_bleed_proof_are_accessible():
+    html=read("ai-design-maker/index.html")
+    css=read("css/design-bleed-enhancer.css")
+    js=read("js/design-bleed-enhancer.js")
+    manual=read("js/program-manuals/ai-design-maker.js")
+    for control in ('previewZoom','expandPreviewBtn','edgeJumpBtn','guideToggle',
+                    'bleedInspector','edgeInspectCanvas','edgeInspectStatus','edgeInspectEmpty',
+                    'edgeBleedSize'):
+        assert f'id="{control}"' in html
+    for edge in ("top","bottom","left","right"):
+        assert f'data-edge="{edge}"' in html
+    for zoom in ('value="1.5"','value="2"','value="3"'):
+        assert zoom in html
+    assert "function edgeSampleRect(settings,side)" in js
+    assert "transform:[1,0,0,1,-left,-top]" in js
+    assert "function drawEdgeInspector(doc,pageNumber,side,token)" in js
+    assert "function setEdgeSide(side)" in js
+    assert "function toggleWidePreview()" in js
+    assert "ctx.lineWidth=0.7" in js
+    assert "if(!state.resultSettings||!canvas.width||!$('guideToggle').checked)return;" in js
+    assert ".preview-card .canvas-frame" in css
+    assert "overflow:auto;overscroll-behavior:contain" in css
+    assert "max-width:none!important;max-height:none!important" in css
+    assert "실제 결과 PDF" in manual
+    assert "150%" in manual
+    assert "300%" in manual
+    assert "안내선 표시" in manual
+    assert "90도" in manual
