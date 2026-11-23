@@ -59,3 +59,7 @@ def test_shared_editor_visual_language_is_responsive_and_not_fake_controls():
     assert "function processFile()" in js
     assert "function savePdf()" in js
     assert "function drawPreviews()" in js
+    manual=read("js/program-manuals/ai-design-maker.js")
+    assert "화면 구성 · 다른 PDF 편집·배치 도구와 공통" in manual
+    assert "나란히 / 원본 / 보완 결과" in manual
+    assert "출력용 PDF 저장" in manual
