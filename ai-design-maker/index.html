@@ -1,641 +1,127 @@
 <!doctype html>
-<html lang="ko" data-ai-design-maker="cover-v1" data-suite-screen="ai-cover">
+<html lang="ko" data-program="design-bleed-enhancer">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>표지 디자인 · Program Studio</title>
-  <meta name="description" content="책자·보고서·자료집의 앞표지·뒷표지·책등을 디자인하고 AI 배경·문구·PDF·이미지를 편집해 인쇄용 파일로 저장합니다.">
+  <meta name="theme-color" content="#12396d">
   <meta name="robots" content="noindex,nofollow">
+  <meta name="description" content="고객이 만든 PDF·이미지 원본을 업로드해 도련과 배경을 확장하고 인쇄용 PDF로 보완합니다. 표지, 초대장, 안내장, 리플렛, 전단지 지원.">
+  <title>인쇄 디자인 보완 · Program Studio</title>
   <link rel="icon" href="/favicon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css">
-  <link rel="stylesheet" href="/css/ai-design-maker.css?v=20261028-4">
-  <link rel="stylesheet" href="/css/program-manual-home-modal.css?v=20260918-1">
-  <link rel="stylesheet" href="/css/program-suite-ux-20261116.css?v=20261116-1">
+  <link rel="stylesheet" href="/css/design-bleed-enhancer.css?v=20261123-1">
 </head>
 <body>
-  <div class="auth-gate" id="authGate">
+  <div class="auth-gate" id="authGate" role="status">
     <div class="auth-card">
-      <div class="auth-mark">✦</div>
-      <h1>표지 디자인</h1>
-      <p id="authMessage">사용 권한을 확인하고 있습니다.</p>
-      <a class="primary-button" id="authLogin" href="/login.html" hidden>로그인하기</a>
+      <span class="brand-mark">B</span>
+      <h1>인쇄 디자인 보완</h1>
+      <p id="authMessage">계정 권한을 확인하고 있습니다.</p>
+      <a href="/login.html" id="authLogin" hidden class="primary-btn">로그인하기</a>
     </div>
   </div>
 
-  <div class="maker-shell" id="makerShell" hidden>
-    <div class="maker-body">
-      <aside class="control-panel" aria-label="표지 제작 설정">
-        <div class="program-title-row">
-          <div class="program-title-copy">
-            <span class="program-title-kicker">COVER DESIGN</span>
-            <strong>표지 디자인</strong>
+  <div class="studio" id="studio" hidden>
+    <header class="topbar">
+      <a href="/" class="brand" aria-label="프로그램 홈으로 이동"><span class="brand-mark">B</span><span><strong>인쇄 디자인 보완</strong><small>도련·배경 확장 · 원본 파일 보존</small></span></a>
+      <div class="topbar-actions">
+        <a href="/" class="toplink">프로그램 홈</a>
+        <button type="button" class="toplink" id="helpBtn">사용 방법</button>
+        <button type="button" class="toplink" id="resetBtn">작업 초기화</button>
+      </div>
+    </header>
+    <main class="workspace">
+      <div class="page-intro">
+        <span class="eyebrow">PRINT DESIGN FINISHER</span>
+        <h1>디자인을 다시 만들지 않고,<br>인쇄에 필요한 <em>도련만 보완</em>합니다.</h1>
+        <p>고객이 제작한 PDF·JPG·PNG·WEBP 파일을 올리세요. 완성 크기는 유지하고 잘리는 바깥 영역을 확장해 별도의 출력용 PDF로 저장합니다.</p>
+      </div>
+
+      <div class="steps" aria-label="작업 단계"><span>1. 디자인 업로드</span><span>2. 크기·도련 설정</span><span>3. 원본·결과 비교</span><span>4. PDF 저장</span></div>
+      <div class="layout">
+        <section class="panel controls" aria-label="디자인 보완 설정">
+          <div class="panel-head"><span class="step-number">01</span><div><h2>고객 파일 업로드</h2><p>새로 디자인을 생성할 필요가 없습니다.</p></div></div>
+          <div class="upload-area" id="uploadZone" role="button" tabindex="0" aria-label="PDF 또는 이미지 파일 선택">
+            <input id="fileInput" type="file" accept=".pdf,.png,.jpg,.jpeg,.webp,application/pdf,image/png,image/jpeg,image/webp">
+            <div class="upload-icon" aria-hidden="true"><span>+</span></div>
+            <strong>파일 선택 또는 이곳에 끌어놓기</strong>
+            <span>PDF · JPG · PNG · WEBP</span>
+            <small>최대 100MB · PDF는 여러 페이지 한 번에 보완</small>
           </div>
-          <button class="ai-manual-btn" id="manualBtn" type="button" title="사용설명서" aria-label="표지 디자인 사용설명서">?</button>
-        </div>
+          <div id="fileInfo" class="file-info" hidden><strong id="fileName"></strong><span id="fileMeta"></span></div>
 
-        <div class="panel-intro">
-          <strong id="coverModeHeading">표지 전체 펼침 제작</strong>
-          <p id="coverModeDescription">앞표지·책등·뒤표지를 한 번에 제작합니다. 규격과 스타일만으로 배경을 생성할 수 있습니다. 문구는 선택 사항입니다.</p>
-        </div>
-
-        <section class="cover-scope-card" id="coverScopeCard" aria-labelledby="coverScopeTitle">
-          <div class="cover-scope-head">
-            <strong id="coverScopeTitle">표지 제작 범위</strong>
-            <small>먼저 선택하세요</small>
-          </div>
-          <div class="cover-mode-picker cover-mode-picker-prominent" role="radiogroup" aria-label="표지 제작 범위">
-            <label><input type="radio" name="coverMode" value="front"><span><strong>앞표지 디자인</strong><small>앞표지 한 면만 작업</small></span></label>
-            <label><input type="radio" name="coverMode" value="back"><span><strong>뒷표지 디자인</strong><small>뒷표지 한 면만 작업</small></span></label>
-            <label><input type="radio" name="coverMode" value="frontBack"><span><strong>앞·뒤표지 동시</strong><small>뒷표지 + 앞표지 나란히</small></span></label>
-            <label><input type="radio" name="coverMode" value="spread" checked><span><strong>전체 펼침 디자인</strong><small>뒤표지 + 책등 + 앞표지</small></span></label>
-          </div>
-        </section>
-
-        <nav class="workflow-nav" aria-label="표지 제작 단계 바로가기">
-          <button type="button" data-jump="specSection"><span>1</span>규격</button>
-          <button type="button" data-jump="copySection"><span>2</span>문구</button>
-          <button type="button" data-jump="styleSection"><span>3</span>디자인</button>
-        </nav>
-
-        <details class="control-section" id="specSection">
-          <summary><span class="step-no">1</span><span><strong>인쇄 규격</strong><small>완성 크기와 책등</small></span><span class="section-state" id="specState">확인</span></summary>
-          <div class="section-body">
-            <div class="preset-size-row">
-              <button type="button" class="size-chip active" data-size-id="a4" data-size="210,297">A4 <small>210×297</small></button>
-              <button type="button" class="size-chip" data-size-id="b5" data-size="182,257">B5 <small>182×257</small></button>
-              <button type="button" class="size-chip" data-size-id="a5" data-size="148,210">A5 <small>148×210</small></button>
-              <button type="button" class="size-chip" data-size-id="custom">직접입력</button>
-            </div>
-            <div class="field-grid two custom-size-fields" id="customSizeFields" hidden>
-              <label class="field"><span>완성 가로 <em>mm</em></span><input id="trimW" type="number" min="50" max="1000" step="0.1" value="210"></label>
-              <label class="field"><span>완성 세로 <em>mm</em></span><input id="trimH" type="number" min="50" max="1000" step="0.1" value="297"></label>
-            </div>
-            <div class="field-grid two">
-              <div class="spine-calculator" id="spineCalculator">
-                <div class="spine-calc-head"><strong>책등 두께 계산</strong><span>내지 기준 · 실제 종이 두께 확인</span></div>
-                <div class="spine-method" role="radiogroup" aria-label="책등 설정 방식">
-                  <label><input type="radio" name="spineCalcMode" value="auto" checked> 페이지 수로 자동 계산</label>
-                  <label><input type="radio" name="spineCalcMode" value="manual"> 책등 직접 입력</label>
-                </div>
-                <div class="spine-calc-fields" id="spineCalcFields">
-                  <label class="field"><span>내지 페이지 수 <em>p</em></span><input id="spinePages" type="number" min="2" max="20000" step="2" value="200"></label>
-                  <label class="field"><span>종이 한 장 두께 <em>mm</em></span><input id="spineSheetThickness" type="number" min="0.01" max="0.5" step="0.005" value="0.10"></label>
-                  <label class="field"><span>제본 보정 <em>mm</em></span><input id="spineAllowance" type="number" min="0" max="20" step="0.1" value="0"></label>
-                  <div class="spine-calc-result" id="spineCalcResult" aria-live="polite">200페이지 ÷ 2 × 0.10mm = <strong>10.0mm</strong></div>
-                </div>
-                <p class="spine-calc-note">페이지 수는 내지 전체 기준입니다. 계산값은 추정치이며 종이 제조사·제본 방식에 따라 실측과 다를 수 있습니다.</p>
-              </div>
-                            <label class="field" id="spineField"><span>책등 <em>mm</em></span><input id="spine" type="number" min="0" max="100" step="0.1" value="10"></label>
-              <label class="field"><span>도련 <em>mm</em></span><input id="bleed" type="number" min="0" max="20" step="0.1" value="3"></label>
-              <label class="field"><span>안전영역 <em>mm</em></span><input id="safeZone" type="number" min="0" max="80" step="0.1" value="10"></label>
-            </div>
-            <label class="switch-row" id="wingToggleRow"><input id="wingEnabled" type="checkbox"><span class="switch-ui"></span><span><strong>날개 사용</strong><small>책날개가 있는 표지만 켜세요.</small></span></label>
-            <label class="field" id="wingField" hidden><span>날개 폭 <em>mm</em></span><input id="wingW" type="number" min="20" max="300" step="0.1" value="70"></label>
-            <div class="hint-card" id="geometryHint"></div>
-          </div>
-        </details>
-
-        <details class="control-section" id="copySection">
-          <summary><span class="step-no">2</span><span><strong>표지 문구</strong><small>선택 사항 · 배경만 생성할 때는 생략</small></span><span class="section-state" id="copyState">선택 사항</span></summary>
-          <div class="section-body">
-            <div class="copy-surface-group" id="frontCoverFields">
-              <div class="copy-surface-head">
-                <span>앞표지 문구 (선택)</span>
-                <button id="addFrontTextBtn" class="mini-action" type="button">+ 추가</button>
-              </div>
-              <textarea class="cover-copy-input" id="title" maxlength="700" rows="4" placeholder="2026 천안마을교육 운영사례집&#10;함께 만드는 배움의 마을"></textarea>
-              <div id="frontExtraFields" class="extra-copy-fields" aria-live="polite"></div>
-            </div>
-
-            <div id="backCoverFields" class="copy-surface-group">
-              <div class="copy-surface-head">
-                <span>뒤표지 문구 (선택)</span>
-                <button id="addBackTextBtn" class="mini-action" type="button">+ 추가</button>
-              </div>
-              <textarea class="cover-copy-input" id="backText" maxlength="700" rows="4" placeholder="학교와 마을이 함께 만든 교육 실천 사례와 지역 연계 성과를 담았습니다."></textarea>
-              <div id="backExtraFields" class="extra-copy-fields" aria-live="polite"></div>
-            </div>
-
-            <div id="spineFields">
-              <div class="subsection-title"><span>책등 문구</span><small>상 · 중 · 하 독립 배치</small></div>
-              <label class="check-row"><input id="spineSync" type="checkbox" checked><span>앞표지 첫 줄을 책등 중 문구에 자동 사용</span></label>
-              <div class="spine-copy-list">
-                <div class="spine-copy-row">
-                  <label class="field"><span>상 문구</span><input id="spineTop" maxlength="180" placeholder="발행기관 · 시리즈명"></label>
-                  <label class="field"><span>배치</span><select id="spineTopPlacement"><option value="auto" selected>자동정렬</option><option value="free">자유배치</option></select></label>
-                </div>
-                <div class="spine-copy-row">
-                  <label class="field"><span>중 문구</span><input id="spineMiddle" maxlength="180" placeholder="2026 천안마을교육 운영사례집"></label>
-                  <label class="field"><span>배치</span><select id="spineMiddlePlacement"><option value="auto" selected>자동정렬</option><option value="free">자유배치</option></select></label>
-                </div>
-                <div class="spine-copy-row">
-                  <label class="field"><span>하 문구</span><input id="spineBottom" maxlength="180" placeholder="천안마을교육 사회적협동조합"></label>
-                  <label class="field"><span>배치</span><select id="spineBottomPlacement"><option value="auto" selected>자동정렬</option><option value="free">자유배치</option></select></label>
-                </div>
-              </div>
-              <label class="field"><span>책등 방향</span>
-                <select id="spineOrientation">
-                  <option value="rotate-up">아래 → 위</option>
-                  <option value="rotate-down">위 → 아래</option>
-                  <option value="vertical">한글 세로쓰기</option>
-                </select>
-              </label>
-              <div class="spine-placement-help"><strong>책등 세로쓰기 지원</strong> · 아래 → 위 / 위 → 아래는 글줄을 회전하고, <strong>한글 세로쓰기</strong>는 글자를 위에서 아래로 한 글자씩 배치합니다. 상·중·하 각각 자동정렬 또는 자유배치를 이용할 수 있습니다.</div>
-              <div class="spine-policy" id="spinePolicy"></div>
-            </div>
-          </div>
-        </details>
-
-        <details class="control-section" id="styleSection">
-          <summary><span class="step-no">3</span><span><strong>AI 디자인</strong><small>원하는 분위기를 간단하게</small></span><span class="section-state" id="styleState">준비</span></summary>
-          <div class="section-body">
-            <label class="field"><span>AI 이미지 모델</span>
-              <select id="imageModel" aria-describedby="imageModelHint">
-                <option value="gpt-image-2" selected>GPT Image 2 (기본)</option>
-                <option value="gpt-image-2.5-flare">GPT Image 2.5 Flare</option>
-                <option value="gpt-image-2.5-sunburst">GPT Image 2.5 Sunburst</option>
-                <option value="gpt-image-1.5">GPT Image 1.5</option>
-                <option value="gpt-image-1-mini">GPT Image 1 Mini</option>
-              </select>
-              <small class="field-help" id="imageModelHint">모델별 비용·처리 시간과 계정 사용 권한이 다릅니다. 1.5·1 Mini는 고정 비율 이미지를 표지에 맞춰 자르므로 가장자리 일부가 제외될 수 있습니다.</small>
-            </label>
-            <div class="subsection-title">생성 품질</div>
-            <div class="quality-mode-picker" role="radiogroup" aria-label="AI 배경 생성 품질">
-              <label><input type="radio" name="generationQuality" value="standard" checked><span><strong>기본 300dpi</strong><small>비용 절약 · 최종 출력 300dpi</small></span></label>
-              <label><input type="radio" name="generationQuality" value="high"><span><strong>고품질</strong><small>AI 배경 High · 최종 출력 300dpi</small></span></label>
-            </div>
-            <div class="subsection-title">디자인 용도</div>
-            <div class="style-cards style-cards-purpose" id="styleCards" role="radiogroup" aria-label="디자인 용도"></div>
-            <div class="field-grid two">
-              <label class="field"><span>비주얼 방식</span>
-                <select id="visualMode">
-                  <option value="auto">자동 다양화</option>
-                  <option value="editorial">에디토리얼</option>
-                  <option value="geometry">도형·패턴</option>
-                  <option value="infographic">아이콘·인포그래픽</option>
-                  <option value="photo">사진·포토포스터</option>
-                  <option value="illustration">일러스트</option>
-                  <option value="hybrid">혼합형</option>
-                </select>
-              </label>
-              <label class="field"><span>색감 강도</span>
-                <select id="colorIntensity">
-                  <option value="refined" selected>세련된 기본</option>
-                  <option value="soft">소프트</option>
-                  <option value="vivid">선명</option>
-                  <option value="premium">고급·딥톤</option>
-                </select>
-              </label>
-            </div>
-            <div class="field-grid two ai-guided-fields">
-              <label class="field"><span>대상 독자</span><select id="targetAudience">
-                <option value="auto">자동 선택</option><option value="preschool">유아·어린이집</option>
-                <option value="elementary">초등학생</option><option value="teen">중·고등학생</option>
-                <option value="adult">성인</option><option value="institution">기관·공공</option>
-              </select></label>
-              <label class="field"><span>제목 공간 확보</span><select id="titleSpace">
-                <option value="auto">자동 배치</option><option value="top">상단 여백</option>
-                <option value="middle">중앙 여백</option><option value="bottom">하단 여백</option>
-              </select></label>
-            </div>
-            <label class="field"><span>분위기</span>
-              <select id="designMood">
-                <option value="auto" selected>용도에 맞게 자동</option>
-                <option value="trust">신뢰감</option>
-                <option value="refined">세련됨</option>
-                <option value="warm">따뜻함</option>
-                <option value="dynamic">역동적</option>
-              </select>
-            </label>
-            <div class="field-grid two">
-              <div class="field cmyk-field"><span>배경 주조색 <em>CMYK 변환</em></span>
-                <input id="primaryColor" type="hidden" value="#dbeaf3">
-                <input id="primaryC" type="hidden"><input id="primaryM" type="hidden"><input id="primaryY" type="hidden"><input id="primaryK" type="hidden">
-                <div class="print-color-picker" data-color-group="primaryColor">
-                  <input id="primaryColorPicker" class="color-bar-input" type="color" value="#dbeaf3" aria-label="배경 주조색 색상바">
-                  <div class="print-color-palette" aria-label="배경 주조색 대표색">
-                    <button type="button" data-color-group="primaryColor" data-color-preset="#000000" style="--sw:#000000" aria-label="검정"></button>
-                    <button type="button" data-color-group="primaryColor" data-color-preset="#ffffff" style="--sw:#ffffff" aria-label="흰색"></button>
-                    <button type="button" data-color-group="primaryColor" data-color-preset="#1d4ed8" style="--sw:#1d4ed8" aria-label="파랑"></button>
-                    <button type="button" data-color-group="primaryColor" data-color-preset="#0f766e" style="--sw:#0f766e" aria-label="청록"></button>
-                    <button type="button" data-color-group="primaryColor" data-color-preset="#16a34a" style="--sw:#16a34a" aria-label="초록"></button>
-                    <button type="button" data-color-group="primaryColor" data-color-preset="#f59e0b" style="--sw:#f59e0b" aria-label="주황"></button>
-                    <button type="button" data-color-group="primaryColor" data-color-preset="#dc2626" style="--sw:#dc2626" aria-label="빨강"></button>
-                    <button type="button" data-color-group="primaryColor" data-color-preset="#7c3aed" style="--sw:#7c3aed" aria-label="보라"></button>
-                  </div>
-                </div>
-              </div>
-              <div class="field cmyk-field"><span>기본 글자색 <em>CMYK 변환</em></span>
-                <input id="textColor" type="hidden" value="#164e6d">
-                <input id="textC" type="hidden"><input id="textM" type="hidden"><input id="textY" type="hidden"><input id="textK" type="hidden">
-                <div class="print-color-picker" data-color-group="textColor">
-                  <input id="textColorPicker" class="color-bar-input" type="color" value="#164e6d" aria-label="기본 글자색 색상바">
-                  <div class="print-color-palette" aria-label="기본 글자색 대표색">
-                    <button type="button" data-color-group="textColor" data-color-preset="#000000" style="--sw:#000000" aria-label="검정"></button>
-                    <button type="button" data-color-group="textColor" data-color-preset="#ffffff" style="--sw:#ffffff" aria-label="흰색"></button>
-                    <button type="button" data-color-group="textColor" data-color-preset="#1d4ed8" style="--sw:#1d4ed8" aria-label="파랑"></button>
-                    <button type="button" data-color-group="textColor" data-color-preset="#0f766e" style="--sw:#0f766e" aria-label="청록"></button>
-                    <button type="button" data-color-group="textColor" data-color-preset="#16a34a" style="--sw:#16a34a" aria-label="초록"></button>
-                    <button type="button" data-color-group="textColor" data-color-preset="#f59e0b" style="--sw:#f59e0b" aria-label="주황"></button>
-                    <button type="button" data-color-group="textColor" data-color-preset="#dc2626" style="--sw:#dc2626" aria-label="빨강"></button>
-                    <button type="button" data-color-group="textColor" data-color-preset="#7c3aed" style="--sw:#7c3aed" aria-label="보라"></button>
-                  </div>
-                </div>
-              </div>
-            </div>
-            <label class="field"><span>주제·키워드</span><textarea id="theme" rows="3" maxlength="900" placeholder="마을교육, 지역공동체, 협력, 성장, 연결"></textarea></label>
-            <div class="field prompt-field">
-              <div class="field-title-row">
-                <span>기본 디자인 방향</span>
-                <div class="language-toggle" id="promptLanguageToggle" role="radiogroup" aria-label="기본 디자인 방향 언어">
-                  <label><input type="radio" name="promptLanguage" value="ko" checked><span>한글</span></label>
-                  <label><input type="radio" name="promptLanguage" value="en"><span>English</span></label>
-                </div>
-              </div>
-              <textarea id="stylePrompt" aria-label="기본 디자인 방향" rows="5" maxlength="2200" placeholder="프리셋 선택 시 자동으로 채워집니다. 원하는 내용을 자유롭게 수정하세요."></textarea>
-              <small class="field-help" id="promptLanguageHint">한글 모드 · 프리셋 설명도 한글로 입력됩니다.</small>
-            </div>
-            <div class="ai-refine-panel"><strong>추가 디자인 요청</strong>
-              <div class="ai-refine-chips" aria-label="빠른 디자인 보정">
-                <button type="button" data-ai-refine="제목 영역의 장식과 대비를 줄이고 여백을 넓혀 주세요.">제목 공간 넓게</button>
-                <button type="button" data-ai-refine="구성 요소를 줄이고 한층 더 심플하게 정돈해 주세요.">심플하게</button>
-                <button type="button" data-ai-refine="색감을 조금 더 밝고 화사하게 조정해 주세요.">밝게</button>
-                <button type="button" data-ai-refine="색상과 재질을 세련되고 고급스럽게 조정해 주세요.">고급스럽게</button>
-                <button type="button" data-ai-refine="차분한 파스텔 컬러를 활용해 주세요.">파스텔톤</button>
-                <button type="button" data-ai-refine="책등과 앞뒤표지의 배경이 자연스럽게 이어지게 해 주세요.">책등 연결</button>
-              </div><small class="field-help">아래 요청문에 추가됩니다. 시안을 다시 생성할 때 반영됩니다.</small>
-            </div>
-            <label class="field"><span>나만의 추가 요청 (선택)</span>
-              <textarea id="additionalPrompt" rows="4" maxlength="2000" placeholder="예: 따뜻한 아이보리 바탕, 오른쪽 아래에 종이 질감의 숲 일러스트. 제목 위쪽은 넓게 비우고 파란색·사진은 제외해 주세요."></textarea>
-              <small class="field-help">최대 2,000자 · 원하는 소재·구도·색상·피할 요소를 구체적으로 적어 주세요. 기본 디자인 방향은 유지하고 추가 요청을 함께 반영합니다. 기본 설명을 지우거나 다시 적을 필요가 없습니다. 추가 요청은 프리셋·언어 변경 시 유지됩니다. 내 작업에만 저장되며 전체 디자인에는 공유하지 않습니다. 실제 문구는 2단계에서 입력하세요.</small>
-            </label>
-
-          </div>
-        </details>
-
-        <section class="design-import-panel" aria-labelledby="designImportTitle">
-          <div class="manual-assets-head">
-            <strong id="designImportTitle">내 파일 배치 · 편집</strong>
-            <small>AI 생성 없이도 사용 가능</small>
-          </div>
-          <p class="design-import-intro">PDF·이미지를 펼친 표지의 앞표지·책등·뒷표지에 독립 레이어로 올려 배치합니다.</p>
-          <label class="field"><span>파일 기본 배치 영역</span>
-            <select id="designLayerTarget">
-              <option value="front" selected>앞표지</option>
-              <option value="back">뒷표지</option>
-              <option value="spine">책등</option>
-              <option value="whole">전체 펼침</option>
+          <div class="panel-head section-head"><span class="step-number">02</span><div><h2>완성 규격과 제품</h2><p>재단 후 완성되는 크기를 입력합니다.</p></div></div>
+          <div class="field">
+            <label for="productType">인쇄물 종류</label>
+            <select id="productType">
+              <option value="cover">책자·보고서 표지</option>
+              <option value="invitation">초대장·청첩장·카드</option>
+              <option value="notice">안내장·메뉴판</option>
+              <option value="flyer">전단지·포스터</option>
+              <option value="leaflet2">2단 리플렛</option>
+              <option value="leaflet3">3단 리플렛</option>
+              <option value="other">기타 인쇄물</option>
             </select>
-          </label>
-          <label class="file-button design-upload-button">+ PDF·이미지 추가
-            <input id="designLayerUpload" type="file" accept=".pdf,application/pdf,image/png,image/jpeg,image/webp" multiple>
-          </label>
-          <div id="designLayerList" class="design-layer-list" aria-label="배치한 파일 레이어">
-            <p class="design-layer-empty">업로드 파일이 없습니다. PDF 또는 이미지를 추가하세요.</p>
           </div>
-          <p class="design-import-help">캔버스로 파일을 끌어놓을 수도 있습니다. PDF는 원본 페이지를 배치하며, AI 배경 생성과 함께 사용 가능합니다. 업로드한 원본 파일은 새로고침 시 다시 불러와야 합니다.</p>
-        </section>
-
-        <section class="manual-assets-block" aria-labelledby="manualAssetsTitle">
-          <div class="manual-assets-head">
-            <strong id="manualAssetsTitle">직접 파일 업로드</strong>
-            <small>별도 업로드 · 선택</small>
-          </div>
-          <div class="manual-assets-section">
-            <div class="subsection-title">직접 만든 표지 배경</div>
-            <div class="background-row">
-              <label class="file-button">표지 이미지 불러오기<input id="backgroundInput" type="file" accept="image/png,image/jpeg,image/webp"></label>
-              <span id="backgroundName">없음</span>
-              <button id="clearBackground" type="button" class="text-button" hidden>삭제</button>
-            </div>
-            <div class="hint-card" id="backgroundModeHint">직접 만든 전체 펼침 표지를 불러오면 바깥 적색선 전체 영역을 꽉 채워 배치합니다. 그 위에 문구를 자유롭게 편집할 수 있습니다.</div>
-          </div>
-          <div class="manual-assets-section">
-            <div class="subsection-title">로고 파일</div>
-            <div class="logo-row">
-              <label class="file-button">로고 불러오기<input id="logoInput" type="file" accept="image/png,image/jpeg,image/webp"></label>
-              <span id="logoName">없음</span>
-              <button id="clearLogo" type="button" class="text-button" hidden>삭제</button>
-            </div>
-          </div>
-        </section>
-
-        <div class="ai-batch-controls">
-          <label for="variantCount">시안 개수</label>
-          <select id="variantCount"><option value="1" selected>1개</option><option value="2">2개</option><option value="4">4개</option></select>
-          <small>2·4개 선택 시 각각 독립 AI 요청 및 비용 발생. 시작 전 확인합니다.</small>
-        </div>
-        <div class="panel-actions">
-          <button class="generate-button" id="generateBtn" type="button"><span>✦</span> AI 배경 생성</button>
-          <button class="secondary-button" id="resetBtn" type="button">입력 초기화</button>
-        </div>
-        <section class="ai-variant-gallery" id="variantGallery" hidden aria-label="생성 시안 선택">
-          <strong>생성된 시안 선택</strong>
-          <small>현재 작업 중에만 보관됩니다. 다른 시안을 선택해도 입력한 문구와 도형은 유지됩니다.</small>
-          <div class="ai-variant-list" id="variantList"></div>
-        </section>
-      </aside>
-
-      <main class="workspace">
-        <div class="workspace-toolbar">
-          <div class="workspace-info-line" id="textEditBar">
-            <strong id="previewModeTitle">전체 펼침 미리보기</strong>
-            <span class="generation-state" id="generationState">생성 전</span>
-            <span class="workspace-separator"></span>
-            <span class="geometry-summary" id="geometrySummary">규격 계산 중</span>
-            <span class="workspace-separator"></span>
-            <span class="text-edit-inline"><b>요소 편집</b> · <em id="selectedTextLabel">문구·도형을 클릭해 선택</em> · 앞·뒤 안전영역 스냅 · 책등 자유배치</span>
-            <span class="legend legend-compact"><i class="blue"></i>재단 <i class="green"></i>안전 <i class="red"></i>도련</span>
-          </div>
-        </div>
-
-        <section class="preview-card">
-          <div class="canvas-scroll" id="canvasScroll">
-            <div class="canvas-stage" id="canvasStage">
-              <canvas id="previewCanvas" aria-label="표지 미리보기"></canvas>
-            </div>
-          </div>
-        </section>
-
-        <section class="status-panel" aria-live="polite">
-          <div class="status-icon" id="statusIcon">✓</div>
-          <div class="status-copy">
-            <div class="status-title-row">
-              <strong id="statusTitle">표지를 만들 준비가 됐습니다.</strong>
-              <span id="generationProgressText" class="generation-progress-text" hidden>0%</span>
-            </div>
-            <p id="statusMessage">규격과 스타일을 선택한 뒤 AI 배경 생성을 눌러주세요. 문구 없이 배경만 생성할 수 있습니다.</p>
-            <div class="generation-progress" id="generationProgress" hidden aria-label="AI 디자인 생성 진행률">
-              <div class="generation-progress-track"><span id="generationProgressBar"></span></div>
-            </div>
-            <details id="statusDetails" hidden><summary>오류 세부정보</summary><pre id="statusDebug"></pre></details>
-          </div>
-        </section>
-      </main>
-
-      <aside class="text-inspector" id="textStylePanel" aria-label="선택 문구 편집">
-        <div class="inspector-preview-actions" aria-label="미리보기 빠른 설정">
-          <div class="inspector-preview-actions-head"><span>PREVIEW</span><strong>미리보기 옵션</strong></div>
-          <div class="inspector-toggle-row">
-            <label class="mini-switch"><input id="guideToggle" type="checkbox" checked><span>가이드</span></label>
-            <label class="mini-switch"><input id="cropMarkToggle" type="checkbox" checked><span>재단선</span></label>
-          </div>
-          <div class="inspector-save-row">
-            <button class="secondary-button compact gallery-open-button" id="galleryBtn" type="button">디자인 보관함</button>
-            <button class="secondary-button compact inspector-save-button" id="saveGalleryBtn" type="button" disabled>디자인 저장</button>
-          </div>
-          <div class="inspector-export-row">
-            <select class="export-format" id="exportFormat" aria-label="완성 파일 형식">
-              <option value="png">PNG</option>
-              <option value="pdf">벡터 PDF (Pretendard)</option><option value="pdf-raster">300dpi 이미지 PDF (모든 글꼴)</option>
+          <div class="field">
+            <label for="sizePreset">규격 선택</label>
+            <select id="sizePreset">
+              <option value="source">업로드한 파일 규격</option>
+              <option value="a3">A3 · 297 × 420mm</option>
+              <option value="a4">A4 · 210 × 297mm</option>
+              <option value="a5">A5 · 148 × 210mm</option>
+              <option value="b5">B5 · 182 × 257mm</option>
+              <option value="card">카드 · 105 × 148mm</option>
+              <option value="custom">직접 입력</option>
             </select>
-            <button class="secondary-button compact inspector-export-button" id="exportBtn" type="button" disabled>300dpi 다운로드</button>
           </div>
-            <p id="resolutionInfo" role="status" style="font-size:11px;line-height:1.5;color:#475569">출력 색상: RGB</p>
-        </div>
-        <section class="design-layer-inspector" id="designLayerInspector" hidden aria-labelledby="designLayerInspectTitle">
-          <div class="inspector-preview-actions-head"><span>FILE LAYER</span><strong id="designLayerInspectTitle">업로드 파일 편집</strong></div>
-          <strong class="design-active-name" id="designLayerName"></strong>
-          <div class="design-mm-grid">
-            <label>가로 위치 <small>mm</small><input id="designLayerX" type="number" step="0.1"></label>
-            <label>세로 위치 <small>mm</small><input id="designLayerY" type="number" step="0.1"></label>
-            <label>가로 크기 <small>mm</small><input id="designLayerW" type="number" min="1" step="0.1"></label>
-            <label>세로 크기 <small>mm</small><input id="designLayerH" type="number" min="1" step="0.1"></label>
-            <label>회전 <small>°</small><input id="designLayerAngle" type="number" step="1"></label>
+          <div class="field-grid">
+            <div class="field"><label for="trimWidth">완성 가로 <small>mm</small></label><input id="trimWidth" type="number" min="10" max="1500" step="0.1" placeholder="210" required></div>
+            <div class="field"><label for="trimHeight">완성 세로 <small>mm</small></label><input id="trimHeight" type="number" min="10" max="1500" step="0.1" placeholder="297" required></div>
           </div>
-          <label class="design-lock"><input id="designLayerLockRatio" type="checkbox" checked> 가로·세로 비율 유지</label>
-          <div class="design-pdf-page-row" id="designPdfPageRow" hidden>
-            <label>배치할 PDF 페이지 <input id="designPdfPage" type="number" min="1" step="1" value="1"></label>
-          </div>
-          <div class="design-layer-actions">
-            <button id="designLayerFit" type="button">영역 맞춤</button>
-            <button id="designLayerCenter" type="button">가운데 정렬</button>
-            <button id="designLayerForward" type="button">맨 앞으로</button>
-            <button id="designLayerBackward" type="button">뒤로 보내기</button>
-            <button id="designLayerRemove" type="button" class="danger">선택 파일 삭제</button>
-          </div>
-        </section>
-        <section class="design-review-panel" aria-labelledby="designReviewTitle">
-          <div class="inspector-preview-actions-head"><span>PRINT CHECK</span><strong id="designReviewTitle">인쇄파일 검토</strong></div>
-          <span class="design-review-state" id="designReviewCount">기본 검사 준비</span>
-          <div id="designReviewResults" class="design-review-results" aria-live="polite"></div>
-          <p>재단선·안전영역은 위 미리보기에서 확인하세요. PDF 내부 글꼴·색상 등 상세 검사는 전문 검토 도구를 이용할 수 있습니다.</p>
-          <a href="/print-checker/" class="design-advanced-check" target="_blank" rel="noopener noreferrer">고급 PDF·인쇄파일 검토 열기 ↗</a>
-        </section>
-        <div class="element-toolbox" aria-label="편집 요소 추가">
-          <div class="element-toolbox-head"><span>ELEMENTS</span><strong>요소 추가</strong></div>
-          <div class="element-tool-buttons">
-            <button type="button" data-add-shape="line">선</button>
-            <button type="button" data-add-shape="rect">박스</button>
-            <button type="button" data-add-shape="roundRect">둥근박스</button>
-            <button type="button" data-add-shape="ellipse">원</button>
-            <button type="button" data-add-shape="star">★ 별</button>
-            <button type="button" data-add-shape="sparkle">✦ 반짝임</button>
-            <button type="button" data-add-shape="diamond">◆ 다이아</button>
-            <button type="button" data-add-shape="dot">● 작은원</button>
-          </div>
-          <small>방향키 0.2mm · Shift+방향키 1mm · Shift+클릭 다중선택 · Del 선택 삭제</small>
-        </div>
-        <div class="multi-select-panel" id="multiSelectPanel" hidden>
-          <div class="multi-select-head"><strong id="multiSelectCount">2개 요소 선택</strong><small>Shift+클릭으로 추가·해제</small></div>
-          <div class="multi-align-buttons" aria-label="선택 요소 가로 정렬">
-            <button type="button" data-multi-align="left">왼쪽</button>
-            <button type="button" data-multi-align="center">가운데</button>
-            <button type="button" data-multi-align="right">오른쪽</button>
-          </div>
-          <div class="group-action-buttons" aria-label="선택 요소 그룹">
-            <button type="button" id="groupSelectionBtn">묶기 <kbd>Ctrl+G</kbd></button>
-            <button type="button" id="ungroupSelectionBtn">묶음풀기 <kbd>Ctrl+Shift+G</kbd></button>
-          </div>
-          <small>선택 요소를 하나의 그룹으로 묶어 함께 이동할 수 있습니다. 그룹·다중선택은 외곽선 하나만 표시합니다.</small>
-        </div>
-        <div class="text-inspector-head">
-          <span>EDITOR</span>
-          <strong id="inspectorModeTitle">문구 편집</strong>
-          <small id="inspectorSelectedLabel">미리보기에서 문구나 도형을 선택하세요.</small>
-        </div>
-        <div class="shape-inspector" id="shapeInspector" hidden>
-          <div class="shape-inspector-row">
-            <strong id="shapeInspectorTitle">도형</strong>
-            <button type="button" id="deleteShapeBtn" class="shape-delete-button">삭제</button>
-          </div>
-          <div class="shape-style-controls">
-            <label><span>선 두께 (mm)</span><input id="shapeStrokeWidth" type="number" min="0.1" max="12" step="0.1" value="0.5"></label>
-            <label><span>도형 투명도 (%)</span><input id="shapeOpacity" type="number" min="0" max="100" step="1" value="100"></label>
-            <label id="shapeCornerRadiusRow"><span>모서리 둥글기 (mm)</span><input id="shapeCornerRadius" type="number" min="0" max="50" step="0.5" value="0"></label>
-          </div>
-          <label class="shape-stroke-toggle" id="shapeStrokeToggleRow"><input id="shapeStrokeTransparent" type="checkbox"><span>테두리 없음 · 투명</span></label>
-          <div class="shape-color-section" id="shapeFillSection">
-            <span>채움색 · CMYK 변환</span>
-            <input id="shapeFillC" type="hidden"><input id="shapeFillM" type="hidden"><input id="shapeFillY" type="hidden"><input id="shapeFillK" type="hidden">
-            <div class="print-color-picker" data-color-group="shapeFill">
-                  <input id="shapeFillColorPicker" class="color-bar-input" type="color" value="#dbeafe" aria-label="도형 채움색 색상바">
-                  <div class="print-color-palette" aria-label="도형 채움색 대표색">
-                    <button type="button" data-color-group="shapeFill" data-color-preset="#000000" style="--sw:#000000" aria-label="검정"></button>
-                    <button type="button" data-color-group="shapeFill" data-color-preset="#ffffff" style="--sw:#ffffff" aria-label="흰색"></button>
-                    <button type="button" data-color-group="shapeFill" data-color-preset="#1d4ed8" style="--sw:#1d4ed8" aria-label="파랑"></button>
-                    <button type="button" data-color-group="shapeFill" data-color-preset="#0f766e" style="--sw:#0f766e" aria-label="청록"></button>
-                    <button type="button" data-color-group="shapeFill" data-color-preset="#16a34a" style="--sw:#16a34a" aria-label="초록"></button>
-                    <button type="button" data-color-group="shapeFill" data-color-preset="#f59e0b" style="--sw:#f59e0b" aria-label="주황"></button>
-                    <button type="button" data-color-group="shapeFill" data-color-preset="#dc2626" style="--sw:#dc2626" aria-label="빨강"></button>
-                    <button type="button" data-color-group="shapeFill" data-color-preset="#7c3aed" style="--sw:#7c3aed" aria-label="보라"></button>
-                  </div>
-                </div>
-          </div>
-          <div class="shape-color-section">
-            <span>선색 · CMYK 변환</span>
-            <input id="shapeStrokeC" type="hidden"><input id="shapeStrokeM" type="hidden"><input id="shapeStrokeY" type="hidden"><input id="shapeStrokeK" type="hidden">
-            <div class="print-color-picker" data-color-group="shapeStroke">
-                  <input id="shapeStrokeColorPicker" class="color-bar-input" type="color" value="#2563eb" aria-label="도형 선색 색상바">
-                  <div class="print-color-palette" aria-label="도형 선색 대표색">
-                    <button type="button" data-color-group="shapeStroke" data-color-preset="#000000" style="--sw:#000000" aria-label="검정"></button>
-                    <button type="button" data-color-group="shapeStroke" data-color-preset="#ffffff" style="--sw:#ffffff" aria-label="흰색"></button>
-                    <button type="button" data-color-group="shapeStroke" data-color-preset="#1d4ed8" style="--sw:#1d4ed8" aria-label="파랑"></button>
-                    <button type="button" data-color-group="shapeStroke" data-color-preset="#0f766e" style="--sw:#0f766e" aria-label="청록"></button>
-                    <button type="button" data-color-group="shapeStroke" data-color-preset="#16a34a" style="--sw:#16a34a" aria-label="초록"></button>
-                    <button type="button" data-color-group="shapeStroke" data-color-preset="#f59e0b" style="--sw:#f59e0b" aria-label="주황"></button>
-                    <button type="button" data-color-group="shapeStroke" data-color-preset="#dc2626" style="--sw:#dc2626" aria-label="빨강"></button>
-                    <button type="button" data-color-group="shapeStroke" data-color-preset="#7c3aed" style="--sw:#7c3aed" aria-label="보라"></button>
-                  </div>
-                </div>
-          </div>
-        </div>
-        <div class="text-inspector-empty" id="textInspectorEmpty">
-          문구나 도형을 클릭하면 CMYK 색상, 위치, 크기와 세부 속성을 여기서 편집할 수 있습니다.
-        </div>
-        <section class="cover-side-align-panel" aria-label="표지별 문구 정렬">
-          <strong>표지별 제목 정렬</strong>
-          <small>앞표지와 뒷표지의 기본 문구를 각각 안전영역에 맞춥니다. 추가 문구는 캔버스에서 선택하여 개별 정렬하세요.</small>
-          <div class="cover-side-align-row">
-            <span>앞표지</span>
-            <div role="group" aria-label="앞표지 제목 정렬">
-              <button type="button" data-cover-align="front" data-align="left">왼쪽</button>
-              <button type="button" data-cover-align="front" data-align="center">가운데</button>
-              <button type="button" data-cover-align="front" data-align="right">오른쪽</button>
-            </div>
-          </div>
-          <div class="cover-side-align-row">
-            <span>뒷표지</span>
-            <div role="group" aria-label="뒷표지 문구 정렬">
-              <button type="button" data-cover-align="back" data-align="left">왼쪽</button>
-              <button type="button" data-cover-align="back" data-align="center">가운데</button>
-              <button type="button" data-cover-align="back" data-align="right">오른쪽</button>
-            </div>
-          </div>
-        </section>
-        <div class="text-inspector-fields" id="textInspectorFields" hidden>
-          <label class="text-style-copy">
-            <span>내용</span>
-            <textarea id="selectedTextValue" rows="5" maxlength="700" placeholder="선택한 문구를 편집하세요. Enter로 줄바꿈할 수 있습니다."></textarea>
-          </label>
-          <div class="text-style-controls">
-            <label><span>폰트</span>
-              <select id="selectedFontFamily">
-                <option value="Pretendard">Pretendard</option>
-                <option value="Noto Sans KR">Noto Sans KR</option>
-                <option value="Malgun Gothic">맑은 고딕</option>
-                <option value="Nanum Gothic">나눔고딕</option>
-                <option value="Nanum Myeongjo">나눔명조</option>
-                <option value="Batang">바탕</option>
-              </select>
-            </label>
-            <label><span>크기 (pt)</span><input id="selectedFontSize" type="number" min="4" max="160" step="0.5"></label>
-            <label><span>굵기</span>
-              <select id="selectedFontWeight">
-                <option value="400">보통</option>
-                <option value="500">중간</option>
-                <option value="700">굵게</option>
-                <option value="800">매우 굵게</option>
-                <option value="900">최대 굵게</option>
-              </select>
-            </label>
-            <label><span>행간</span><input id="selectedLineHeight" type="number" min="0.8" max="2.2" step="0.05" value="1.2"></label>
-            <div class="selected-cmyk-control">
-              <span>글자색 · CMYK 변환</span>
-              <input id="selectedTextC" type="hidden"><input id="selectedTextM" type="hidden"><input id="selectedTextY" type="hidden"><input id="selectedTextK" type="hidden">
-              <div class="print-color-picker" data-color-group="selectedText">
-                  <input id="selectedTextColorPicker" class="color-bar-input" type="color" value="#164e6d" aria-label="선택 문구색 색상바">
-                  <div class="print-color-palette" aria-label="선택 문구색 대표색">
-                    <button type="button" data-color-group="selectedText" data-color-preset="#000000" style="--sw:#000000" aria-label="검정"></button>
-                    <button type="button" data-color-group="selectedText" data-color-preset="#ffffff" style="--sw:#ffffff" aria-label="흰색"></button>
-                    <button type="button" data-color-group="selectedText" data-color-preset="#1d4ed8" style="--sw:#1d4ed8" aria-label="파랑"></button>
-                    <button type="button" data-color-group="selectedText" data-color-preset="#0f766e" style="--sw:#0f766e" aria-label="청록"></button>
-                    <button type="button" data-color-group="selectedText" data-color-preset="#16a34a" style="--sw:#16a34a" aria-label="초록"></button>
-                    <button type="button" data-color-group="selectedText" data-color-preset="#f59e0b" style="--sw:#f59e0b" aria-label="주황"></button>
-                    <button type="button" data-color-group="selectedText" data-color-preset="#dc2626" style="--sw:#dc2626" aria-label="빨강"></button>
-                    <button type="button" data-color-group="selectedText" data-color-preset="#7c3aed" style="--sw:#7c3aed" aria-label="보라"></button>
-                  </div>
-                </div>
-            </div>
-          </div>
-          <div class="text-inspector-align" aria-label="문구 박스 위치 정렬">
-            <span>선택 문구 위치 · 해당 표지 안전영역 기준</span>
-            <div>
-              <button type="button" data-box-align="left">왼쪽</button>
-              <button type="button" data-box-align="center">가운데</button>
-              <button type="button" data-box-align="right">오른쪽</button>
-            </div>
-          </div>
-          <div class="text-inspector-align" aria-label="박스 안 글씨 정렬">
-            <span>박스 안 글씨 정렬</span>
-            <div>
-              <button type="button" data-text-align="left">왼쪽</button>
-              <button type="button" data-text-align="center">가운데</button>
-              <button type="button" data-text-align="right">오른쪽</button>
-            </div>
-          </div>
-          <button type="button" class="text-reset-button" id="resetTextLayout">선택 문구 위치·서식 초기화</button>
-          <div class="text-snap-help">드래그하면 앞표지·뒷표지 각각의 안전영역에 스냅됩니다. 가로 가운데 스냅 시 박스와 글씨가 함께 가운데 정렬됩니다.</div>
-        </div>
-      </aside>
-    </div>
-  </div>
+          <p class="field-hint" id="dimensionHelp">PDF는 실제 페이지 크기를 인식합니다. 이미지는 300dpi 가정값을 표시하므로 실물 완성 크기를 확인해 주세요.</p>
 
-  <div class="gallery-modal" id="galleryModal" hidden>
-    <div class="gallery-modal-backdrop" data-gallery-close></div>
-    <section class="gallery-board" role="dialog" aria-modal="true" aria-labelledby="galleryTitle">
-      <header class="gallery-board-head">
-        <div>
-          <span>AI DESIGN ARCHIVE</span>
-          <strong id="galleryTitle">디자인 보관함</strong>
-        </div>
-        <button type="button" class="gallery-close" data-gallery-close aria-label="보관함 닫기">×</button>
-      </header>
-      <div class="gallery-scope-row">
-        <div class="gallery-scope-tabs" role="tablist" aria-label="디자인 보관함 범위">
-          <button type="button" class="gallery-scope-tab active" data-gallery-scope="all" role="tab" aria-selected="true">전체 디자인</button>
-          <button type="button" class="gallery-scope-tab" data-gallery-scope="mine" role="tab" aria-selected="false">내 디자인</button>
-        </div>
-        <small>전체 디자인은 문구·로고를 제외한 안전 미리보기와 디자인 요청 설정만 공유됩니다.</small>
-      </div>
-      <div class="gallery-search-row">
-        <input id="gallerySearch" type="search" placeholder="요청문구·스타일로 검색">
-        <button id="galleryRefreshBtn" type="button" class="secondary-button compact">새로고침</button>
-        <span id="galleryCount">0개</span>
-      </div>
-      <div class="gallery-grid" id="galleryGrid"></div>
-      <div class="gallery-empty" id="galleryEmpty" hidden>저장한 디자인이 없습니다.</div>
-    </section>
-  </div>
+          <div class="panel-head section-head"><span class="step-number">03</span><div><h2>도련·배경 확장</h2><p>최종 인쇄용 여유 영역을 만듭니다.</p></div></div>
+          <div class="field-grid">
+            <div class="field"><label for="bleedMm">사방 도련 <small>mm</small></label><input id="bleedMm" type="number" min="1" max="10" step="0.5" value="3" required></div>
+            <div class="field"><label for="safetyMm">안전여백 가이드 <small>mm</small></label><select id="safetyMm"><option value="3" selected>3mm</option><option value="5">5mm</option><option value="10">10mm</option></select></div>
+          </div>
+          <div class="field"><label for="edgeMode">배경 확장 방식</label><select id="edgeMode">
+            <option value="mirror">거울 확장 · 가장자리 무늬 반사</option>
+            <option value="edge">끝선 연장 · 단색·그라데이션용</option>
+          </select></div>
+          <div class="field"><label for="fitMode">원본과 완성 크기 비율이 다를 때</label><select id="fitMode">
+            <option value="contain">전체 유지 · 흰 여백이 생길 수 있음</option>
+            <option value="cover">여백 없이 채우기 · 원본 일부 잘릴 수 있음</option>
+          </select></div>
+          <div class="hint-box" id="fitWarning">실제 디자인 가장자리를 복제·반사해 확장합니다. 사진·꽃무늬·글자·얼굴이 경계에 걸린 경우 결과를 반드시 확인해야 합니다.</div>
+          <div class="output-math" id="outputSize">출력용 PDF 크기: 파일을 선택해 주세요.</div>
+          <button class="primary-btn process-btn" type="button" id="processBtn" disabled>도련 생성하고 결과 비교하기</button>
+          <p class="status" id="statusText" role="status" aria-live="polite">파일을 업로드하면 시작할 수 있습니다.</p>
+        </section>
 
-  <div class="gallery-detail-modal" id="galleryDetailModal" hidden>
-    <div class="gallery-modal-backdrop" data-gallery-detail-close></div>
-    <section class="gallery-detail" role="dialog" aria-modal="true" aria-labelledby="galleryDetailTitle">
-      <button type="button" class="gallery-close detail-close" data-gallery-detail-close aria-label="상세보기 닫기">×</button>
-      <div class="gallery-detail-image-wrap"><img id="galleryDetailImage" alt="저장된 표지 디자인"></div>
-      <div class="gallery-detail-copy">
-        <strong id="galleryDetailTitle">저장된 디자인</strong>
-        <span id="galleryDetailMeta"></span>
-        <h3>디자인 요청문구</h3>
-        <pre id="galleryDetailPrompt"></pre>
-        <div class="gallery-detail-actions">
-          <button id="galleryUseSettingsBtn" type="button" class="primary-button">이 설정으로 새 디자인 만들기</button>
-          <button id="galleryLoadOwnBtn" type="button" class="secondary-button" hidden>내 작업 설정 불러오기</button>
-          <button id="galleryDeleteOwnBtn" type="button" class="gallery-danger-button" hidden>내 디자인 삭제</button>
-        </div>
-        <small class="gallery-detail-notice" id="galleryDetailNotice">공유 디자인에서는 규격·제목·기관명 같은 작업 문구를 가져오지 않습니다.</small>
+        <section class="panel preview-panel" aria-label="원본과 보완 결과 미리보기">
+          <div class="preview-head"><div><span class="step-number">04</span><h2>수정 전 · 수정 후 비교</h2><p>완성 크기 안쪽은 원본 디자인, 바깥만 도련 영역입니다.</p></div><div class="field page-field"><label for="pageSelect">페이지</label><select id="pageSelect" disabled><option value="1">1</option></select></div></div>
+          <div class="legend"><span><i class="legend-bleed"></i>도련 외곽</span><span><i class="legend-trim"></i>재단선</span><span><i class="legend-safe"></i>안전여백</span></div>
+          <div class="preview-grid">
+            <div class="preview-card"><h3>원본 디자인</h3><div class="canvas-frame"><canvas id="beforeCanvas" role="img" aria-label="업로드 원본 파일 미리보기"></canvas><p class="canvas-empty" id="beforeEmpty">원본 파일을 올려주세요.</p></div><small>원본은 수정하거나 덮어쓰지 않습니다.</small></div>
+            <div class="preview-card"><h3>도련 보완 결과</h3><div class="canvas-frame"><canvas id="afterCanvas" role="img" aria-label="도련이 추가된 결과 미리보기"></canvas><p class="canvas-empty" id="afterEmpty">도련을 생성하면 여기서 비교할 수 있습니다.</p></div><small>안내선은 미리보기 전용이며 PDF에는 인쇄되지 않습니다.</small></div>
+          </div>
+          <div class="export-panel">
+            <h3>출력 파일 검토</h3>
+            <p id="reviewText">도련 생성이 끝나면 실제 치수와 주의사항을 안내합니다.</p>
+            <label class="confirm"><input type="checkbox" id="confirmCheck" disabled>재단선·도련·안전여백과 중요한 글자·사진의 위치를 확인했습니다.</label>
+            <button class="primary-btn save-btn" type="button" id="saveBtn" disabled>출력용 PDF 다운로드</button>
+          </div>
+          <details class="guide-details" id="helpGuide"><summary>도련 생성 시 꼭 알아둘 점</summary>
+            <p>3mm 도련을 적용하면 A4 완성 210×297mm 파일은 216×303mm가 됩니다. 결과 PDF의 TrimBox는 원래 완성 크기이고 BleedBox는 추가된 전체 영역입니다.</p>
+            <p>도련은 배경 바깥만 자동으로 이어 붙입니다. AI 아웃페인팅이 아니므로 사진 속 인물·풍경·복잡한 무늬를 새로 만들어내지는 않습니다. 파일의 원본 PDF 글자·벡터는 재단 안쪽에서 최대한 유지됩니다.</p>
+            <p>리플렛 접지선은 미리보기 가이드입니다. 3단 접지의 안쪽 접는 면은 작업 방식에 따라 폭 조정이 필요하며, 이 도구가 접지 순서나 패널 폭을 자동으로 재배열하지는 않습니다.</p>
+          </details>
+        </section>
       </div>
-    </section>
+      <p class="privacy-note">원본 파일은 다른 이용자에게 공개되지 않습니다. 대용량 처리에 사용된 임시 파일은 작업 완료 시 삭제되며, 생성 결과는 직접 내려받아 보관해 주세요.</p>
+    </main>
   </div>
 
   <script defer src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
@@ -643,11 +129,7 @@
   <script defer src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
   <script defer src="https://www.gstatic.com/firebasejs/9.23.0/firebase-storage-compat.js"></script>
   <script defer src="/js/firebase-config.js"></script>
-  <script defer src="/js/program-manuals/home-modal.js?v=20260918-1"></script>
-  <script defer src="/js/program-sidebar-actions.js?v=20260918-2"></script>
-  <script defer src="/js/design-workshop-modes.js?v=20261028-3"></script>
-  <script defer src="/js/design-workspace-layers.js?v=20261013-4"></script>
-  <script defer src="/js/ai-design-print-export.js?v=20261013-4"></script>
-  <script defer src="/js/ai-design-maker.js?v=20261028-5"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js"></script>
+  <script defer src="/js/design-bleed-enhancer.js?v=20261123-1"></script>
 </body>
 </html>
