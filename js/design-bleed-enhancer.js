@@ -173,8 +173,16 @@
       state.loading=false;sizeSummary();ready();
     }
   }
+  // Single-page inspection can use more of the right-side workspace; comparison
+  // stays capped to keep both originals comfortably visible side-by-side.
+  function previewRenderWidth() {
+    const grid=$('previewGrid');
+    const single=grid?.dataset.previewMode!=='compare';
+    const available=grid?.clientWidth||840;
+    return Math.min(single?900:540,Math.max(420,single?available-76:(available-54)/2));
+  }
   function drawImage(image,canvas) {
-    const maxWidth=420, maxHeight=520;
+    const maxWidth=previewRenderWidth(), maxHeight=720;
     const scale=Math.min(maxWidth/image.width,maxHeight/image.height,1);
     canvas.width=Math.max(1,Math.round(image.width*scale));
     canvas.height=Math.max(1,Math.round(image.height*scale));
@@ -185,7 +193,7 @@
   async function drawPdf(doc,pageNumber,canvas) {
     const page=await doc.getPage(pageNumber);
     const natural=page.getViewport({scale:1});
-    const scale=Math.min(420/natural.width,520/natural.height);
+    const scale=Math.min(previewRenderWidth()/natural.width,720/natural.height);
     const viewport=page.getViewport({scale});
     canvas.width=Math.max(1,Math.round(viewport.width));
     canvas.height=Math.max(1,Math.round(viewport.height));
@@ -332,8 +340,29 @@
     if(size){$('trimWidth').value=size[0].toFixed(1);$('trimHeight').value=size[1].toFixed(1);}
     invalidateResult();
   }
+  function setPreviewMode(mode) {
+    const grid=$('previewGrid');
+    if(!grid||!['compare','original','result'].includes(mode))return;
+    grid.dataset.previewMode=mode;
+    document.querySelectorAll('button[data-preview-mode]').forEach(button=>{
+      const active=button.dataset.previewMode===mode;
+      button.classList.toggle('active',active);
+      button.setAttribute('aria-pressed',String(active));
+    });
+    if(state.file)void drawPreviews();
+  }
   function setup() {
     $('resetBtn').addEventListener('click',reset);
+    $('logoutBtn').addEventListener('click',async()=>{
+      if(!window.auth?.currentUser)return;
+      $('logoutBtn').disabled=true;
+      try{await window.auth.signOut();reset();}
+      catch(error){status('로그아웃하지 못했습니다. 다시 시도해 주세요.','error');}
+      finally{$('logoutBtn').disabled=false;}
+    });
+    document.querySelectorAll('button[data-preview-mode]').forEach(button=>{
+      button.addEventListener('click',()=>setPreviewMode(button.dataset.previewMode));
+    });
     $('processBtn').addEventListener('click',processFile);
     $('saveBtn').addEventListener('click',savePdf);
     $('confirmCheck').addEventListener('change',ready);
@@ -368,7 +397,7 @@
       $('helpGuide').scrollIntoView({behavior:'smooth',block:'center'});
     });
     reset();
-    window.DesignBleedEnhancer={state,settings,process:processFile,version:'2026-11-23'};
+    window.DesignBleedEnhancer={state,settings,process:processFile,setPreviewMode,version:'2026-11-23-workbench'};
   }
   setup();
   const auth=window.auth;

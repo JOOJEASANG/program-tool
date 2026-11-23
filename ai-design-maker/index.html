@@ -9,7 +9,7 @@
   <title>인쇄 디자인 보완 · Program Studio</title>
   <link rel="icon" href="/favicon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css">
-  <link rel="stylesheet" href="/css/design-bleed-enhancer.css?v=20261123-1">
+  <link rel="stylesheet" href="/css/design-bleed-enhancer.css?v=20261123-2">
   <link rel="stylesheet" href="/css/program-suite-ux-20261116.css?v=20261116-1">
 </head>
 <body>
@@ -22,25 +22,26 @@
     </div>
   </div>
 
-  <div class="studio" id="studio" hidden>
-    <header class="topbar">
-      <a href="/" class="brand" aria-label="프로그램 홈으로 이동"><span class="brand-mark">B</span><span><strong>인쇄 디자인 보완</strong><small>도련·배경 확장 · 원본 파일 보존</small></span></a>
-      <div class="topbar-actions">
-        <a href="/" class="toplink">프로그램 홈</a>
-        <button type="button" class="toplink" id="helpBtn">사용 방법</button>
-        <button type="button" class="toplink" id="resetBtn">작업 초기화</button>
+  <div class="studio layout-app" id="studio" hidden>
+    <aside class="sidebar controls" aria-label="인쇄 디자인 보완 설정">
+      <div class="sidebar-top">
+        <div class="top-actions">
+          <a class="sidebar-action sidebar-nav-icon" id="enhancerHomeBtn" href="/" title="프로그램 목록" aria-label="프로그램 목록">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><path d="M3 11.5 12 4l9 7.5"/><path d="M5.5 10.5V20h13v-9.5"/><path d="M9.5 20v-6h5v6"/></svg>
+          </a>
+          <button class="sidebar-action" type="button" id="helpBtn">사용방법</button>
+          <button class="sidebar-action" type="button" id="resetBtn">전체 초기화</button>
+          <button class="sidebar-action sidebar-nav-icon" type="button" id="logoutBtn" title="로그아웃" aria-label="로그아웃">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><path d="M10 4H5a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h5"/><path d="M14 8l4 4-4 4"/><path d="M18 12H8"/></svg>
+          </button>
+        </div>
       </div>
-    </header>
-    <main class="workspace">
-      <div class="page-intro">
-        <span class="eyebrow">PRINT DESIGN FINISHER</span>
-        <h1>디자인을 다시 만들지 않고,<br>인쇄에 필요한 <em>도련만 보완</em>합니다.</h1>
-        <p>고객이 제작한 PDF·JPG·PNG·WEBP 파일을 올리세요. 완성 크기는 유지하고 잘리는 바깥 영역을 확장해 별도의 출력용 PDF로 저장합니다.</p>
+      <div class="sidebar-program-title">
+        <span class="workspace-kicker">PRINT DESIGN FINISHER</span>
+        <h2>인쇄 디자인 보완</h2>
+        <p>고객 디자인은 그대로 두고, 재단에 필요한 바깥 도련을 보완합니다.</p>
       </div>
-
-      <div class="steps" aria-label="작업 단계"><span>1. 디자인 업로드</span><span>2. 크기·도련 설정</span><span>3. 원본·결과 비교</span><span>4. PDF 저장</span></div>
-      <div class="layout">
-        <section class="panel controls" aria-label="디자인 보완 설정">
+      <section class="tool-section first-tool-section">
           <div class="panel-head"><span class="step-number">01</span><div><h2>고객 파일 업로드</h2><p>새로 디자인을 생성할 필요가 없습니다.</p></div></div>
           <div class="upload-area" id="uploadZone" role="button" tabindex="0" aria-label="PDF 또는 이미지 파일 선택">
             <input id="fileInput" type="file" accept=".pdf,.png,.jpg,.jpeg,.webp,application/pdf,image/png,image/jpeg,image/webp">
@@ -51,7 +52,9 @@
           </div>
           <div id="fileInfo" class="file-info" hidden><strong id="fileName"></strong><span id="fileMeta"></span></div>
 
-          <div class="panel-head section-head"><span class="step-number">02</span><div><h2>완성 규격과 제품</h2><p>재단 후 완성되는 크기를 입력합니다.</p></div></div>
+          </section>
+      <section class="tool-section">
+        <div class="panel-head"><span class="step-number">02</span><div><h2>완성 규격과 제품</h2><p>재단 후 완성되는 크기를 입력합니다.</p></div></div>
           <div class="field">
             <label for="productType">인쇄물 종류</label>
             <select id="productType">
@@ -82,7 +85,9 @@
           </div>
           <p class="field-hint" id="dimensionHelp">PDF는 실제 페이지 크기를 인식합니다. 이미지는 300dpi 가정값을 표시하므로 실물 완성 크기를 확인해 주세요.</p>
 
-          <div class="panel-head section-head"><span class="step-number">03</span><div><h2>도련·배경 확장</h2><p>최종 인쇄용 여유 영역을 만듭니다.</p></div></div>
+          </section>
+      <section class="tool-section">
+        <div class="panel-head"><span class="step-number">03</span><div><h2>도련·배경 확장</h2><p>최종 인쇄용 여유 영역을 만듭니다.</p></div></div>
           <div class="field-grid">
             <div class="field"><label for="bleedMm">사방 도련 <small>mm</small></label><input id="bleedMm" type="number" min="1" max="10" step="0.5" value="3" required></div>
             <div class="field"><label for="safetyMm">안전여백 가이드 <small>mm</small></label><select id="safetyMm"><option value="3" selected>3mm</option><option value="5">5mm</option><option value="10">10mm</option></select></div>
@@ -96,30 +101,59 @@
             <option value="cover">여백 없이 채우기 · 원본 일부 잘릴 수 있음</option>
           </select></div>
           <div class="hint-box" id="fitWarning">실제 디자인 가장자리를 복제·반사해 확장합니다. 사진·꽃무늬·글자·얼굴이 경계에 걸린 경우 결과를 반드시 확인해야 합니다.</div>
-          <div class="output-math" id="outputSize">출력용 PDF 크기: 파일을 선택해 주세요.</div>
+      </section>
+      <div class="sidebar-output" aria-label="도련 생성 실행">
+        <div class="output-math" id="outputSize">출력용 PDF 크기: 파일을 선택해 주세요.</div>
           <button class="primary-btn process-btn" type="button" id="processBtn" disabled>도련 생성하고 결과 비교하기</button>
           <p class="status" id="statusText" role="status" aria-live="polite">파일을 업로드하면 시작할 수 있습니다.</p>
-        </section>
+      </div>
+    </aside>
 
-        <section class="panel preview-panel" aria-label="원본과 보완 결과 미리보기">
-          <div class="preview-head"><div><span class="step-number">04</span><h2>수정 전 · 수정 후 비교</h2><p>완성 크기 안쪽은 원본 디자인, 바깥만 도련 영역입니다.</p></div><div class="field page-field"><label for="pageSelect">페이지</label><select id="pageSelect" disabled><option value="1">1</option></select></div></div>
-          <div class="legend"><span><i class="legend-bleed"></i>도련 외곽</span><span><i class="legend-trim"></i>재단선</span><span><i class="legend-safe"></i>안전여백</span></div>
-          <div class="preview-grid">
+    <main class="workspace" aria-label="인쇄 디자인 미리보기 작업실">
+      <header class="workspace-head">
+        <div class="workspace-title">
+          <span class="workspace-kicker">BLEED EXTENSION · BEFORE / AFTER</span>
+          <h1>디자인 보완 미리보기</h1>
+          <p>원본과 도련 보완 결과를 비교하고 재단선을 확인하세요. 원본 파일은 변경되지 않습니다.</p>
+        </div>
+        <div class="preview-controls" role="toolbar" aria-label="미리보기 제어">
+          <label class="page-field" for="pageSelect"><span>페이지</span>
+            <select id="pageSelect" disabled><option value="1">1</option></select>
+          </label>
+          <div class="view-switch" role="group" aria-label="비교 표시 방식">
+            <button type="button" class="view-btn active" data-preview-mode="compare" aria-pressed="true">나란히</button>
+            <button type="button" class="view-btn" data-preview-mode="original" aria-pressed="false">원본</button>
+            <button type="button" class="view-btn" data-preview-mode="result" aria-pressed="false">보완 결과</button>
+          </div>
+        </div>
+      </header>
+      <section class="preview-panel" aria-label="원본과 도련 확장 결과 비교">
+        <div class="preview-info">
+          <strong>인쇄물 비교 화면</strong>
+          <span>파란선: 재단 위치 · 초록 점선: 안전여백</span>
+        </div>
+<div class="legend"><span><i class="legend-bleed"></i>도련 외곽</span><span><i class="legend-trim"></i>재단선</span><span><i class="legend-safe"></i>안전여백</span></div>
+          <div class="preview-grid" id="previewGrid" data-preview-mode="compare">
             <div class="preview-card"><h3>원본 디자인</h3><div class="canvas-frame"><canvas id="beforeCanvas" role="img" aria-label="업로드 원본 파일 미리보기"></canvas><p class="canvas-empty" id="beforeEmpty">원본 파일을 올려주세요.</p></div><small>원본은 수정하거나 덮어쓰지 않습니다.</small></div>
             <div class="preview-card"><h3>도련 보완 결과</h3><div class="canvas-frame"><canvas id="afterCanvas" role="img" aria-label="도련이 추가된 결과 미리보기"></canvas><p class="canvas-empty" id="afterEmpty">도련을 생성하면 여기서 비교할 수 있습니다.</p></div><small>안내선은 미리보기 전용이며 PDF에는 인쇄되지 않습니다.</small></div>
           </div>
-          <div class="export-panel">
-            <h3>출력 파일 검토</h3>
+      </section>
+      <div class="workspace-bottom">
+        <section class="export-panel" aria-label="인쇄용 PDF 다운로드">
+          <div class="export-copy">
+            <h2>출력용 PDF 저장</h2>
             <p id="reviewText">도련 생성이 끝나면 실제 치수와 주의사항을 안내합니다.</p>
+          </div>
+          <div class="export-actions">
             <label class="confirm"><input type="checkbox" id="confirmCheck" disabled>재단선·도련·안전여백과 중요한 글자·사진의 위치를 확인했습니다.</label>
             <button class="primary-btn save-btn" type="button" id="saveBtn" disabled>출력용 PDF 다운로드</button>
           </div>
-          <details class="guide-details" id="helpGuide"><summary>도련 생성 시 꼭 알아둘 점</summary>
+        </section>
+        <details class="guide-details" id="helpGuide"><summary>도련 생성 시 꼭 알아둘 점</summary>
             <p>3mm 도련을 적용하면 A4 완성 210×297mm 파일은 216×303mm가 됩니다. 결과 PDF의 TrimBox는 원래 완성 크기이고 BleedBox는 추가된 전체 영역입니다.</p>
             <p>도련은 배경 바깥만 자동으로 이어 붙입니다. AI 아웃페인팅이 아니므로 사진 속 인물·풍경·복잡한 무늬를 새로 만들어내지는 않습니다. 파일의 원본 PDF 글자·벡터는 재단 안쪽에서 최대한 유지됩니다.</p>
             <p>리플렛 접지선은 미리보기 가이드입니다. 3단 접지의 안쪽 접는 면은 작업 방식에 따라 폭 조정이 필요하며, 이 도구가 접지 순서나 패널 폭을 자동으로 재배열하지는 않습니다.</p>
           </details>
-        </section>
       </div>
       <p class="privacy-note">원본 파일은 다른 이용자에게 공개되지 않습니다. 대용량 처리에 사용된 임시 파일은 작업 완료 시 삭제되며, 생성 결과는 직접 내려받아 보관해 주세요.</p>
     </main>
@@ -131,6 +165,6 @@
   <script defer src="https://www.gstatic.com/firebasejs/9.23.0/firebase-storage-compat.js"></script>
   <script defer src="/js/firebase-config.js"></script>
   <script defer src="https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js"></script>
-  <script defer src="/js/design-bleed-enhancer.js?v=20261123-1"></script>
+  <script defer src="/js/design-bleed-enhancer.js?v=20261123-2"></script>
 </body>
 </html>
