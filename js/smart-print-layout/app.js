@@ -113,7 +113,16 @@
         const item = await inspectFile(file);
         state.items.push(item);
       }
-      renderFiles(); recalculate(); status('용지 한 장에 들어가는 최대 개수로 자동 배치했습니다.', 'success');
+      // A new upload should not leave the mandatory finished-size fields blank.
+      // Never overwrite a size the user already entered before importing.
+      const trimW = $('trimGuideWidth'), trimH = $('trimGuideHeight');
+      if (state.items.length && trimW && trimH && !trimW.value.trim() && !trimH.value.trim()) {
+        trimW.value = round1(state.items[0].widthMm);
+        trimH.value = round1(state.items[0].heightMm);
+      }
+      renderFiles();
+      recalculate();
+      if (state.plan) status('용지 한 장에 들어가는 최대 개수로 자동 배치했습니다.', 'success');
     } catch (error) {
       status(error?.message || 'PDF를 읽지 못했습니다.', 'error');
     } finally {

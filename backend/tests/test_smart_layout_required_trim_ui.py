@@ -64,3 +64,31 @@ def test_smart_fit_modes_and_named_paper_presets_are_present():
     assert 'paper-presets.js?v=' in html and 'window.localStorage' in paper
     assert 'fit_mode: cfg.fitMode' in app
     assert 'fit_mode=settings.fit_mode' in router
+
+def test_download_readiness_validates_only_when_auto_fit_or_crop_marks_are_enabled():
+    html = (ROOT / 'smart-print-layout' / 'index.html').read_text(encoding='utf-8')
+    final = (ROOT / 'js' / 'smart-print-layout' / 'final-controls.js').read_text(encoding='utf-8')
+    app = (ROOT / 'js' / 'smart-print-layout' / 'app.js').read_text(encoding='utf-8')
+    enhance = (ROOT / 'js' / 'smart-print-layout' / 'size-numbering.js').read_text(encoding='utf-8')
+    saved = (ROOT / 'js' / 'smart-print-layout' / 'session-persistence.js').read_text(encoding='utf-8')
+    assert 'id="downloadReadiness"' in html
+    assert "function trimRequired()" in final
+    assert "Boolean($('autoFitTrim')?.checked || $('cropMarks')?.checked)" in final
+    assert "delete settings.trim_width_mm" in final
+    assert "if (button.disabled !== disabled) button.disabled = disabled" in final
+    assert "if (state.plan) status('용지 한 장에 들어가는 최대 개수로 자동 배치했습니다.'" in app
+    assert "hasPendingSizes" in enhance
+    assert "requestAnimationFrame(() => requestAnimationFrame(resolve))" in saved
+
+
+def test_smart_print_download_readiness_runtime():
+    import shutil
+    import subprocess
+    import pytest
+
+    node = shutil.which('node')
+    if not node:
+        pytest.skip('Node.js is not installed')
+    test = ROOT / 'backend' / 'tests' / 'smart_print_download_readiness_behavior.cjs'
+    result = subprocess.run([node, str(test)], capture_output=True, text=True, timeout=20)
+    assert result.returncode == 0, result.stdout + result.stderr
