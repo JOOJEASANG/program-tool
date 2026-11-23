@@ -76,7 +76,7 @@ def test_new_tools_have_user_guides_and_valid_javascript():
         "js/program-manuals/pdf-suite.js",
     ]
     for path in manual_paths:
-        expected_date = ('2026-10-29' if path.endswith('pdf-suite.js')
+        expected_date = ('2026-11-23' if path.endswith('pdf-suite.js')
                          else '2026-11-23' if path.endswith('smart-print-layout.js')
                          else '2026-10-28')
         assert f"updated: '{expected_date}'" in read(path)

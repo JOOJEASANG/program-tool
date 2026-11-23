@@ -29,7 +29,7 @@ def test_pdf_utility_menu_has_direct_workflow_bridge():
         "pdf-utility-direct-tools-v1",
         "/api/pdf-tools/",
         "/api/preflight/check",
-        "/api/preflight/auto-fix",
+        "PdfPrintAutoFix?.mountStandalone",
         "/api/pdf-utility/background-cleanup-crop-storage",
     ):
         assert marker in bridge
