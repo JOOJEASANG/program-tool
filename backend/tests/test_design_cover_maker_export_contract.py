@@ -51,7 +51,7 @@ def test_guide_options_support_leaflet_invitation_and_cover_without_ai():
         assert f'<option value="{key}">' in html
     assert "const divisions=type==='leaflet2'?2:type==='leaflet3'?3:0;" in js
     assert "AI 아웃페인팅이 아니므로" in html
-    assert "id=\\"generateBtn\\"" not in html
+    assert 'id="generateBtn"' not in html
 
 
 def test_legacy_creator_runtime_not_loaded_even_if_preserved_as_archived_code():
