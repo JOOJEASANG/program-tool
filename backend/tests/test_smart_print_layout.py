@@ -2,6 +2,7 @@ import fitz
 
 from services.smart_print_layout import (
     SourceItem,
+    Placement,
     build_layout_plan,
     mirror_back_placement,
     render_layout_pdf,
@@ -170,3 +171,37 @@ def test_oversized_pdf_fits_target_size_without_distorting_content():
             output.close()
     finally:
         source.close()
+
+
+def test_oversized_pdf_cover_mode_crops_center_instead_of_stretching():
+    """A 2:1 image inside a square is cropped, with no white bars."""
+    src = fitz.open()
+    try:
+        p = src.new_page(width=300 * MM_TO_PT, height=150 * MM_TO_PT)
+        p.draw_rect(p.rect, fill=(0, 0, 0), color=(0, 0, 0))
+        fitted_item = SourceItem(0, 'wide.pdf', 90.0, 90.0, 1, 1)
+        plan = build_auto_fill_layout_plan([fitted_item], 210, 297, 5, 3, False, False, 'long')
+        data = render_layout_pdf([src], plan, gap_mm=3, crop_marks=False, keep_proportion=True, fit_mode='cover')
+        with fitz.open(stream=data, filetype='pdf') as out:
+            placement = plan.sheets[0][0]
+            pix = out[0].get_pixmap(alpha=False)
+            x = round((placement.x_mm + 45) * MM_TO_PT)
+            y = round((placement.y_mm + 5) * MM_TO_PT)
+            assert max(pix.pixel(x, y)[:3]) < 40
+    finally:
+        src.close()
+
+
+def test_cover_clip_when_rotated_uses_swapped_slot_aspect():
+    src = _source(300, 150)
+    try:
+        item = SourceItem(0, 'rotated.pdf', 90, 50, 1, 1)
+        plan = build_layout_plan([item], 210, 297, 5, 3, True, False, 'long')
+        placement = plan.sheets[0][0]
+        rotated = Placement(placement.file_index, placement.copy_index, placement.x_mm,
+                            placement.y_mm, placement.height_mm, placement.width_mm, True)
+        from services.smart_print_layout import _fit_cover_clip
+        clip = _fit_cover_clip(src[0], rotated)
+        assert abs(clip.width / clip.height - rotated.height_mm / rotated.width_mm) < 1e-6
+    finally:
+        src.close()

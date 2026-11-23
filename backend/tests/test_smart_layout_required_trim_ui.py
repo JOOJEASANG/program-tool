@@ -51,3 +51,16 @@ def test_server_replaces_legacy_page_edge_crop_marks_with_entered_trim_marks():
     assert 'required=settings.crop_marks' in router
     assert 'trim_rect_mm' in trim_service
     assert 'placement.rotated' in trim_service
+
+
+def test_smart_fit_modes_and_named_paper_presets_are_present():
+    html = (ROOT / 'smart-print-layout' / 'index.html').read_text(encoding='utf-8')
+    app = (ROOT / 'js' / 'smart-print-layout' / 'app.js').read_text(encoding='utf-8')
+    paper = (ROOT / 'js' / 'smart-print-layout' / 'paper-presets.js').read_text(encoding='utf-8')
+    router = (ROOT / 'backend' / 'routers' / 'pdf_smart_layout.py').read_text(encoding='utf-8')
+    assert 'id="fitMode"' in html
+    assert all(f'value="{mode}"' in html for mode in ('contain', 'cover', 'stretch'))
+    assert 'id="paperSavePreset"' in html and 'id="paperDeletePreset"' in html
+    assert 'paper-presets.js?v=' in html and 'window.localStorage' in paper
+    assert 'fit_mode: cfg.fitMode' in app
+    assert 'fit_mode=settings.fit_mode' in router

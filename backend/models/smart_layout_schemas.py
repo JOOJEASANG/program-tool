@@ -23,6 +23,7 @@ class SmartLayoutRequest(BaseModel):
     allow_rotate: bool = False
     auto_fill: bool = False
     auto_fit_trim: bool = False
+    fit_mode: Literal['contain', 'cover', 'stretch'] = 'contain'
     side_mode: Literal['auto', 'single', 'duplex'] = 'auto'
     flip_edge: Literal['long', 'short'] = 'long'
     crop_marks: bool = False

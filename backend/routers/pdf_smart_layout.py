@@ -187,7 +187,7 @@ def _render_smart_result(uid, raw_settings, settings, trim_width_mm, trim_height
         # The legacy renderer draws marks on the uploaded page edge. Render the
         # layout without those marks, then draw them at the required finished
         # trim size entered in STEP 3.
-        output = render_layout_pdf(render_docs, plan, gap_mm=settings.gap_mm, crop_marks=False, keep_proportion=settings.auto_fit_trim)
+        output = render_layout_pdf(render_docs, plan, gap_mm=settings.gap_mm, crop_marks=False, keep_proportion=settings.auto_fit_trim, fit_mode=settings.fit_mode)
         output = apply_trim_crop_marks(
             output,
             plan,

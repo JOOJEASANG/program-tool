@@ -88,6 +88,7 @@
       flipEdge: $('flipEdge')?.value || 'long',
       cropMarks: Boolean($('cropMarks')?.checked),
       autoFitTrim: Boolean($('autoFitTrim')?.checked),
+      fitMode: $('fitMode')?.value || 'contain',
       trimWidthMm: Number($('trimGuideWidth')?.value || 0),
       trimHeightMm: Number($('trimGuideHeight')?.value || 0),
     };
@@ -318,7 +319,7 @@
   function applySavedSettings(saved = {}) {
     const preset = $('paperPreset');
     if (preset) {
-      preset.value = ['a4', 'b4', 'a3', 'sra3', 'a3plus', 'custom'].includes(saved.paperPreset) ? saved.paperPreset : 'custom';
+      preset.value = Array.from(preset.options).some(option => option.value === saved.paperPreset) ? saved.paperPreset : 'custom';
       preset.dispatchEvent(new Event('change', { bubbles: true }));
     }
     if ($('paperWidth') && Number.isFinite(Number(saved.paperWidth))) $('paperWidth').value = Number(saved.paperWidth);
@@ -331,6 +332,8 @@
     if ($('cropMarks')) $('cropMarks').checked = Boolean(saved.cropMarks);
     // Legacy saved sessions did not automatically resize originals.
     if ($('autoFitTrim')) $('autoFitTrim').checked = saved.autoFitTrim === undefined ? false : Boolean(saved.autoFitTrim);
+    if ($('fitMode')) $('fitMode').value = ['contain', 'cover', 'stretch'].includes(saved.fitMode) ? saved.fitMode : 'contain';
+    if ($('fitMode')) $('fitMode').disabled = !$('autoFitTrim')?.checked;
     if ($('trimGuideWidth')) $('trimGuideWidth').value = Number(saved.trimWidthMm) >= 2 ? saved.trimWidthMm : '';
     if ($('trimGuideHeight')) $('trimGuideHeight').value = Number(saved.trimHeightMm) >= 2 ? saved.trimHeightMm : '';
     layoutApi()?.recalculate?.();

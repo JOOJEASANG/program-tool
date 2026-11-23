@@ -258,6 +258,7 @@
     settings.trim_width_mm = trim.widthMm;
     settings.trim_height_mm = trim.heightMm;
     settings.auto_fit_trim = Boolean($('autoFitTrim')?.checked);
+    settings.fit_mode = $('fitMode')?.value || 'contain';
     settings.numbering = validateNumberingConfig(numberingConfig());
     return settings;
   }

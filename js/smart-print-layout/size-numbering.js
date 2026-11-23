@@ -624,6 +624,7 @@
       allow_rotate: Boolean($('allowRotate')?.checked),
       auto_fill: true,
       auto_fit_trim: Boolean($('autoFitTrim')?.checked),
+      fit_mode: $('fitMode')?.value || 'contain',
       side_mode: $('sideMode')?.value || 'auto',
       flip_edge: $('flipEdge')?.value || 'long',
       crop_marks: Boolean($('cropMarks')?.checked),
