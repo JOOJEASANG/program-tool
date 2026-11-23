@@ -169,7 +169,7 @@ def test_pdf_suite_is_staged_with_existing_engines_and_clean_final_workspace():
 
     for marker in (
         "name:'디자인 검토'",
-        "name:'표지 디자인'",
+        "name:'인쇄 디자인 보완'",
         "name:'스마트 인쇄배치'",
         "name:'PDF배치'",
         "name:'PDF편집'",

@@ -12,11 +12,11 @@ def test_home_is_print_first_from_initial_source_not_generic_category_runtime():
     for marker in (
         'data-home-static-professional="1"',
         "스마트 인쇄배치",
-        "표지 디자인",
+        "인쇄 디자인 보완",
         "url:\'ai-design-maker/\'",
         "PDF배치",
         "PDF편집",
-        "AI 배경·문구·PDF·이미지",
+        "도련과 배경을 확장",
     ):
         assert marker in source
     for legacy in (
