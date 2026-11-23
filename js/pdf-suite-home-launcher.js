@@ -6,7 +6,7 @@
   window.__programStudioPdfSuiteHomeV10=true;
 
   const PROGRAMS=[
-    {id:'ai-design-maker',cat:'design',name:'표지 디자인',icon:'✦',accent:'#7c3aed',bg:'linear-gradient(135deg,#312e81,#7c3aed 58%,#db2777)',catLabel:'표지 디자인 · 책자·보고서 표지',desc:'책자·보고서·자료집 표지를 제작합니다. 앞표지·뒷표지·앞뒤 동시·전체 펼침을 선택하고 AI 배경·문구·PDF·이미지를 편집해 인쇄용 파일로 저장하세요.',url:'ai-design-maker/',tags:['AI 배경','앞·뒤표지','책등 계산','PDF·PNG 저장']},
+    {id:'ai-design-maker',cat:'design',name:'인쇄 디자인 보완',icon:'▧',accent:'#0f766e',bg:'linear-gradient(135deg,#12396d,#0f766e 62%,#35a7a1)',catLabel:'디자인 보완 · 도련·배경 확장',desc:'다른 사람이 제작한 PDF·이미지를 업로드해 사방 도련과 배경을 확장합니다. 책자 표지부터 초대장·안내장·리플렛까지 원본을 유지하고 인쇄용 PDF를 만드세요.',url:'ai-design-maker/',tags:['파일 업로드','3mm 도련','배경 확장','전후 비교','PDF 저장']},
     {id:'smart-print-layout',cat:'edit',name:'스마트 인쇄배치',icon:'▦',accent:'#0f766e',bg:'linear-gradient(135deg,#115e59,#14b8a6)',catLabel:'문서 편집 · 스마트 인쇄배치',desc:'명함·쿠폰·소형 인쇄물처럼 같은 작업물을 한 장의 용지에 여러 개 놓을 때 실제 크기와 수량을 기준으로 자동배치합니다.',url:'smart-print-layout/',tags:['한 장에 여러 개','자동배치','앞면·뒷면','종이 절약']},
     {id:'pdf-editor',cat:'edit',name:'PDF배치',icon:'🖨️',accent:'#059669',bg:'linear-gradient(135deg,#065f46,#059669)',catLabel:'문서 편집 · 페이지 구성',desc:'여러 PDF 페이지의 순서를 정리하고 N-up·소책자·간지·여백·실제 출력크기를 설정해 출력용 PDF를 만듭니다.',url:'pdf-editor/',tags:['페이지 정리','N-up','소책자','실제 출력크기']},
     {id:'pdf-editor-advanced',cat:'edit',name:'PDF편집',icon:'✂️',accent:'#7c3aed',bg:'linear-gradient(135deg,#5b21b6,#7c3aed)',catLabel:'문서 편집 · 정밀 보정',desc:'PDF 페이지 자체를 이동·크기조절·잘라내기·회전해서 위치와 영역을 정밀하게 수정할 때 사용합니다.',url:'pdf-editor-advanced',tags:['페이지 직접 편집','자르기','크기·위치','정밀 회전']},

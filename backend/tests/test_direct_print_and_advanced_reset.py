@@ -37,7 +37,7 @@ def test_direct_print_buttons_are_retired_for_all_programs():
     ):
         assert "data-program-studio-direct-print" not in read(path)
     assert 'id="downloadBtn"' in read("smart-print-layout/index.html")
-    assert 'id="exportBtn"' in read("ai-design-maker/index.html")
+    assert 'id="saveBtn"' in read("ai-design-maker/index.html")
 
 
 def test_advanced_editor_reset_keeps_loaded_pdf_and_resets_edits():

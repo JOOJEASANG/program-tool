@@ -15,16 +15,15 @@ BEHAVIOR = ROOT / 'backend' / 'tests' / 'test_design_workspace_layers_behavior.c
 def test_single_design_workspace_home_keeps_ai_and_integrates_file_inspection():
     home = HOME.read_text(encoding='utf-8')
     page = PAGE.read_text(encoding='utf-8')
-    assert "name:'표지 디자인'" in home
+    assert "name:'인쇄 디자인 보완'" in home
     assert "{id:'print-checker'" not in home
-    assert "data-ai-design-maker" in page
-    for control in ('generateBtn', 'designLayerUpload', 'designLayerTarget',
-                    'designLayerInspector', 'designReviewResults', 'exportBtn',
-                    'designLayerX', 'designLayerY', 'designLayerW', 'designLayerH',
-                    'designPdfPage'):
+    assert 'data-program="design-bleed-enhancer"' in page
+    for control in ('fileInput','trimWidth','trimHeight','bleedMm','processBtn','saveBtn',
+                    'beforeCanvas','afterCanvas','pageSelect'):
         assert f'id="{control}"' in page
-    assert '/print-checker/' in page  # old detailed route stays usable
-    assert 'design-workspace-layers.js' in page
+    assert 'design-bleed-enhancer.js' in page
+    assert 'design-workspace-layers.js' not in page
+    assert 'generateBtn' not in page
 
 
 def test_print_export_can_start_without_ai_background_and_preserves_source_pdf():
@@ -49,8 +48,8 @@ def test_print_export_can_start_without_ai_background_and_preserves_source_pdf()
     assert 'centerX-halfW<-.01' in layers
     assert 'const ratio=item.sourceW/item.sourceH' in layers
     manual=(ROOT / 'js/program-manuals/ai-design-maker.js').read_text(encoding='utf-8')
-    assert "updated: '2026-11-16'" in manual
-    assert '직접 배치한 PDF·이미지 레이어' in manual
+    assert "updated:'2026-11-23'" in manual
+    assert '완성 크기' in manual
     assert 'page.drawRectangle({x:0,y:0,width,height,color:lib.rgb(1,1,1)})' in vector
 
 

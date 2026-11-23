@@ -31,8 +31,8 @@ def validate() -> None:
         "print-checker/index.html",
         "js/print-checker/access.js",
         "ai-design-maker/index.html",
-        "css/ai-design-maker.css",
-        "js/ai-design-maker.js",
+        "css/design-bleed-enhancer.css",
+        "js/design-bleed-enhancer.js",
         "js/print-checker/print-checker.js",
         "pdf-editor-advanced/index.html",
         "css/pdf-editor-advanced.css",
@@ -98,13 +98,17 @@ def validate() -> None:
         errors.append("print-checker must not load AI design maker runtime")
 
     maker_html = read("ai-design-maker/index.html")
-    maker_js = read("js/ai-design-maker.js")
-    for marker in ('data-ai-design-maker="cover-v1"', 'id="previewCanvas"', 'id="generateBtn"', 'id="exportBtn"'):
+    maker_js = read("js/design-bleed-enhancer.js")
+    for marker in ('data-program="design-bleed-enhancer"', 'id="fileInput"', 'id="beforeCanvas"',
+                   'id="afterCanvas"', 'id="processBtn"', 'id="saveBtn"'):
         if marker not in maker_html:
             errors.append(f"ai-design-maker/index.html is missing element: {marker}")
-    for marker in ("const EXPORT_DPI = 300", "/api/preflight/ai-design-maker/cover-background", "localStorage.setItem(STORAGE_KEY", "AI 배경 생성 실패"):
+    for marker in ("/api/design-bleed/extend", "preflight_temp/", "function drawPreviews()",
+                   "function savePdf()", "function invalidateResult()"):
         if marker not in maker_js:
-            errors.append(f"js/ai-design-maker.js is missing contract: {marker}")
+            errors.append(f"js/design-bleed-enhancer.js is missing contract: {marker}")
+    if 'src="/js/ai-design-maker.js' in maker_html or 'id="generateBtn"' in maker_html:
+        errors.append("design enhancement route must not load AI design generator")
 
     checker_css = read("css/print-checker.css")
     if "/css/print-checker.css" not in checker_html:

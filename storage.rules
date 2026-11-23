@@ -125,8 +125,17 @@ service firebase.storage {
       allow create: if resource == null
         && isOwner(userId)
         && isApproved()
-        && validStagePath(sessionId, fileName)
-        && validPdfUpload(524288000);
+        && (
+          (validStagePath(sessionId, fileName) && validPdfUpload(524288000))
+          || (
+            sessionId.matches('^[A-Za-z0-9_-]{8,40}$')
+            && fileName.matches('^source[.](jpg|jpeg|png|webp)$')
+            && request.resource != null
+            && request.resource.size > 0
+            && request.resource.size <= 104857600
+            && request.resource.contentType in ['image/jpeg','image/png','image/webp']
+          )
+        );
       allow update: if false;
     }
 

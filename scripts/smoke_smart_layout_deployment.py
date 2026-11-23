@@ -41,7 +41,7 @@ def verify(base_url: str, timeout: float) -> None:
         "name:'스마트 인쇄배치'",
         "url:'smart-print-layout/'",
         "pdf-home-unified-design-five-programs-v11",
-        "name:'표지 디자인'",
+        "name:'인쇄 디자인 보완'",
         "name:'스마트 인쇄배치'",
     ):
         if marker not in launcher:

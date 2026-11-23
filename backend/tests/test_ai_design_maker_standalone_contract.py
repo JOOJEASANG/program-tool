@@ -11,12 +11,12 @@ def test_design_studio_retains_original_detailed_review_route_and_ai_generator()
     assert "<title>인쇄파일 검토 · Program Studio</title>" in review_html
     assert "design-cover-maker.js" not in review_html
     assert "design-cover-maker.css" not in review_html
-    assert "<title>표지 디자인 · Program Studio</title>" in maker_html
+    assert "<title>인쇄 디자인 보완 · Program Studio</title>" in maker_html
     assert "/api/preflight/ai-design-maker/cover-background" in maker_js
     assert "https://api-7a5qpwzezq-uc.a.run.app" in maker_js
     assert "resolveApiUrl" in maker_js
     assert "X-Request-ID" in maker_js
-    assert "program-sidebar-actions.js?v=20260918-2" in maker_html
+    assert "/js/design-bleed-enhancer.js?v=20261123-1" in maker_html
     assert "/api/preflight/ai-design/cover-image" not in maker_js
 
 
@@ -28,7 +28,7 @@ def test_standalone_cover_endpoint_is_registered():
 
 def test_home_launches_integrated_design_studio_as_one_program():
     launcher = (ROOT / "js" / "pdf-suite-home-launcher.js").read_text(encoding="utf-8")
-    assert "name:'표지 디자인'" in launcher
+    assert "name:'인쇄 디자인 보완'" in launcher
     assert "name:'인쇄파일 검토'" not in launcher
     assert "url:'ai-design-maker/'" in launcher
     assert (ROOT / "print-checker" / "index.html").exists()
