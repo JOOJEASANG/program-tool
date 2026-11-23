@@ -379,6 +379,8 @@
   function mountStandalone(root,getFile){
     if(!root)throw new Error('인쇄 보정 작업 공간이 없습니다.');
     const host=root.querySelector('.pdfud-result')||root;
+    // Remove the 300px empty-state placeholder before mounting real options.
+    host.replaceChildren();
     const widget=createWidget(host,()=>({file:getFile?.()||null,report:null}),null);
     widget.sync();
     return widget;
