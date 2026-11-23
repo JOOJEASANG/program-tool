@@ -623,6 +623,7 @@
       gap_mm: Number($('gapMm')?.value) || 0,
       allow_rotate: Boolean($('allowRotate')?.checked),
       auto_fill: true,
+      auto_fit_trim: Boolean($('autoFitTrim')?.checked),
       side_mode: $('sideMode')?.value || 'auto',
       flip_edge: $('flipEdge')?.value || 'long',
       crop_marks: Boolean($('cropMarks')?.checked),
