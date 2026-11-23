@@ -143,3 +143,10 @@ def test_program_name_updated_across_home_and_help():
     assert "name:'인쇄 디자인 보완'" in manual
     assert "거울 확장" in manual
     assert "도련" in manual
+
+
+def test_design_bleed_endpoints_require_approved_program_account():
+    from utils.permissions import program_for_path
+    assert program_for_path("/api/design-bleed/extend") == "preflight"
+    assert program_for_path("/api/design-bleed/extend-storage") == "preflight"
+    assert program_for_path("/api/design-bleed-unrelated") is None

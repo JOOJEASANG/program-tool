@@ -10,7 +10,6 @@ from __future__ import annotations
 import io
 import math
 from dataclasses import dataclass
-from pathlib import Path
 
 import fitz
 from PIL import Image, ImageOps, UnidentifiedImageError
@@ -36,11 +35,11 @@ class BleedResult:
     warnings: tuple[str, ...]
 
 
-def _input_pdf(source: bytes | Path, filename: str):
-    ext = Path(filename).suffix.lower()
+def _input_pdf(source: bytes, filename: str):
+    ext = '.' + filename.rsplit('.', 1)[-1].lower() if '.' in filename else ''
     if ext not in ALLOWED_EXTENSIONS:
         raise ValueError("PDF, JPG, PNG, WEBP 파일만 지원합니다.")
-    content = source.read_bytes() if isinstance(source, Path) else bytes(source)
+    content = bytes(source)
     if not content:
         raise ValueError("비어 있는 파일입니다.")
     if ext == ".pdf":
@@ -148,7 +147,7 @@ def _source_clip(page: fitz.Page, dest: fitz.Rect) -> fitz.Rect:
 
 
 def extend_print_bleed(
-    source: bytes | Path,
+    source: bytes,
     *,
     filename: str,
     trim_width_mm: float | None = None,

@@ -12,6 +12,7 @@ PROGRAM_BY_PREFIX: tuple[tuple[str, str], ...] = (
     ("/api/pdf", "pdf-editor"),
     ("/api/pdf-utility", "preflight"),
     ("/api/preflight", "preflight"),
+    ("/api/design-bleed", "preflight"),
 )
 
 

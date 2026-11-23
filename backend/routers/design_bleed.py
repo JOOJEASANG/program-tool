@@ -18,6 +18,14 @@ MAX_DIRECT = 20 * 1024 * 1024
 MAX_STAGED = 100 * 1024 * 1024
 SESSION = re.compile(r"^[A-Za-z0-9_-]{8,40}$")
 SOURCE_NAME = re.compile(r"^source[.](pdf|jpg|jpeg|png|webp)$")
+# Whitelist maps external object names onto internal literal filenames.
+SAFE_SOURCE_NAMES = {
+    "source.pdf": "source.pdf",
+    "source.jpg": "source.jpg",
+    "source.jpeg": "source.jpeg",
+    "source.png": "source.png",
+    "source.webp": "source.webp",
+}
 
 
 def _params() -> dict:
@@ -103,8 +111,11 @@ def extend_storage(uid):
             not SESSION.fullmatch(parts[2]) or not SOURCE_NAME.fullmatch(parts[3])):
         return _error("업로드 파일에 접근할 권한이 없습니다.", 403, "DESIGN_BLEED_STORAGE_FORBIDDEN")
 
+    safe_filename = SAFE_SOURCE_NAMES.get(parts[3])
+    if safe_filename is None:
+        return _error("지원하지 않는 원본 파일입니다.", 400, "DESIGN_BLEED_STORAGE_NAME")
     with tempfile.TemporaryDirectory(prefix="design-bleed-") as root:
-        source = Path(root) / parts[3]
+        source = Path(root) / safe_filename
         try:
             blob = get_bucket().blob(storage_path)
             blob.reload()
@@ -113,7 +124,7 @@ def extend_storage(uid):
             blob.download_to_filename(str(source))
             if not 0 < source.stat().st_size <= MAX_STAGED:
                 return _error("파일은 100MB 이하만 지원합니다.", 413, "DESIGN_BLEED_TOO_LARGE")
-            return _run(uid, parts[3], source, storage_result=True)
+            return _run(uid, safe_filename, source.read_bytes(), storage_result=True)
         except Exception:
             return _error("임시 업로드 파일을 처리하지 못했습니다.", 500, "DESIGN_BLEED_STORAGE_ERROR")
         finally:
