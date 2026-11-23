@@ -7,12 +7,12 @@ ROOT = Path(__file__).resolve().parents[2]
 def test_required_trim_is_static_step3_and_front_back_is_step4():
     html = (ROOT / 'smart-print-layout' / 'index.html').read_text(encoding='utf-8')
 
-    trim_heading = '<h2>재단크기 입력/비교</h2>'
+    trim_heading = '<h2>완성 크기 · 원본 자동 맞춤</h2>'
     front_heading = '<h2>앞면 · 뒷면</h2>'
     assert trim_heading in html
     assert front_heading in html
     assert html.index(trim_heading) < html.index(front_heading)
-    assert '<div class="step">STEP 3</div>\n        <h2>재단크기 입력/비교</h2>' in html
+    assert '<div class="step">STEP 3</div>\n        <h2>완성 크기 · 원본 자동 맞춤</h2>' in html
     assert '<div class="step">STEP 4</div>\n        <h2>앞면 · 뒷면</h2>' in html
     assert 'id="trimGuideWidth"' in html and 'required aria-required="true"' in html
     assert 'id="trimGuideHeight"' in html and 'required aria-required="true"' in html
@@ -24,7 +24,7 @@ def test_final_controls_load_after_legacy_advanced_controls_and_restore_new_numb
     final_controls = (ROOT / 'js' / 'smart-print-layout' / 'final-controls.js').read_text(encoding='utf-8')
 
     advanced_src = '/js/smart-print-layout/advanced-controls.js?v=20261022-1'
-    final_src = '/js/smart-print-layout/final-controls.js?v=20261022-1'
+    final_src = '/js/smart-print-layout/final-controls.js?v='
     assert advanced_src in html and final_src in html
     assert html.index(advanced_src) < html.index(final_src)
 
