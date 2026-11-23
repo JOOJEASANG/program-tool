@@ -192,6 +192,10 @@
       margin: Number($('marginMm').value) || 0,
       gap: Number($('gapMm').value) || 0,
       allowRotate: $('allowRotate').checked,
+      autoFitTrim: Boolean($('autoFitTrim')?.checked),
+      fitMode: $('fitMode')?.value || 'contain',
+      trimW: Number($('trimGuideWidth')?.value || 0),
+      trimH: Number($('trimGuideHeight')?.value || 0),
       sideMode: $('sideMode').value,
       flipEdge: $('flipEdge').value,
       cropMarks: $('cropMarks').checked
@@ -254,6 +258,9 @@
     if (cfg.paperW < 50 || cfg.paperH < 50) throw new Error('용지 크기를 확인해 주세요.');
     if (cfg.margin < 0 || cfg.margin > 80 || cfg.gap < 0 || cfg.gap > 50) throw new Error('여백 또는 간격 값을 확인해 주세요.');
     if (cfg.sideMode === 'single' && state.items.some(item => item.pageCount === 2)) throw new Error('2페이지 PDF가 있습니다. 양면 방식에서 자동 또는 양면을 선택해 주세요.');
+    if (cfg.autoFitTrim && !(cfg.trimW >= 2 && cfg.trimH >= 2 && cfg.trimW <= 2000 && cfg.trimH <= 2000)) {
+      throw new Error('자동 맞춤을 사용하려면 완성 가로·세로를 2~2,000mm로 입력해 주세요.');
+    }
 
     const usableW = cfg.paperW - 2 * cfg.margin + cfg.gap;
     const usableH = cfg.paperH - 2 * cfg.margin + cfg.gap;
@@ -262,7 +269,9 @@
     const sheets = [];
     let totalCopies = 0;
     for (let fileIndex = 0; fileIndex < state.items.length; fileIndex++) {
-      const sheet = packOneFile(state.items[fileIndex], fileIndex, cfg, usableW, usableH, MAX_TOTAL_COPIES - totalCopies);
+      const original = state.items[fileIndex];
+      const effectiveItem = cfg.autoFitTrim ? { ...original, widthMm: cfg.trimW, heightMm: cfg.trimH } : original;
+      const sheet = packOneFile(effectiveItem, fileIndex, cfg, usableW, usableH, MAX_TOTAL_COPIES - totalCopies);
       sheets.push(sheet);
       totalCopies += sheet.length;
     }
@@ -342,7 +351,18 @@
       const x = placement.x * mmScale, y = placement.y * mmScale, w = placement.width * mmScale, h = placement.height * mmScale;
       ctx.save(); ctx.beginPath(); ctx.rect(x, y, w, h); ctx.clip();
       if (thumb) {
-        if (placement.rotated) {
+        ctx.fillStyle = '#fff'; ctx.fillRect(x, y, w, h);
+        if (p.cfg.autoFitTrim) {
+          // Match the PDF renderer's centered, aspect-preserving letterboxing.
+          const boxW = placement.rotated ? h : w, boxH = placement.rotated ? w : h;
+          const mode = p.cfg.fitMode;
+          const fit = (mode === 'cover' ? Math.max : Math.min)(boxW / Math.max(item.widthMm, EPS), boxH / Math.max(item.heightMm, EPS));
+          const fitW = mode === 'stretch' ? boxW : item.widthMm * fit;
+          const fitH = mode === 'stretch' ? boxH : item.heightMm * fit;
+          ctx.translate(x + w / 2, y + h / 2);
+          if (placement.rotated) ctx.rotate(Math.PI / 2);
+          ctx.drawImage(thumb, -fitW / 2, -fitH / 2, fitW, fitH);
+        } else if (placement.rotated) {
           ctx.translate(x + w / 2, y + h / 2); ctx.rotate(Math.PI / 2); ctx.drawImage(thumb, -h / 2, -w / 2, h, w);
         } else ctx.drawImage(thumb, x, y, w, h);
       } else {
@@ -369,7 +389,8 @@
         jobs: state.items.map((item, index) => ({ file_index: index, quantity: 1 })),
         paper: { width_mm: cfg.paperW, height_mm: cfg.paperH },
         margin_mm: cfg.margin, gap_mm: cfg.gap, allow_rotate: cfg.allowRotate,
-        auto_fill: true,
+        auto_fill: true, auto_fit_trim: cfg.autoFitTrim, fit_mode: cfg.fitMode,
+        trim_width_mm: cfg.trimW, trim_height_mm: cfg.trimH,
         side_mode: cfg.sideMode, flip_edge: cfg.flipEdge, crop_marks: cfg.cropMarks
       }));
       const files = state.items.map(item => item.file);
@@ -444,13 +465,14 @@
       if (size) { $('paperWidth').value = size[0]; $('paperHeight').value = size[1]; }
       const custom = event.target.value === 'custom'; $('paperWidth').readOnly = !custom; $('paperHeight').readOnly = !custom; recalculate();
     });
-    ['paperWidth', 'paperHeight', 'marginMm', 'gapMm'].forEach(id => $(id).addEventListener('input', recalculate));
-    ['allowRotate', 'sideMode', 'flipEdge', 'cropMarks'].forEach(id => $(id).addEventListener('change', recalculate));
+    ['paperWidth', 'paperHeight', 'marginMm', 'gapMm', 'trimGuideWidth', 'trimGuideHeight'].forEach(id => $(id)?.addEventListener('input', recalculate));
+    ['allowRotate', 'sideMode', 'flipEdge', 'cropMarks', 'autoFitTrim', 'fitMode'].forEach(id => $(id)?.addEventListener('change', recalculate));
     $('prevSheet').onclick = () => { if (state.sheetIndex > 0) { state.sheetIndex--; updateControls(); drawPreview(); } };
     $('nextSheet').onclick = () => { if (state.plan && state.sheetIndex < state.plan.sheets.length - 1) { state.sheetIndex++; updateControls(); drawPreview(); } };
     $('frontBtn').onclick = () => { state.side = 'front'; updateControls(); drawPreview(); };
     $('backBtn').onclick = () => { if (state.plan?.duplex) { state.side = 'back'; updateControls(); drawPreview(); } };
     $('downloadBtn').onclick = generatePdf;
+    $('autoFitTrim')?.addEventListener('change', () => { if ($('fitMode')) $('fitMode').disabled = !$('autoFitTrim').checked; });
     $('resetBtn').onclick = () => { state.items = []; state.plan = null; state.sheetIndex = 0; state.side = 'front'; renderFiles(); updateSummary(); updateControls(); drawPreview(); status('초기화했습니다.'); };
     $('logoutBtn').onclick = () => window.auth?.signOut().then(() => location.replace('/'));
     window.addEventListener('resize', () => { clearTimeout(window.__smartLayoutResize); window.__smartLayoutResize = setTimeout(drawPreview, 100); });

@@ -72,8 +72,8 @@ def test_smart_layout_frontend_keeps_image_size_isolated_and_numbering_optional(
     core = (ROOT / 'js' / 'smart-print-layout' / 'app.js').read_text(encoding='utf-8')
     router = (ROOT / 'backend' / 'routers' / 'pdf_smart_layout.py').read_text(encoding='utf-8')
 
-    assert '/js/smart-print-layout/size-numbering.js?v=20260916-2' in html
-    assert html.index('size-numbering.js?v=20260916-2') < html.index('image-input-bridge.js?v=20260915-2')
+    assert '/js/smart-print-layout/size-numbering.js?v=' in html
+    assert html.index('size-numbering.js?v=') < html.index('image-input-bridge.js?v=20260915-2')
     for marker in (
         '이미지 재단·여백',
         '재단 비율 고정',

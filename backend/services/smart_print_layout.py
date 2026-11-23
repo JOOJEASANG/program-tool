@@ -307,7 +307,23 @@ def _draw_crop_marks(page: fitz.Page, placement: Placement, gap_mm: float) -> No
     page.draw_line((rect.x1, rect.y1 + offset), (rect.x1, rect.y1 + offset + length), color=color, width=width)
 
 
-def render_layout_pdf(docs: list[fitz.Document], plan: LayoutPlan, *, gap_mm: float, crop_marks: bool) -> bytes:
+def _fit_cover_clip(page: fitz.Page, placement: Placement) -> fitz.Rect:
+    """Centered source crop; the rotated clip fills the finished slot exactly."""
+    source = page.rect
+    dest_width = placement.height_mm if placement.rotated else placement.width_mm
+    dest_height = placement.width_mm if placement.rotated else placement.height_mm
+    source_ratio = source.width / source.height
+    target_ratio = dest_width / dest_height
+    if source_ratio > target_ratio:
+        clipped_width = source.height * target_ratio
+        side = (source.width - clipped_width) / 2.0
+        return fitz.Rect(source.x0 + side, source.y0, source.x1 - side, source.y1)
+    clipped_height = source.width / target_ratio
+    top = (source.height - clipped_height) / 2.0
+    return fitz.Rect(source.x0, source.y0 + top, source.x1, source.y1 - top)
+
+
+def render_layout_pdf(docs: list[fitz.Document], plan: LayoutPlan, *, gap_mm: float, crop_marks: bool, keep_proportion: bool = False, fit_mode: str = 'contain') -> bytes:
     output = fitz.open()
     width_pt = plan.paper_width_mm * MM_TO_PT
     height_pt = plan.paper_height_mm * MM_TO_PT
@@ -316,7 +332,14 @@ def render_layout_pdf(docs: list[fitz.Document], plan: LayoutPlan, *, gap_mm: fl
             front = output.new_page(width=width_pt, height=height_pt)
             for placement in sheet:
                 rect = _placement_rect_pt(placement)
-                front.show_pdf_page(rect, docs[placement.file_index], 0, keep_proportion=False, rotate=90 if placement.rotated else 0)
+                source = docs[placement.file_index]
+                fit = fit_mode if keep_proportion else 'stretch'
+                front.show_pdf_page(
+                    rect, source, 0,
+                    keep_proportion=fit != 'stretch',
+                    rotate=90 if placement.rotated else 0,
+                    clip=_fit_cover_clip(source[0], placement) if fit == 'cover' else None,
+                )
                 if crop_marks:
                     _draw_crop_marks(front, placement, gap_mm)
 
@@ -327,7 +350,13 @@ def render_layout_pdf(docs: list[fitz.Document], plan: LayoutPlan, *, gap_mm: fl
                     back_placement = mirror_back_placement(placement, plan.paper_width_mm, plan.paper_height_mm, plan.flip_edge)
                     if doc.page_count >= 2:
                         rect = _placement_rect_pt(back_placement)
-                        back.show_pdf_page(rect, doc, 1, keep_proportion=False, rotate=90 if placement.rotated else 0)
+                        fit = fit_mode if keep_proportion else 'stretch'
+                        back.show_pdf_page(
+                            rect, doc, 1,
+                            keep_proportion=fit != 'stretch',
+                            rotate=90 if placement.rotated else 0,
+                            clip=_fit_cover_clip(doc[1], placement) if fit == 'cover' else None,
+                        )
                     if crop_marks:
                         _draw_crop_marks(back, back_placement, gap_mm)
         return output.tobytes(garbage=4, deflate=True, clean=True)

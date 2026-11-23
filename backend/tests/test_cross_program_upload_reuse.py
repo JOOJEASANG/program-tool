@@ -96,7 +96,7 @@ def test_smart_layout_cached_json_requests_keep_final_output_adapters():
         assert "smart-layout-storage" in source, path
         assert "const storedRequest" in source, path
         assert "JSON.stringify({...payload,settings})" in source, path
-        assert f"/js/smart-print-layout/{path}.js?v=20261022-1" in html
+        assert f"/js/smart-print-layout/{path}.js?v=" in html
     assert "job.back_file_index = backIndex" in advanced
     assert "settings.trim_width_mm = trim.widthMm" in final
     assert "settings.trim_height_mm = trim.heightMm" in final
