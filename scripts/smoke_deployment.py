@@ -279,10 +279,10 @@ def run_smoke_checks(
             )(_fetch(base_url, "/print-checker", timeout)),
         ),
         (
-            "디자인 제작 통합 경로",
+            "인쇄 디자인 보완 독립 경로",
             lambda: (
                 lambda result: (
-                    _require_text(result, "디자인 제작", 'data-ai-design-maker="cover-v1"', "/js/ai-design-maker.js", "/js/design-workspace-layers.js"),
+                    _require_text(result, "인쇄 디자인 보완", 'data-program="design-bleed-enhancer"', "/js/design-bleed-enhancer.js", 'id="fileInput"', 'id="bleedMm"', 'id="saveBtn"'),
                     _require_path_preserved(result, "/ai-design-maker"),
                     _require_same_origin_frame_headers(result),
                 )
