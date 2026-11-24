@@ -317,7 +317,7 @@ async function apiProcessPdf(files, settings, options = {}) {
   _reportProgress(onProgress, 'prepare', 2, '저장 작업 준비 중');
   const st = await _ensureStorage();
   const uid = user.uid;
-  let sessionId = Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+  let sessionId = crypto.randomUUID().replace(/-/g, '');
   const storagePaths = [];
   const newlyUploadedPaths = [];
   const reuseSources = preparedOptions.reuseSources === true;
@@ -412,7 +412,7 @@ async function apiProcessPdf(files, settings, options = {}) {
         if (storagePaths.includes(cached.path)) _pdfEditorExportInputs.delete(file);
       }
       forceFreshSources = true;
-      sessionId = Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+      sessionId = crypto.randomUUID().replace(/-/g, '');
       onStatus?.('임시 원본을 다시 업로드한 뒤 PDF 저장을 재시도합니다...');
       continue;
     }
@@ -509,7 +509,7 @@ async function _ensurePreflightStoragePath(file, onStatus) {
 
   const st = await _ensureStorage();
   const uid = user.uid;
-  const sessionId = Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+  const sessionId = crypto.randomUUID().replace(/-/g, '');
   const safeName = (file.name || 'document.pdf').replace(/[^a-zA-Z0-9_.-]/g, '_').slice(0, 80) || 'document.pdf';
   const path = `preflight_temp/${uid}/${sessionId}/${safeName.toLowerCase().endsWith('.pdf') ? safeName : safeName + '.pdf'}`;
 

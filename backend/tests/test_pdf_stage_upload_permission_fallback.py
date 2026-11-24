@@ -2,7 +2,7 @@ from pathlib import Path
 from unittest.mock import Mock
 
 import pytest
-from flask import Flask, g
+from flask import Flask, g, request
 
 from routers import pdf
 
@@ -17,7 +17,7 @@ def app(monkeypatch):
     @application.before_request
     def approved():
         g.uid = "approved-user"
-        if not __import__("flask").request.headers.get("X-Test-Deny"):
+        if not request.headers.get("X-Test-Deny"):
             g.program_id = "pdf-editor"
     bucket = Mock()
     bucket.blob.return_value.create_resumable_upload_session.return_value = "https://storage.googleapis.com/upload/session"

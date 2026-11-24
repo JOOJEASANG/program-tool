@@ -5,25 +5,35 @@ const path=require('node:path');
 
 const source=fs.readFileSync(path.resolve(__dirname,'../../js/api.js'),'utf8');
 const uploads=[],deletions=[],requests=[];
+let denied=false, fallbackUploads=0, stale=false;
 const storage={ref(storagePath){return {
   put(file){
     uploads.push({path:storagePath,file});
     const task={snapshot:{state:'success'},cancel(){}};
-    task.on=(_event,_progress,_error,complete)=>queueMicrotask(complete);
+    task.on=(_event,_progress,error,complete)=>queueMicrotask(()=>denied?error(Object.assign(new Error('permission denied'),{code:'storage/unauthorized'})):complete());
     return task;
   },
   async delete(){deletions.push(storagePath);}
 };}};
 let files=[{name:'same.pdf',size:1200}];
 const context={
-  console,storage,AbortController,DOMException,URL,TextEncoder,Blob,
+  console,storage,AbortController,DOMException,URL,TextEncoder,Blob,crypto:require('node:crypto').webcrypto,
   setTimeout,clearTimeout,queueMicrotask,
   auth:{currentUser:{uid:'u1',async getIdToken(){return 'token';}}},
   firebase:{app(){return {options:{projectId:'unit-test-project'}};}},
   async fetch(url,params){
+    if(url.endsWith('/api/pdf/stage-upload')) {
+      assert.equal(params.headers.Authorization,'Bearer token');
+      return {ok:true,async json(){return {upload_url:'https://storage.googleapis.com/upload/mock',storage_path:'pdf_temp/u1/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/source.pdf'};}};
+    }
+    if(url==='https://storage.googleapis.com/upload/mock') {
+      assert.equal(params.method,'PUT');assert.equal(params.headers.Authorization,undefined);fallbackUploads++;
+      return {ok:true,status:200};
+    }
     assert.ok(url.endsWith('/api/pdf/process-storage'));
     const body=JSON.parse(params.body);
     requests.push(body);
+    if(stale){stale=false;const payload={code:'PDF_STORAGE_FILE_NOT_FOUND',detail:'missing',request_id:'trace1234'};return {ok:false,status:404,headers:{get(){return 'application/json';}},clone(){return this;},async json(){return payload;}};}
     return {ok:true,status:200,headers:{get(){return 'application/pdf';}},async blob(){return new Blob(['%PDF-1.7']);}};
   },
 };
@@ -65,5 +75,13 @@ const save=async(input, reuseSources=true)=>context.apiProcessPdf(input,{pages:[
   assert.equal(uploads.length,3,'other tools retain one-shot upload');
   assert.equal(deletions.length,1,'other tools clean one-shot uploads');
   assert.equal(requests.at(-1).retain_temp_sources,undefined);
+  denied=true;
+  await save([{name:'large.pdf',size:25*1024*1024}]);
+  assert.equal(fallbackUploads,1,'permission denied uses approved server upload');
+  assert.equal(requests.at(-1).storage_paths[0],'pdf_temp/u1/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/source.pdf');
+  denied=false;
+  stale=true;
+  await save(files);
+  assert.equal(requests.at(-1).source_session_doc,null);
   console.log('pdf editor repeated export input reuse and legacy one-shot cleanup passed');
 })().catch(error=>{console.error(error);process.exitCode=1;});
