@@ -57,9 +57,9 @@ PDF_SESSION_COLLECTIONS = frozenset({
 })
 MIB = 1024 * 1024
 
-# Persistent/editor storage stays deliberately tighter than transient utility work.
-PDF_STORAGE_FILE_BYTES = 200 * MIB
-PDF_STORAGE_TOTAL_BYTES = 300 * MIB
+# Storage-backed PDF exports allow 500 MiB; persistent session rules remain separate.
+PDF_STORAGE_FILE_BYTES = 500 * MIB
+PDF_STORAGE_TOTAL_BYTES = 500 * MIB
 PDF_UTILITY_FILE_BYTES = 500 * MIB
 PDF_UTILITY_TOTAL_BYTES = 800 * MIB
 MAX_SAVED_PDF_SESSIONS = 10
@@ -67,8 +67,7 @@ MAX_SAVED_DESIGN_PROJECTS = 8
 MAX_SAVED_AI_DESIGNS = 100
 ORPHAN_GRACE_HOURS = 24
 
-# Editor/session limits remain cost-bounded while transient utility jobs get a
-# separate roomy ceiling. Direct HTTP uploads stay small; large jobs use Storage.
+# Storage-backed export and utility limits are bounded independently. Direct HTTP uploads stay small; large jobs use Storage.
 pdf_router.MAX_PDF_FILE_BYTES = PDF_STORAGE_FILE_BYTES
 pdf_router.MAX_TOTAL_PDF_BYTES = PDF_STORAGE_TOTAL_BYTES
 preflight_router.MAX_STORAGE_PDF_BYTES = PDF_UTILITY_FILE_BYTES

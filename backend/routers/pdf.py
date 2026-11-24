@@ -23,10 +23,10 @@ from utils.storage_delivery import upload_pdf_result
 pdf_bp = Blueprint("pdf", __name__)
 logger = logging.getLogger(__name__)
 
-MAX_PDF_FILE_BYTES = 200 * 1024 * 1024
+MAX_PDF_FILE_BYTES = 500 * 1024 * 1024
 MAX_DIRECT_TOTAL_PDF_BYTES = 20 * 1024 * 1024
 MAX_DIRECT_RESPONSE_BYTES = 20 * 1024 * 1024
-MAX_TOTAL_PDF_BYTES = 300 * 1024 * 1024
+MAX_TOTAL_PDF_BYTES = 500 * 1024 * 1024
 MAX_PDF_FILES = 50
 MAX_REQUEST_PAGES = 2000
 

@@ -29,10 +29,10 @@ from utils.storage_delivery import upload_pdf_result
 pdf_advanced_bp = Blueprint("pdf_advanced", __name__)
 logger = logging.getLogger(__name__)
 
-MAX_PDF_FILE_BYTES = 200 * 1024 * 1024
+MAX_PDF_FILE_BYTES = 500 * 1024 * 1024
 MAX_DIRECT_TOTAL_PDF_BYTES = 20 * 1024 * 1024
 MAX_DIRECT_RESPONSE_BYTES = 20 * 1024 * 1024
-MAX_TOTAL_PDF_BYTES = 300 * 1024 * 1024
+MAX_TOTAL_PDF_BYTES = 500 * 1024 * 1024
 MAX_PDF_FILES = 50
 MAX_REQUEST_PAGES = 2000
 
@@ -85,10 +85,10 @@ def _validate_bytes(req: PdfAdvancedProcessRequest, files: list[bytes]) -> None:
     try:
         for data in files:
             if len(data) > MAX_PDF_FILE_BYTES:
-                raise ValueError("파일이 200 MB를 초과합니다")
+                raise ValueError("파일이 500 MB를 초과합니다")
             total += len(data)
             if total > MAX_TOTAL_PDF_BYTES:
-                raise ValueError("전체 파일 용량은 최대 300 MB까지 처리할 수 있습니다")
+                raise ValueError("전체 파일 용량은 최대 500 MB까지 처리할 수 있습니다")
             try:
                 docs.append(fitz.open(stream=data, filetype="pdf"))
             except Exception as exc:
@@ -106,10 +106,10 @@ def _validate_paths(req: PdfAdvancedProcessRequest, paths: list[Path]) -> None:
         for path in paths:
             size = path.stat().st_size
             if size > MAX_PDF_FILE_BYTES:
-                raise ValueError("파일이 200 MB를 초과합니다")
+                raise ValueError("파일이 500 MB를 초과합니다")
             total += size
             if total > MAX_TOTAL_PDF_BYTES:
-                raise ValueError("전체 파일 용량은 최대 300 MB까지 처리할 수 있습니다")
+                raise ValueError("전체 파일 용량은 최대 500 MB까지 처리할 수 있습니다")
             try:
                 docs.append(fitz.open(str(path)))
             except Exception as exc:
@@ -191,7 +191,7 @@ def process(uid):
             return _error("PDF 파일만 업로드할 수 있습니다", 400, "PDF_ADVANCED_INVALID_FILE_TYPE")
         data = upload.read(MAX_PDF_FILE_BYTES + 1)
         if len(data) > MAX_PDF_FILE_BYTES:
-            return _error("파일이 200 MB를 초과합니다", 413, "PDF_ADVANCED_FILE_TOO_LARGE")
+            return _error("파일이 500 MB를 초과합니다", 413, "PDF_ADVANCED_FILE_TOO_LARGE")
         total += len(data)
         data_list.append(data)
 
@@ -280,10 +280,10 @@ def process_storage(uid):
                 return _error("임시 PDF 파일을 찾을 수 없습니다. 다시 시도해 주세요.", 404, "PDF_ADVANCED_STORAGE_NOT_FOUND")
             size = int(blob.size or 0)
             if size > MAX_PDF_FILE_BYTES:
-                return _error("파일이 200 MB를 초과합니다", 413, "PDF_ADVANCED_FILE_TOO_LARGE")
+                return _error("파일이 500 MB를 초과합니다", 413, "PDF_ADVANCED_FILE_TOO_LARGE")
             declared_total += size
             if declared_total > MAX_TOTAL_PDF_BYTES:
-                return _error("전체 파일 용량은 최대 300 MB까지 처리할 수 있습니다", 413, "PDF_ADVANCED_TOTAL_TOO_LARGE")
+                return _error("전체 파일 용량은 최대 500 MB까지 처리할 수 있습니다", 413, "PDF_ADVANCED_TOTAL_TOO_LARGE")
             blobs.append(blob)
 
         local_paths: list[Path] = []

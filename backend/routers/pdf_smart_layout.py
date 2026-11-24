@@ -24,6 +24,8 @@ logger = logging.getLogger(__name__)
 MAX_DIRECT_FILE_BYTES = 20 * 1024 * 1024
 MAX_DIRECT_TOTAL_BYTES = 20 * 1024 * 1024
 MAX_DIRECT_RESPONSE_BYTES = 18 * 1024 * 1024
+MAX_STORAGE_FILE_BYTES = 500 * 1024 * 1024
+MAX_STORAGE_TOTAL_BYTES = 500 * 1024 * 1024
 MAX_FILES = 30
 MM_TO_PT = 72.0 / 25.4
 
@@ -288,11 +290,11 @@ def smart_layout_storage(uid: str):
             except Exception:
                 return _error('저장된 원본 PDF를 찾을 수 없습니다. 다시 불러와 주세요.', 404, 'SMART_LAYOUT_FILE_NOT_FOUND')
             size = int(blob.size or 0)
-            if size <= 0 or size > MAX_DIRECT_FILE_BYTES:
-                return _error('PDF 한 파일은 20MB 이하만 처리할 수 있습니다.', 413, 'SMART_LAYOUT_FILE_TOO_LARGE')
+            if size <= 0 or size > MAX_STORAGE_FILE_BYTES:
+                return _error('PDF 한 파일은 500MB 이하만 처리할 수 있습니다.', 413, 'SMART_LAYOUT_FILE_TOO_LARGE')
             total += size
-            if total > MAX_DIRECT_TOTAL_BYTES:
-                return _error('PDF 전체 크기는 20MB 이하로 처리해 주세요.', 413, 'SMART_LAYOUT_TOTAL_TOO_LARGE')
+            if total > MAX_STORAGE_TOTAL_BYTES:
+                return _error('PDF 전체 크기는 500MB 이하로 처리해 주세요.', 413, 'SMART_LAYOUT_TOTAL_TOO_LARGE')
             file_bytes.append(blob.download_as_bytes())
         filenames = [f'source_{index}.pdf' for index in range(len(paths))]
         return _render_smart_result(uid, raw_settings, settings, trim_width_mm, trim_height_mm, file_bytes, filenames)

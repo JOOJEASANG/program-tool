@@ -20,8 +20,8 @@ pdf_utility_bp = Blueprint("pdf_utility", __name__)
 logger = logging.getLogger(__name__)
 
 MAX_FILES = 10
-MAX_FILE_BYTES = 200 * 1024 * 1024
-MAX_TOTAL_BYTES = 300 * 1024 * 1024
+MAX_FILE_BYTES = 500 * 1024 * 1024
+MAX_TOTAL_BYTES = 800 * 1024 * 1024
 MAX_TOTAL_PAGES = 1000
 MAX_BACKGROUND_PAGES = 100
 MAX_BACKGROUND_PIXELS = 90_000_000
@@ -102,7 +102,7 @@ def _storage_blob(uid: str, path: str):
     if size <= 0:
         raise ValueError("빈 PDF 파일은 처리할 수 없습니다.")
     if size > MAX_FILE_BYTES:
-        raise ValueError("PDF 한 파일은 최대 200MB까지 처리할 수 있습니다.")
+        raise ValueError("PDF 한 파일은 최대 500MB까지 처리할 수 있습니다.")
     return blob, size
 
 
@@ -114,7 +114,7 @@ def _download_storage_pdf_to_path(uid: str, path: str, destination: str | Path) 
     if actual_size <= 0:
         raise ValueError("빈 PDF 파일은 처리할 수 없습니다.")
     if actual_size > MAX_FILE_BYTES:
-        raise ValueError("PDF 한 파일은 최대 200MB까지 처리할 수 있습니다.")
+        raise ValueError("PDF 한 파일은 최대 500MB까지 처리할 수 있습니다.")
     if declared_size and actual_size != declared_size:
         logger.warning(
             "PDF utility storage size changed path=%s declared=%s actual=%s request_id=%s",
@@ -131,7 +131,7 @@ def _download_storage_pdf(uid: str, path: str) -> bytes:
     blob, _ = _storage_blob(uid, path)
     data = blob.download_as_bytes()
     if len(data) > MAX_FILE_BYTES:
-        raise ValueError("PDF 한 파일은 최대 200MB까지 처리할 수 있습니다.")
+        raise ValueError("PDF 한 파일은 최대 500MB까지 처리할 수 있습니다.")
     return data
 
 
@@ -436,7 +436,7 @@ def merge_storage(uid):
             local_path = temp_dir / f"source-{index:02d}.pdf"
             total_bytes += _download_storage_pdf_to_path(uid, path, local_path)
             if total_bytes > MAX_TOTAL_BYTES:
-                return _error("PDF 합치기 전체 파일 용량은 최대 300MB까지 가능합니다.", 413, "PDF_MERGE_TOTAL_LIMIT")
+                return _error("PDF 합치기 전체 파일 용량은 최대 800MB까지 가능합니다.", 413, "PDF_MERGE_TOTAL_LIMIT")
             local_paths.append(local_path)
 
         output_path = temp_dir / "merged.pdf"
