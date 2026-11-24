@@ -45,4 +45,4 @@ def test_unified_modes_are_wired_and_user_guide_is_current():
         assert f'value="{name}"' in hub
     for phrase in ("일반 가변인쇄","다단 가변인쇄","재단선","300건"):
         assert phrase in manual
-    assert "updated: '2026-11-23'" in manual
+    assert "updated: '2026-11-24'" in manual
