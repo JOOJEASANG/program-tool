@@ -489,7 +489,7 @@
     <!-- 업로드 -->
     <div class="sec">
       <div class="sec-head" data-sec="upload">
-        <span class="sec-title">파일 업로드</span>
+        <span class="sec-title">1 · PDF 불러오기</span>
         <span class="sec-arrow">▾</span>
       </div>
       <div class="sec-body" id="sb-upload">
@@ -510,7 +510,7 @@
     <!-- N-up 배치 -->
     <div class="sec">
       <div class="sec-head" data-sec="nup">
-        <span class="sec-title">3 · 페이지 배치</span>
+        <span class="sec-title">2 · 페이지 배치</span>
         <span class="sec-arrow">▾</span>
       </div>
       <div class="sec-body" id="sb-nup">
@@ -535,39 +535,7 @@
             <button class="nup-btn" data-nup="8"><span class="nup-label">8장</span><span class="nup-badge" id="b8">2×4</span></button>
             <button class="nup-btn" data-nup="9"><span class="nup-label">9장</span><span class="nup-badge" id="b9">3×3</span></button>
           </div>
-          <details id="pdfActualSizeDisclosure" class="pdf-optional-settings">
-            <summary>한 면(1페이지) 실제 크기 · mm</summary>
-          <div id="actualSizePanel" style="margin-top:8px;padding:8px 9px;border:1px solid #dbeafe;border-radius:8px;background:#f8fbff;">
-            <label class="checkline" style="margin-bottom:6px;">
-              <input type="checkbox" id="actualSizeCheck">
-              <span>실제 출력크기 지정 · 한 면(1페이지)</span>
-            </label>
-            <p id="bookletPageSizeHint" hidden style="font-size:10px;line-height:1.55;color:#1e40af;background:#eaf2ff;border-radius:7px;padding:8px;margin:0 0 8px;"></p>
-            <div class="field" style="margin-bottom:6px;">
-              <label for="actualSizePreset">한 면 출력 크기</label>
-              <select id="actualSizePreset" style="width:100%;font:inherit;padding:5px;border:1px solid #dbeafe;border-radius:6px;">
-                <option value="auto">자동 맞춤 (기존 방식)</option>
-                <option value="source">원본 PDF 크기</option>
-                <option value="a5">A5 · 148 × 210mm</option>
-                <option value="b5">B5 · 182 × 257mm</option>
-                <option value="a4">A4 · 210 × 297mm</option>
-                <option value="a3">A3 · 297 × 420mm</option>
-                <option value="scale">원본 크기 기준 배율(%)</option>
-                <option value="custom">직접 입력(mm)</option>
-              </select>
-            </div>
-            <div id="actualSizeScaleRow" style="display:none;margin-bottom:6px;" class="field">
-              <label for="actualSizeScalePct">원본 크기 배율(%)</label>
-              <input id="actualSizeScalePct" type="number" value="100" min="10" max="300" step="1">
-            </div>
-            <div class="grid2" id="actualSizeFields">
-              <div class="field" style="margin-bottom:4px;"><label>가로(mm)</label><input id="actualWidthMm" type="number" min="1" max="2000" step="0.1" placeholder="예: 148"></div>
-              <div class="field" style="margin-bottom:4px;"><label>세로(mm)</label><input id="actualHeightMm" type="number" min="1" max="2000" step="0.1" placeholder="예: 210"></div>
-            </div>
-            <button type="button" id="actualUseSourceBtn" style="width:100%;border:1px solid #bfdbfe;border-radius:7px;padding:5px 7px;background:#fff;color:#1d4ed8;font-size:9px;font-weight:800;cursor:pointer;font-family:inherit;">원본 PDF 크기 불러오기</button>
-            <div id="actualSizeWarning" style="margin-top:5px;font-size:9px;line-height:1.45;color:#64748b;font-weight:650;">미지정 시 기존처럼 배치 칸에 자동 맞춤됩니다.</div>
-          </div>
-          </details>
+
           <div id="bookletRow" class="opt-row" style="display:none; margin-top:4px;">
             <label style="display:flex;align-items:center;gap:6px;font-size:11px;color:#374151;cursor:pointer;">
               <input type="checkbox" id="bookletCheck" style="cursor:pointer;">
@@ -632,7 +600,7 @@
     <!-- 용지 -->
     <div class="sec">
       <div class="sec-head" data-sec="paper">
-        <span class="sec-title">용지 설정</span>
+        <span class="sec-title">3 · 출력 용지 설정</span>
         <span class="sec-arrow">▾</span>
       </div>
       <div class="sec-body" id="sb-paper">
@@ -664,6 +632,53 @@
             </button>
           </div>
         </div>
+        <label class="checkline">
+          <input type="checkbox" id="autoDetectSize">
+          새 파일 가져올 때 용지 크기 자동 감지
+        </label>
+      </div>
+    </div>
+
+    <!-- 실제 배치 크기 및 여백 -->
+    <div class="sec">
+      <div class="sec-head" data-sec="trim">
+        <span class="sec-title">4 · 실제 크기·여백</span>
+        <span class="sec-arrow">▾</span>
+      </div>
+      <div class="sec-body" id="sb-trim">
+          <details id="pdfActualSizeDisclosure" class="pdf-optional-settings">
+            <summary>한 면(1페이지) 실제 크기 · mm</summary>
+          <div id="actualSizePanel" style="margin-top:8px;padding:8px 9px;border:1px solid #dbeafe;border-radius:8px;background:#f8fbff;">
+            <label class="checkline" style="margin-bottom:6px;">
+              <input type="checkbox" id="actualSizeCheck">
+              <span>실제 출력크기 지정 · 한 면(1페이지)</span>
+            </label>
+            <p id="bookletPageSizeHint" hidden style="font-size:10px;line-height:1.55;color:#1e40af;background:#eaf2ff;border-radius:7px;padding:8px;margin:0 0 8px;"></p>
+            <div class="field" style="margin-bottom:6px;">
+              <label for="actualSizePreset">한 면 출력 크기</label>
+              <select id="actualSizePreset" style="width:100%;font:inherit;padding:5px;border:1px solid #dbeafe;border-radius:6px;">
+                <option value="auto">자동 맞춤 (기존 방식)</option>
+                <option value="source">원본 PDF 크기</option>
+                <option value="a5">A5 · 148 × 210mm</option>
+                <option value="b5">B5 · 182 × 257mm</option>
+                <option value="a4">A4 · 210 × 297mm</option>
+                <option value="a3">A3 · 297 × 420mm</option>
+                <option value="scale">원본 크기 기준 배율(%)</option>
+                <option value="custom">직접 입력(mm)</option>
+              </select>
+            </div>
+            <div id="actualSizeScaleRow" style="display:none;margin-bottom:6px;" class="field">
+              <label for="actualSizeScalePct">원본 크기 배율(%)</label>
+              <input id="actualSizeScalePct" type="number" value="100" min="10" max="300" step="1">
+            </div>
+            <div class="grid2" id="actualSizeFields">
+              <div class="field" style="margin-bottom:4px;"><label>가로(mm)</label><input id="actualWidthMm" type="number" min="1" max="2000" step="0.1" placeholder="예: 148"></div>
+              <div class="field" style="margin-bottom:4px;"><label>세로(mm)</label><input id="actualHeightMm" type="number" min="1" max="2000" step="0.1" placeholder="예: 210"></div>
+            </div>
+            <button type="button" id="actualUseSourceBtn" style="width:100%;border:1px solid #bfdbfe;border-radius:7px;padding:5px 7px;background:#fff;color:#1d4ed8;font-size:9px;font-weight:800;cursor:pointer;font-family:inherit;">원본 PDF 크기 불러오기</button>
+            <div id="actualSizeWarning" style="margin-top:5px;font-size:9px;line-height:1.45;color:#64748b;font-weight:650;">미지정 시 기존처럼 배치 칸에 자동 맞춤됩니다.</div>
+          </div>
+          </details>
         <div class="grid2">
           <div class="field"><label>좌우 여백(mm)</label><input id="marginH" type="number" value="10" min="0" max="50"></div>
           <div class="field"><label>상하 여백(mm)</label><input id="marginV" type="number" value="10" min="0" max="50"></div>
@@ -674,17 +689,13 @@
           <input type="checkbox" id="showBorder" checked>
           슬라이드 테두리 표시
         </label>
-        <label class="checkline">
-          <input type="checkbox" id="autoDetectSize">
-          새 파일 가져올 때 용지 크기 자동 감지
-        </label>
       </div>
     </div>
 
     <!-- 문서 편집 -->
     <div class="sec">
       <div class="sec-head collapsed" data-sec="edit">
-        <span class="sec-title">문서 편집</span>
+        <span class="sec-title">5 · 추가 편집 설정</span>
         <span class="sec-badge">워터마크·머리말·페이지번호</span>
         <span class="sec-arrow">▾</span>
       </div>

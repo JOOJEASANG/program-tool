@@ -208,7 +208,7 @@
   }
 
   function installCropMarkUi() {
-    const paperBody = $('sb-paper');
+    const paperBody = $('sb-trim') || $('sb-paper');
     if (!paperBody) return false;
     if (!$('cropMarksPanel')) {
       const panel = document.createElement('div');
