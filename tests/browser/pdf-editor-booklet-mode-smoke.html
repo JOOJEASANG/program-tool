@@ -9,6 +9,12 @@
     #previewScroll{width:800px;max-width:100%}
     .page-preview{width:550px;height:360px;background:linear-gradient(90deg,#edf6ff 50%,#e2fff3 50%);position:relative}
     .page-preview canvas{width:100%;height:100%}
+    #previewScroll .page-preview.pdf-paper-guides::before{
+      content:'용지 420×297mm';position:absolute;top:0;left:0;background:#fff;
+    }
+    #previewScroll .page-preview.pdf-paper-guides::after{
+      content:'';position:absolute;inset:12px;border:1px dashed #c87110;
+    }
   </style>
 </head>
 <body data-status="running">
@@ -37,7 +43,7 @@
 <button id="orientLand" type="button">가로</button>
 <button id="orientPort" type="button" class="active">세로</button>
 <button id="resetBtn" type="button">전체 초기화</button>
-<div id="previewScroll"><div class="page-preview"><canvas width="550" height="360"></canvas></div></div>
+<div id="previewScroll"><div class="page-preview pdf-paper-guides"><canvas width="550" height="360"></canvas></div></div>
 <output id="result">RUNNING</output>
 <script>
   var parsedPages=[{excluded:false},{excluded:false},{excluded:false},{excluded:false}];
@@ -76,14 +82,25 @@
       assert(getComputedStyle($('pdfNormalGapField')).display==='none','general spacing must be hidden in booklet');
       assert(!$('pdfBookletGapNote').hidden,'zero booklet gutter warning missing');
       assert(document.documentElement.classList.contains('pdf-booklet-guide-on'),'center fold guide not activated');
-      assert(getComputedStyle(document.querySelector('.page-preview'),'::after').borderLeftStyle==='dashed',
-        'center fold line is not visible over real sheet preview');
+      const pagePreview=document.querySelector('.page-preview');
+      const overlay=pagePreview.querySelector(':scope > .pdf-booklet-fold-guide-overlay');
+      assert(overlay,'separate fold overlay is missing');
+      assert(getComputedStyle(overlay).display==='block','fold overlay is not visible');
+      assert(getComputedStyle(overlay,'::after').borderLeftStyle==='dashed',
+        'center fold line is not visible on its separate overlay');
+      assert(getComputedStyle(pagePreview,'::before').content.includes('용지 420'),
+        'existing physical paper-size label was overwritten by the fold');
+      assert(getComputedStyle(pagePreview,'::after').borderTopStyle==='dashed',
+        'existing margin guide was overwritten by the fold');
       assert(Math.abs(window.PdfLayoutBookletTabs.paperCenter().fold-148.5)<.001,
         'portrait paper fold center must be half the physical width');
       $('pdfBookletFoldGuide').checked=false;
       $('pdfBookletFoldGuide').dispatchEvent(new Event('change'));
       assert(!document.documentElement.classList.contains('pdf-booklet-guide-on'),
         'fold guide must be removable without modifying PDF output');
+      assert(getComputedStyle(overlay).display==='none','fold overlay stayed visible after uncheck');
+      assert(getComputedStyle(pagePreview,'::after').borderTopStyle==='dashed',
+        'hiding fold overlay also disabled the independent margin guide');
       $('pdfBookletLandscapeBtn').click();
       assert(Math.abs(window.PdfLayoutBookletTabs.paperCenter().fold-210)<.001,
         'landscape sheet center must follow paper orientation');

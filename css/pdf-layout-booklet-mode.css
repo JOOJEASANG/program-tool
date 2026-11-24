@@ -92,24 +92,28 @@ html.pdf-booklet-dual-mode #pdfBookletGapNote{
   font-size:10px;font-weight:750;line-height:1.6;color:#176354;
 }
 html.pdf-booklet-dual-mode #pdfBookletGapNote[hidden]{display:none!important}
-/* The seam is a <1px dotted overlay centered on the actual physical sheet.
-   It is applied to preview DOM only, never to the PDF/export canvas. */
-html.pdf-booklet-dual-mode.pdf-booklet-workflow-active.pdf-booklet-guide-on
-  #previewScroll .page-preview{
+/* Preserve page-selection-preview-focus.js's own .page-preview::before
+   (paper-size label) and ::after (margin box). The fold has its OWN
+   nonprinting child overlay, so the three guides can coexist. */
+html.pdf-booklet-dual-mode #previewScroll .page-preview{
   position:relative;
 }
-html.pdf-booklet-dual-mode.pdf-booklet-workflow-active.pdf-booklet-guide-on
-  #previewScroll .page-preview::after{
-  content:'';position:absolute;left:50%;top:0;bottom:0;
-  border-left:1px dashed rgba(11,118,104,.8);
-  transform:translateX(-.5px);z-index:3;pointer-events:none;
+html.pdf-booklet-dual-mode #previewScroll .pdf-booklet-fold-guide-overlay{
+  display:none;position:absolute;inset:0;pointer-events:none;z-index:5;
 }
 html.pdf-booklet-dual-mode.pdf-booklet-workflow-active.pdf-booklet-guide-on
-  #previewScroll .page-preview::before{
-  content:'접지선 0mm';position:absolute;top:5px;left:50%;
-  transform:translateX(-50%);padding:3px 5px;border-radius:4px;
-  background:#0f766e;color:#fff;font-size:9px;white-space:nowrap;
-  font-weight:850;line-height:1.1;z-index:4;pointer-events:none;
+  #previewScroll .pdf-booklet-fold-guide-overlay{
+  display:block;
+}
+html.pdf-booklet-dual-mode #previewScroll .pdf-booklet-fold-guide-overlay::after{
+  content:'';position:absolute;left:50%;top:0;bottom:0;
+  border-left:1px dashed rgba(11,118,104,.9);
+  transform:translateX(-.5px);pointer-events:none;
+}
+html.pdf-booklet-dual-mode #previewScroll .pdf-booklet-fold-guide-overlay span{
+  position:absolute;top:24px;left:50%;transform:translateX(-50%);
+  padding:3px 5px;border-radius:4px;background:#0f766e;color:#fff;
+  font-size:9px;white-space:nowrap;font-weight:850;line-height:1.1;
 }
 @media(max-width:620px){
   html.pdf-booklet-dual-mode .pdf-layout-mode-btn{min-height:62px;padding:8px 6px}

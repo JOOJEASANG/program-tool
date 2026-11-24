@@ -49,7 +49,10 @@ def test_explicit_mode_switch_wired_to_original_booklet_state():
     assert "#pdfNormalPageOrderField" in css
     assert "#pdfNormalGapField" in css
     assert "display:none!important" in css
-    assert "#previewScroll .page-preview::after" in css
+    assert ".pdf-booklet-fold-guide-overlay::after" in css
+    assert "function ensureFoldOverlays()" in controller
+    assert "page-preview::before" in css and "page-preview::after" in css
+    assert 'overlay.className=\'pdf-booklet-fold-guide-overlay\'' in controller
     assert "pointer-events:none" in css
     assert "PDF 저장에는 포함 안 됨" in html
 

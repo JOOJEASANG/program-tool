@@ -21,7 +21,21 @@
       return {width:sheet.pw,height:sheet.ph,fold:sheet.pw/2};
     }catch(_){return null;}
   }
+  function ensureFoldOverlays(){
+    const wrappers=document.querySelectorAll('#previewScroll .page-preview');
+    wrappers.forEach(wrapper=>{
+      if(wrapper.querySelector(':scope > .pdf-booklet-fold-guide-overlay'))return;
+      const overlay=document.createElement('div');
+      overlay.className='pdf-booklet-fold-guide-overlay';
+      overlay.setAttribute('aria-hidden','true');
+      const label=document.createElement('span');
+      label.textContent='접지선 0mm';
+      overlay.appendChild(label);
+      wrapper.appendChild(overlay);
+    });
+  }
   function alignGuide(){
+    ensureFoldOverlays();
     root.classList.toggle('pdf-booklet-guide-on',isBooklet()&&!!$('pdfBookletFoldGuide')?.checked);
   }
   function sync(){
@@ -135,8 +149,12 @@
     const preview=$('previewScroll');
     if(preview){
       new MutationObserver(()=>{
+        ensureFoldOverlays();
         if(root.classList.contains('pdf-booklet-workflow-active')!==isBooklet())sync();
       }).observe(preview,{childList:true});
+      // Page previews are recreated on N-up, paper, zoom and uploaded-page
+      // updates; rebuild the cosmetic fold guide for each new preview sheet.
+      ensureFoldOverlays();
     }
     window.addEventListener('pageshow',sync);
     sync();
