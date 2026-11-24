@@ -10,6 +10,7 @@ from __future__ import annotations
 import io
 import math
 from dataclasses import dataclass
+from typing import Callable
 
 import fitz
 from PIL import Image, ImageOps, UnidentifiedImageError
@@ -20,7 +21,8 @@ MAX_RASTER_PIXELS = 45_000_000
 BORDER_RENDER_DPI = 300
 MAX_IMAGE_PIXELS = 64_000_000
 ALLOWED_EXTENSIONS = {".pdf", ".jpg", ".jpeg", ".png", ".webp"}
-MODES = {"mirror", "edge"}
+MODES = {"mirror", "edge", "ai"}
+AI_SIDES = {"all", "top", "bottom", "left", "right"}
 FIT_MODES = {"contain", "cover"}
 
 
@@ -133,6 +135,42 @@ def _insert_border(page: fitz.Page, source: Image.Image, trim: fitz.Rect, bleed_
         page.insert_image(rect, stream=_png_bytes(strips[key]), keep_proportion=False)
 
 
+
+
+def _insert_ai_border(page: fitz.Page, generated: Image.Image, trim: fitz.Rect,
+                      bleed_pt: float, side: str) -> None:
+    """Place ONLY generated outside pixels. The original vector trim is untouched."""
+    if side not in AI_SIDES:
+        raise ValueError("AI 도련 확장 방향이 올바르지 않습니다.")
+    full_w, full_h = float(page.mediabox.width), float(page.mediabox.height)
+    left, top, right, bottom = trim.x0, trim.y0, trim.x1, trim.y1
+    areas = {
+        "top": (left, 0, right, top),
+        "bottom": (left, bottom, right, full_h),
+        "left": (0, top, left, bottom),
+        "right": (right, top, full_w, bottom),
+        "tl": (0, 0, left, top),
+        "tr": (right, 0, full_w, top),
+        "bl": (0, bottom, left, full_h),
+        "br": (right, bottom, full_w, full_h),
+    }
+    chosen = set(areas) if side == "all" else {
+        "top": {"top", "tl", "tr"}, "bottom": {"bottom", "bl", "br"},
+        "left": {"left", "tl", "bl"}, "right": {"right", "tr", "br"},
+    }[side]
+    rgb = generated.convert("RGB")
+    for name in chosen:
+        x0,y0,x1,y1 = areas[name]
+        ix0 = round(x0/full_w*rgb.width)
+        iy0 = round(y0/full_h*rgb.height)
+        ix1 = round(x1/full_w*rgb.width)
+        iy1 = round(y1/full_h*rgb.height)
+        if ix1 <= ix0 or iy1 <= iy0:
+            raise ValueError("AI 도련 생성 결과가 너무 작습니다.")
+        part = rgb.crop((ix0,iy0,ix1,iy1))
+        page.insert_image(fitz.Rect(x0,y0,x1,y1),stream=_png_bytes(part),keep_proportion=False)
+
+
 def _source_clip(page: fitz.Page, dest: fitz.Rect) -> fitz.Rect:
     src = page.rect
     dest_ratio = dest.width / dest.height
@@ -155,9 +193,15 @@ def extend_print_bleed(
     bleed_mm: float = 3,
     edge_mode: str = "mirror",
     fit_mode: str = "contain",
+    ai_processor: Callable[[Image.Image, float, float, float], Image.Image] | None = None,
+    ai_side: str = "all",
 ) -> BleedResult:
     if edge_mode not in MODES:
         raise ValueError("배경 확장 방식을 다시 선택해 주세요.")
+    if edge_mode == "ai" and not callable(ai_processor):
+        raise ValueError("AI 도련 생성 서비스가 준비되지 않았습니다.")
+    if ai_side not in AI_SIDES:
+        raise ValueError("AI 도련 적용 위치를 다시 선택해 주세요.")
     if fit_mode not in FIT_MODES:
         raise ValueError("크기 맞춤 방식을 다시 선택해 주세요.")
     if not math.isfinite(float(bleed_mm)) or not 1 <= float(bleed_mm) <= 10:
@@ -175,13 +219,19 @@ def extend_print_bleed(
     try:
         if not 1 <= len(pdf) <= MAX_PAGES:
             raise ValueError(f"한 번에 최대 {MAX_PAGES}페이지까지 처리할 수 있습니다.")
+        if edge_mode == "ai" and len(pdf) > 2:
+            raise ValueError("AI 자연 확장은 호출 비용 보호를 위해 한 번에 2페이지까지만 처리합니다.")
         if image_pixels:
             warnings.append("이미지 원본의 실물 크기·유효 DPI는 사용자가 입력한 완성 규격에 따라 달라집니다.")
         if fit_mode == "cover":
             warnings.append("비율이 다르면 가운데를 기준으로 원본 가장자리가 잘릴 수 있습니다.")
         else:
             warnings.append("원본과 완성 규격의 비율이 다르면 안쪽에 흰 여백이 생길 수 있습니다.")
-        warnings.append("거울 반사·가장자리 늘리기는 실제 원본 배경을 새로 그리는 AI 확장이 아닙니다. 인물·글자·복잡한 무늬는 재단 전 반드시 확인하세요.")
+        warnings.append(
+            "AI 결과도 실제 인쇄 전 도련·모서리·사진을 확인해야 합니다. AI는 원본 내부의 글자나 로고를 수정하지 않습니다."
+            if edge_mode == "ai" else
+            "거울 반사·가장자리 늘리기는 실제 원본 배경을 새로 그리는 AI 확장이 아닙니다. 인물·글자·복잡한 무늬는 재단 전 반드시 확인하세요."
+        )
         bpt = bleed_mm * PT_PER_MM
         first_w = first_h = 0.0
         for i, original in enumerate(pdf):
@@ -200,7 +250,7 @@ def extend_print_bleed(
             clip = _source_clip(original, trim) if fit_mode == "cover" else None
             page.show_pdf_page(trim, pdf, i, clip=clip, keep_proportion=True, overlay=True)
             # Sample *output trim*, not original, so contain/cover behavior matches
-            # the actual page exactly. 144-DPI strip pixels are not the artwork.
+            # the actual page exactly. 300-DPI strip pixels are not the artwork.
             pxw = math.ceil(wpt / 72 * BORDER_RENDER_DPI)
             pxh = math.ceil(hpt / 72 * BORDER_RENDER_DPI)
             if pxw * pxh > MAX_RASTER_PIXELS:
@@ -210,7 +260,12 @@ def extend_print_bleed(
                 clip=trim, colorspace=fitz.csRGB, alpha=False
             )
             rendered = Image.frombytes("RGB", (pix.width, pix.height), pix.samples)
-            _insert_border(page, rendered, trim, bpt, edge_mode)
+            _insert_border(page, rendered, trim, bpt, "mirror" if edge_mode == "ai" else edge_mode)
+            if edge_mode == "ai":
+                generated = ai_processor(
+                    rendered, bleed_mm, wpt / PT_PER_MM, hpt / PT_PER_MM
+                )
+                _insert_ai_border(page, generated, trim, bpt, ai_side)
             page.set_trimbox(trim)
             page.set_bleedbox(page.mediabox)
         stream = io.BytesIO()

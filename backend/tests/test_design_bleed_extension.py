@@ -114,7 +114,7 @@ def test_invalid_size_file_and_option_are_rejected():
     with pytest.raises(ValueError, match="10~1,500"):
         extend_print_bleed(source, filename="x.pdf", trim_width_mm=5, trim_height_mm=50)
     with pytest.raises(ValueError, match="방식"):
-        extend_print_bleed(source, filename="x.pdf", edge_mode="ai")
+        extend_print_bleed(source, filename="x.pdf", edge_mode="invalid")
     with pytest.raises(ValueError, match="지원"):
         extend_print_bleed(source, filename="x.gif")
     with pytest.raises(ValueError, match="암호화"):

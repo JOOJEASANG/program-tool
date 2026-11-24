@@ -43,7 +43,7 @@ def test_legacy_cover_engine_is_archived_but_not_loaded_by_finisher():
     assert "const normalizeMode=(_studio,mode)=>COVER_MODES.has(mode)?mode:'spread'" in modes
     assert '/js/ai-design-maker.js?v=20261028-5' not in page
     assert '/js/design-workshop-modes.js?v=20261028-3' not in page
-    assert '/js/design-bleed-enhancer.js?v=20261123-3' in page
+    assert '/js/design-bleed-enhancer.js?v=20261124-1' in page
 
 
 def test_legacy_spine_math_and_cover_preview_helpers_remain_consistent():

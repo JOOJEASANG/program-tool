@@ -40,8 +40,8 @@ def test_all_workflow_ids_are_unique_and_files_stay_upload_first():
                      "saveBtn","pageSelect","helpBtn","resetBtn","helpGuide"):
         assert required in ids
     assert 'id="generateBtn"' not in page
-    assert '/js/design-bleed-enhancer.js?v=20261123-3' in page
-    assert '/css/design-bleed-enhancer.css?v=20261123-3' in page
+    assert '/js/design-bleed-enhancer.js?v=20261124-1' in page
+    assert '/css/design-bleed-enhancer.css?v=20261124-1' in page
 
 
 def test_shared_editor_visual_language_is_responsive_and_not_fake_controls():

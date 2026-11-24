@@ -45,7 +45,10 @@
       trim_height_mm:readNumber('trimHeight'),
       bleed_mm:readNumber('bleedMm'),
       edge_mode:$('edgeMode').value,
-      fit_mode:$('fitMode').value
+      fit_mode:$('fitMode').value,
+      ai_quality:$('aiQuality').value,
+      ai_side:$('aiSide').value,
+      ai_direction:$('aiDirection').value.trim()
     };
   }
   function isValid() {
@@ -54,12 +57,23 @@
       Number.isFinite(s.trim_height_mm) &&
       s.trim_width_mm>=10 && s.trim_width_mm<=1500 &&
       s.trim_height_mm>=10 && s.trim_height_mm<=1500 &&
-      s.bleed_mm>=1 && s.bleed_mm<=10;
+      s.bleed_mm>=1 && s.bleed_mm<=10 &&
+      (s.edge_mode!=='ai' || (state.pages<=2 && s.ai_direction.length<=200 && $('aiConsent').checked));
   }
   function ready() {
     $('processBtn').disabled=!isValid()||state.loading||state.preparing;
     $('saveBtn').disabled=!state.resultBlob||state.loading||state.preparing||!$('confirmCheck').checked;
     $('confirmCheck').disabled=!state.resultBlob||state.preparing;
+  }
+  function syncAiOptions() {
+    const active=$('edgeMode').value==='ai';
+    $('aiBleedOptions').hidden=!active;
+    $('processBtn').textContent=active?'AI로 자연스러운 도련 생성':'도련 생성하고 결과 비교하기';
+    if(active&&state.file&&state.pages>2){
+      status('AI 도련은 최대 2페이지까지 지원합니다. 기본 확장 방식을 선택하거나 PDF를 분할해 주세요.','error');
+    } else if(active && !($('aiConsent')?.checked)) {
+      status('AI 전송·비용 안내에 동의하면 AI 도련 생성 버튼이 활성화됩니다.');
+    }
   }
   function sizeSummary() {
     if (!isValid()) {
@@ -77,7 +91,9 @@
         ? '주의: 원본과 완성 크기의 가로세로 비율이 달라 인쇄면 안쪽에 흰 여백이 생길 수 있습니다. 도련이 흰색으로 확장되는지 미리보기에서 확인하세요.'
         : '주의: 원본과 완성 크기의 비율이 달라 일부 내용이 잘릴 수 있습니다. 재단선 가까이 있는 글자와 로고를 꼭 확인하세요.';
     } else {
-      $('fitWarning').textContent='도련은 AI 이미지 생성이 아닌 원본 가장자리 반사·늘리기 방식입니다. 사진·패턴·글자가 경계에 걸린 경우 재단 전 결과를 확인해 주세요.';
+      $('fitWarning').textContent=s.edge_mode==='ai'
+        ? 'AI는 실제 원본 배경을 참고해 재단 바깥만 새로 그립니다. 원본 내부는 보호됩니다. 다만 AI 결과는 꼭 확대 검수해야 하며 API 사용량이 발생합니다.'
+        : '현재 방식은 원본 가장자리 반사·늘리기입니다. 자연스러운 배경 추론이 필요하면 AI 자연 확장을 선택해 주세요.';
     }
   }
   function invalidateResult() {
@@ -114,6 +130,9 @@
     $('trimWidth').value='';$('trimHeight').value='';
     $('sizePreset').value='source';$('bleedMm').value='3';$('edgeMode').value='mirror';
     $('fitMode').value='contain';$('productType').value='cover';
+    $('aiQuality').value='low';$('aiSide').value='all';$('aiDirection').value='';
+    $('aiConsent').checked=false;
+    $('edgeMode').value='mirror';syncAiOptions();
     $('pageSelect').innerHTML='<option value="1">1</option>';
     $('pageSelect').disabled=true;
     $('beforeEmpty').hidden=false;$('afterEmpty').hidden=false;
@@ -178,6 +197,7 @@
       $('beforeEmpty').hidden=true;
       populatePages(state.pages);
       await drawPreviews();
+      syncAiOptions();
       status('원본을 불러왔습니다. 완성 크기와 도련을 확인하고 보완해 주세요.','success');
     } catch(error){
       status(error?.message||'원본을 읽지 못했습니다.','error');
@@ -414,11 +434,17 @@
   }
   async function processFile() {
     if(!isValid()||state.preparing||state.loading)return;
+    if($('edgeMode').value==='ai'){
+      const yes=window.confirm('AI 자연 확장을 실행하면 이미지 API 사용량과 비용이 발생합니다. 원본 안쪽은 그대로 유지하고 바깥 도련만 생성합니다. 진행할까요?');
+      if(!yes)return;
+    }
     invalidateResult();
     const ticket=state.actionId,file=state.file, params=settings();
     state.preparing=true;ready();
     try{
-      status('원본 디자인을 보존하면서 외곽 도련을 생성하고 있습니다.');
+      status(params.edge_mode==='ai'
+        ? 'AI가 원본 배경을 참고하여 바깥 도련만 자연스럽게 생성 중입니다. 페이지마다 API 호출이 발생합니다.'
+        : '원본 디자인을 보존하면서 외곽 도련을 생성하고 있습니다.');
       const blob=await requestBleed(file,params);
       if(ticket!==state.actionId||state.file!==file)return;
       const lib=ensurePdfJs();
@@ -434,8 +460,11 @@
       if(!isPdf(file))note+=' 이미지 원본의 실제 인쇄 해상도는 파일 픽셀 수와 완성 크기에 따라 결정됩니다.';
       if(params.fit_mode==='cover')note+=' 원본·완성 비율이 다른 경우 일부가 잘렸을 수 있습니다.';
       if(params.edge_mode==='mirror')note+=' 거울 반사 특성상 경계 무늬가 반복될 수 있습니다.';
+      if(params.edge_mode==='ai')note+=' AI가 선택한 도련 부분을 생성했고, 나머지 방향은 기본 방식으로 확장했습니다. 글자·로고는 재단선 안에 원본대로 보존됩니다.';
       if(['leaflet2','leaflet3'].includes($('productType').value))note+=' 리플렛 접지선은 미리보기만 제공하며 패널 규격·접지 순서는 조정하지 않습니다.';
-      note+=' AI 재구성이 아니므로 얼굴·글자·불규칙한 배경의 가장자리는 반드시 확대해 확인하세요.';
+      note+=params.edge_mode==='ai'
+        ? ' AI 결과가 원본 배경과 자연스럽게 연결되는지 네 방향과 모서리를 확대해 확인하세요. 재생성에는 추가 사용량이 발생합니다.'
+        : ' 기본 반사·연장은 AI 재구성이 아니므로 경계 패턴을 확대해 확인하세요.';
       $('reviewText').textContent=note;
       status('도련 생성 완료. 모든 페이지를 비교한 뒤 확인란을 선택해 저장하세요.','success');
     }catch(error){
@@ -447,7 +476,7 @@
   function savePdf() {
     if(!state.resultBlob||!$('confirmCheck').checked||state.preparing)return;
     const s=state.resultSettings;
-    const name=fileLabel(state.file)+'_도련'+String(s.bleed_mm).replace('.','_')+'mm.pdf';
+    const name=fileLabel(state.file)+(s.edge_mode==='ai'?'_AI도련':'_도련')+String(s.bleed_mm).replace('.','_')+'mm.pdf';
     const url=URL.createObjectURL(state.resultBlob);
     const link=document.createElement('a');
     link.href=url;link.download=name;document.body.appendChild(link);link.click();link.remove();
@@ -506,9 +535,12 @@
     });
     $('edgePosition').addEventListener('change',()=>{void queueEdgeInspector();});
     $('sizePreset').addEventListener('change',updatePreset);
-    ['trimWidth','trimHeight','bleedMm','edgeMode','fitMode','productType'].forEach(id=>{
+    $('aiConsent').addEventListener('change',ready);
+    ['trimWidth','trimHeight','bleedMm','edgeMode','fitMode','productType',
+      'aiQuality','aiSide','aiDirection'].forEach(id=>{
       $(id).addEventListener('change',()=>{
         if(id==='trimWidth'||id==='trimHeight')$('sizePreset').value='custom';
+        if(id==='edgeMode')syncAiOptions();
         invalidateResult();
       });
     });

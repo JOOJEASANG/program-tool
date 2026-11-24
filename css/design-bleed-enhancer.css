@@ -605,3 +605,24 @@ html[data-program="design-bleed-enhancer"] .edge-position-field select{
   height:31px;padding:4px 9px;border:1px solid #cfdde5;border-radius:7px;
   background:#fff;color:#344961;font-size:10px;font-weight:800;
 }
+
+/* Optional paid AI mode — completely hidden for ordinary mirror/edge jobs. */
+html[data-program="design-bleed-enhancer"] .ai-bleed-options{
+  border:1px solid #9fd5c9;border-radius:10px;padding:11px;
+  margin-top:12px;background:#effcf7;
+}
+html[data-program="design-bleed-enhancer"] .ai-bleed-options[hidden]{display:none!important}
+html[data-program="design-bleed-enhancer"] .ai-bleed-options .field{margin-top:8px}
+html[data-program="design-bleed-enhancer"] .ai-bleed-note{
+  margin:9px 0 0;color:#375e58;font-size:10px;line-height:1.6;
+}
+html[data-program="design-bleed-enhancer"] .ai-bleed-note strong{color:#075f55}
+html[data-program="design-bleed-enhancer"] #aiDirection{min-width:0}
+
+html[data-program="design-bleed-enhancer"] .ai-consent{
+  display:flex;align-items:flex-start;gap:7px;margin:10px 0;
+  color:#315a53;font-size:10px;line-height:1.5;cursor:pointer;
+}
+html[data-program="design-bleed-enhancer"] .ai-consent input{
+  flex:0 0 14px;width:14px;height:14px;margin:1px 0;accent-color:#0f766e;
+}

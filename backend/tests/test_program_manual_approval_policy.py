@@ -31,7 +31,11 @@ def test_all_live_program_manuals_document_approval_only_unlimited_policy():
     for filename in MANUALS:
         source = read(MANUAL_DIR / filename)
         assert _manual_updated(source) >= POLICY_UPDATED, filename
-        assert POLICY_NOTICE in source, filename
+        if filename == "ai-design-maker.js":
+            assert "관리자가 승인한 회원" in source, filename
+            assert "AI 도련 확장에는 호출 빈도·예산 제한" in source, filename
+        else:
+            assert POLICY_NOTICE in source, filename
 
 
 def test_manual_registry_enforces_policy_for_future_manuals_too():

@@ -77,8 +77,8 @@ def test_new_tools_have_user_guides_and_valid_javascript():
     ]
     for path in manual_paths:
         expected_date = ('2026-11-23' if path.endswith('pdf-suite.js')
-                         else '2026-11-23' if path.endswith('smart-print-layout.js')
-                         else '2026-10-28')
+                         else '2026-11-24' if path.endswith('smart-print-layout.js')
+                         else '2026-11-24')
         assert f"updated: '{expected_date}'" in read(path)
     assert "엑셀 명단 자동 출력" in read(manual_paths[0])
     assert "양면 인쇄 위치 맞추기" in read(manual_paths[1])
