@@ -105,6 +105,7 @@
     if(nativeRead.__pdfStorageDirectBridgeV1)return true;
 
     const bridgedRead=async function(resp,options={}){
+      if(options.browserDownload===true){clearDirectSave('explicit-download');return nativeRead.call(this,resp,options);}
       if(!directSaveArmed())return nativeRead.call(this,resp,options);
       const contentType=resp?.headers?.get?.('content-type')||'';
       if(!contentType.includes('application/json'))return nativeRead.call(this,resp,options);

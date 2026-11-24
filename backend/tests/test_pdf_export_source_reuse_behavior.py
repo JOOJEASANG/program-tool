@@ -26,7 +26,7 @@ def test_result_download_uses_opt_in_without_changing_other_programs():
     assert "reuseSources: true" in editor
     assert "const reuseSources = preparedOptions.reuseSources === true" in api
     assert "retain_temp_sources: true" in api
-    assert "source_session_doc: saved?.docId" in api
+    assert "source_session_doc: forceFreshSources ? null : (saved?.docId || null)" in api
     assert "if not retain_temp_sources:" in server
     assert "_cleanup_storage_paths(bucket, temporary_paths)" in server
     assert "_is_saved_source_path" in server
