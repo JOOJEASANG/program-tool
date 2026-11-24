@@ -78,7 +78,7 @@ def test_upload_workflows_have_browser_selection_and_webp_regressions():
     assert "pdf-utility-image-upload-smoke.html" in shell
     assert "pdf-utility-curated-core-smoke.html" in shell
     manual = read("js/program-manuals/pdf-suite.js")
-    assert "updated: '2026-11-23'" in manual
+    assert "updated: '2026-11-24'" in manual
     assert "WebP" in manual
 
 
