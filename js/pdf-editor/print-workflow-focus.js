@@ -191,6 +191,9 @@
   }
 
   function install(){
+    // The canonical page-layout section already owns the mode buttons.
+    // Do not create a second controller or override its fixed booklet settings.
+    if($('pdfLayoutModeTabs')&&$('bookletCheck'))return true;
     attempts+=1;
     installStyles();
     inferModeFromLegacy();

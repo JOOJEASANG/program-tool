@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>PDF 문서 편집기 · Program Studio</title>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css" />
-  <link rel="stylesheet" href="/css/pdf-layout-booklet-mode.css?v=20261124-1" />
+  <link rel="stylesheet" href="/css/pdf-layout-booklet-mode.css?v=20261124-2" />
   <style>
     :root {
       --primary: #12396d; --accent: #1d9bb2; --bg: #f4f6f8;
@@ -218,6 +218,11 @@
     .preview-row { display: flex; flex-wrap: nowrap; align-items: flex-start; justify-content: center; gap: 8px; margin: 10px 0; }
     .page-preview { background: #fff; box-shadow: 0 4px 16px rgba(0,0,0,0.15); border-radius: 3px; flex-shrink: 0; }
     .page-preview canvas { display: block; width: 100%; }
+    #previewScroll .page-preview { position:relative; }
+    .pdf-actual-trim-guide { position:absolute; box-sizing:border-box; border:1px dashed #db2777; z-index:6; pointer-events:none; }
+    .pdf-actual-trim-guide span { position:absolute; bottom:2px; left:50%; transform:translateX(-50%); padding:1px 4px; background:#fff; color:#9d174d; border:1px solid #f9a8d4; border-radius:3px; font-size:9px; font-weight:800; white-space:nowrap; max-width:100%; overflow:hidden; text-overflow:ellipsis; }
+    html.pdf-actual-trim-hidden .pdf-actual-trim-guide { display:none!important; }
+    @media print { .pdf-actual-trim-guide { display:none!important; } }
     .page-label { text-align: center; font-size: 10px; color: var(--muted); margin-top: 4px; font-weight: 700; }
     /* Preview insert zones */
     .prev-ins-zone { width: 100%; height: 32px; display: flex; align-items: center; justify-content: center; position: relative; cursor: default; opacity: 0; transition: opacity 0.15s; flex-shrink: 0; }
@@ -505,7 +510,7 @@
     <!-- N-up 배치 -->
     <div class="sec">
       <div class="sec-head" data-sec="nup">
-        <span class="sec-title">배치 방식 · 일반 N-up 배치 / 중철 소책자</span>
+        <span class="sec-title">3 · 페이지 배치</span>
         <span class="sec-arrow">▾</span>
       </div>
       <div class="sec-body" id="sb-nup">
@@ -848,6 +853,7 @@
         <span id="previewPages" style="color:#2563eb;font-weight:800;"></span>
         <div class="preview-zoom">
           <button type="button" id="previewGuidesToggle" aria-pressed="true" title="미리보기 안내선: 실선은 출력 용지 외곽, 점선은 설정한 작업 여백입니다. PDF 저장에는 포함되지 않습니다." style="height:30px;min-height:30px;padding:3px 7px;border:1px solid #0f766e;border-radius:6px;background:#ecfdf5;color:#065f46;font-size:10px;font-weight:800;font-family:inherit;white-space:nowrap;cursor:pointer;">여백선 ON</button>
+          <button type="button" id="actualTrimGuidesToggle" class="page-sidebar-toggle" aria-pressed="true" title="지정한 실제 배치 크기별 재단 위치와 치수 · 미리보기 전용">실제 재단선 ON</button>
           <select id="perRowSelect" style="border:1px solid var(--line);border-radius:6px;padding:2px 4px;font-size:11px;font-weight:800;font-family:inherit;color:#374151;background:#fff;cursor:pointer;">
             <option value="1">줄당 1장</option>
             <option value="2" selected>줄당 2장</option>
@@ -946,7 +952,7 @@
     <div class="fh-head">
       <div>
         <h2>저장된 편집 불러오기</h2>
-        <div class="fh-head-sub">저장된 편집 상태 목록 (최대 10개)</div>
+        <div class="fh-head-sub">저장된 편집 상태 목록 · 최대 10개 보관, 자동 삭제하지 않음</div>
       </div>
       <button class="modal-close" id="sessionListClose">✕</button>
     </div>
@@ -1121,60 +1127,12 @@ function collectEditorState() {
 }
 
 async function saveEditorSession() {
-  const user = auth.currentUser;
-  if (!user || !uploadedFiles.length) return;
-
-  const name = ($('sessionNameInput').value || '').trim() || '편집 세션';
-  const statusEl = $('sessionSaveStatus');
-  statusEl.style.color = '#6b7280';
-  statusEl.textContent = '파일 업로드 중...';
-  $('sessionSaveConfirm').disabled = true;
-
-  try {
-    const sessionId = Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
-    const col = db.collection('users').doc(user.uid).collection('pdf_sessions');
-
-    // 최대 10개 제한
-    const existing = await col.orderBy('createdAt', 'asc').get();
-    if (existing.size >= 10) {
-      const toDelete = existing.docs.slice(0, existing.size - 9);
-      for (const d of toDelete) {
-        for (const sp of (d.data().storagePaths || [])) {
-          await storage.ref(sp).delete().catch(() => {});
-        }
-        await col.doc(d.id).delete();
-      }
-    }
-
-    // Upload source files
-    const storagePaths = [];
-    for (let i = 0; i < uploadedFiles.length; i++) {
-      statusEl.textContent = `파일 업로드 중... (${i + 1}/${uploadedFiles.length})`;
-      const sp = `pdf_sessions/${user.uid}/${sessionId}/src_${i}.pdf`;
-      await storage.ref(sp).put(uploadedFiles[i], { contentType: 'application/pdf' });
-      storagePaths.push(sp);
-    }
-
-    statusEl.textContent = '상태 저장 중...';
-    const state = collectEditorState();
-    await col.add({
-      name,
-      sessionId,
-      storagePaths,
-      fileCount: uploadedFiles.length,
-      pageCount: parsedPages.length,
-      state: JSON.stringify(state),
-      createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-    });
-
-    statusEl.style.color = '#166534';
-    statusEl.textContent = '✅ 저장 완료!';
-    setTimeout(() => { $('sessionSaveModal').style.display = 'none'; }, 1200);
-  } catch (e) {
-    statusEl.style.color = '#dc2626';
-    statusEl.textContent = '저장 실패: ' + e.message;
-  }
-  $('sessionSaveConfirm').disabled = false;
+  // Never use the old delete-first save implementation while the safe
+  // persistence runtime is loading.
+  if (window.PdfSessionSaveSafety?.save) return window.PdfSessionSaveSafety.save('new');
+  $('sessionSaveStatus').style.color='#dc2626';
+  $('sessionSaveStatus').textContent='편집 저장 준비 중입니다. 다시 시도해 주세요. 기존 저장본은 유지됩니다.';
+  return false;
 }
 
 async function openSessionList() {
@@ -1184,19 +1142,24 @@ async function openSessionList() {
   const body = $('sessionListBody');
   body.innerHTML = '<div class="fh-loading">불러오는 중...</div>';
   try {
-    const snap = await db.collection('users').doc(user.uid)
-      .collection('pdf_sessions')
-      .orderBy('createdAt', 'desc')
-      .limit(20)
-      .get();
+    // Query without orderBy: Firestore excludes documents missing that field.
+    const collection = db.collection('users').doc(user.uid).collection('pdf_sessions');
+    const snap = await collection.get({source:'server'});
+    if(auth.currentUser?.uid !== user.uid) return;
+    const stamp = value => typeof value?.toMillis==='function' ? value.toMillis() : 0;
+    const documents = [...snap.docs].sort((a,b)=>{
+      const x=a.data(), y=b.data();
+      return (stamp(y.updatedAt)||stamp(y.createdAt))-(stamp(x.updatedAt)||stamp(x.createdAt)) || a.id.localeCompare(b.id);
+    });
     if (snap.empty) {
-      body.innerHTML = '<div class="fh-empty">📂 저장된 편집이 없습니다.</div>';
+      body.innerHTML = '<div class="fh-empty">📂 현재 로그인 계정에 저장된 편집이 없습니다.</div>';
       return;
     }
     body.innerHTML = '';
-    snap.forEach(doc => {
+    documents.forEach(doc => {
       const d = doc.data();
-      const dateStr = d.createdAt?.toDate ? d.createdAt.toDate().toLocaleString('ko-KR') : '-';
+      const date = d.updatedAt?.toDate ? d.updatedAt : d.createdAt;
+      const dateStr = date?.toDate ? date.toDate().toLocaleString('ko-KR') : '저장 날짜 없음';
       const item = document.createElement('div');
       item.className = 'fh-item';
       item.innerHTML = `
@@ -1227,8 +1190,9 @@ async function openSessionList() {
     body.replaceChildren();
     const errorMessage = document.createElement('div');
     errorMessage.className = 'fh-empty';
-    errorMessage.textContent = '오류: ' + e.message;
-    body.appendChild(errorMessage);
+    errorMessage.textContent = '저장 목록을 조회하지 못했습니다. 저장본이 없다는 뜻은 아닙니다. (' + (e.code || e.message || '조회 오류') + ')';
+    const retry=document.createElement('button'); retry.type='button'; retry.className='fh-btn'; retry.textContent='목록 다시 조회'; retry.addEventListener('click',openSessionList);
+    body.append(errorMessage,retry);
   }
 }
 
@@ -2074,6 +2038,45 @@ async function renderPdfPage(pdfPage, scale, rotation) {
   return canvas;
 }
 
+// Work previews render directly from the original PDF, never enlarge a
+// low-resolution sidebar thumbnail. Bound each temporary canvas and release
+// it after one output face; the original File used by export is untouched.
+async function renderWorkPreviewSource(pdfPage, rotation) {
+  const base=pdfPage.getViewport({scale:1,rotation});
+  const scale=Math.min(2,1800/Math.max(1,base.width,base.height),
+    Math.sqrt(2200000/Math.max(1,base.width*base.height)));
+  return renderPdfPage(pdfPage,scale,rotation);
+}
+
+async function withSharpPreviewPages(pages, start, count, draw) {
+  const prepared=pages.slice();
+  const temporary=new Map();
+  try {
+    for(let i=start;i<Math.min(start+count,pages.length);i++){
+      const page=pages[i];
+      if(page?.pageType!=='pdf'||!page.pdfPage||page.pdfPage.__lightweightPdfPage)continue;
+      try {
+        if(!temporary.has(page))temporary.set(page,await renderWorkPreviewSource(page.pdfPage,Number(page.rotation)||0));
+        prepared[i]={...page,thumbCanvas:temporary.get(page),hiCanvas:null};
+      } catch(error) {
+        console.warn('[preview] high-resolution render unavailable; using source thumbnail',error);
+      }
+    }
+    return draw(prepared);
+  } finally {
+    for(const canvas of temporary.values()){canvas.width=1;canvas.height=1;}
+  }
+}
+
+function workPreviewPixelsPerMm(pageCount) {
+  const {pw,ph}=getSettings();
+  const count=Math.max(1,Number(pageCount)||1);
+  // Limit retained sheet pixels for large jobs; increase small-job preview
+  // fidelity up to 144 dpi without allocating print-resolution canvases.
+  return Math.min(144/25.4, 2400/Math.max(1,pw,ph),
+    Math.max(96/25.4,Math.sqrt(18000000/Math.max(1,pw*ph*count))));
+}
+
 // ── Divider canvas renderer ───────────────────────────────────────────
 function renderDividerCanvas(content, w, h) {
   const c = document.createElement('canvas');
@@ -2568,8 +2571,38 @@ function groupByNup(pages) {
   return groups;
 }
 
+// Store screen-only trim geometry on the rendered canvas, not its pixels.
+function recordActualTrimRect(ctx, x, y, w, h, mm2px, bookletSide, bleedCrop) {
+  if (![x,y,w,h,mm2px].every(Number.isFinite) || w<=0 || h<=0 || mm2px<=0) return;
+  if (bleedCrop) {
+    const bleed=3*mm2px;
+    if (bookletSide==='left') x+=bleed;
+    y+=bleed; w-=bleed; h-=2*bleed;
+  }
+  if(w<=0||h<=0)return;
+  const canvas=ctx.canvas;
+  if(!canvas?.dataset)return;
+  const rects=JSON.parse(canvas.dataset.actualTrimRects || '[]');
+  rects.push({x,y,w,h,widthMm:w/mm2px,heightMm:h/mm2px});
+  canvas.dataset.actualTrimRects=JSON.stringify(rects);
+}
+
+function appendActualTrimGuides(wrapper, canvas) {
+  const rects=JSON.parse(canvas.dataset.actualTrimRects || '[]');
+  for(const rect of rects){
+    const guide=document.createElement('div');
+    guide.className='pdf-actual-trim-guide';
+    guide.setAttribute('aria-hidden','true');
+    Object.assign(guide.style,{left:(rect.x/canvas.width*100)+'%',top:(rect.y/canvas.height*100)+'%',width:(rect.w/canvas.width*100)+'%',height:(rect.h/canvas.height*100)+'%'});
+    const label=document.createElement('span');
+    const fmt=value=>String(Number(value.toFixed(2)));
+    label.textContent=fmt(rect.widthMm)+'×'+fmt(rect.heightMm)+'mm';
+    guide.appendChild(label);wrapper.appendChild(guide);
+  }
+}
+
 // ── Draw one page into a cell (auto-rotates 90° when it gives ≥10% better fit) ──
-function drawPageInCell(ctx, src, cellX, cellY, cellW, cellH, mm2px = 1, horizontalAlign = 'center', bookletSide = null) {
+function drawPageInCell(ctx, src, cellX, cellY, cellW, cellH, mm2px = 1, horizontalAlign = 'center', bookletSide = null, artworkShiftPx = 0) {
   const alignX = (width) => horizontalAlign === 'right' ? cellX + cellW - width
     : horizontalAlign === 'left' ? cellX : cellX + (cellW - width) / 2;
   const actual = getActualPlacementSize();
@@ -2591,6 +2624,7 @@ function drawPageInCell(ctx, src, cellX, cellY, cellW, cellH, mm2px = 1, horizon
     const dh = rot ? targetW : targetH;
     const dx = alignX(dw);
     const dy = cellY + (cellH - dh) / 2;
+    if (rot ? fits90 : fits0) recordActualTrimRect(ctx, dx-artworkShiftPx, dy, dw, dh, mm2px, bookletSide, bleedCrop);
 
     ctx.save();
     ctx.beginPath();
@@ -2731,7 +2765,7 @@ function buildOutputPage(groupPages, pageIdx, cols, rows, mm2px, useHi, repeated
     }
     drawPageInCell(ctx, src, cellX + towardFoldPx, cellY,
       placedW, placedH, mm2px, foldCell?.align || 'center',
-      foldCell?(col===0?'left':'right'):null);
+      foldCell?(col===0?'left':'right'):null, towardFoldPx);
     ctx.restore();
     if (repeated) {
       const overlay = document.createElement('canvas');
@@ -2924,7 +2958,7 @@ async function buildAllPages(mm2px, useHi, overridePages = null) {
     const { cols, rows } = getBookletLayout(nup);
     const perPage = cols * rows;
     for (let p = 0; p < Math.ceil(active.length / perPage); p++) {
-      out.push(buildOutputPage(active, p, cols, rows, mm2px, useHi));
+      out.push(await withSharpPreviewPages(active,p*perPage,perPage,prepared=>buildOutputPage(prepared, p, cols, rows, mm2px, useHi)));
       await new Promise(r => setTimeout(r, 0));
     }
   } else {
@@ -2934,7 +2968,7 @@ async function buildAllPages(mm2px, useHi, overridePages = null) {
       const { cols, rows } = getLayout(grp.n);
       const perPage = cols * rows;
       for (let p = 0; p < Math.ceil(grp.pages.length / perPage); p++) {
-        out.push(buildOutputPage(grp.pages, p, cols, rows, mm2px, useHi, !!grp.repeated, out.length, totalOutput));
+        out.push(await withSharpPreviewPages(grp.pages,p*perPage,perPage,prepared=>buildOutputPage(prepared, p, cols, rows, mm2px, useHi, !!grp.repeated, out.length, totalOutput)));
         await new Promise(r => setTimeout(r, 0));
       }
     }
@@ -3076,7 +3110,7 @@ async function triggerPreview() {
     const useBooklet = (document.getElementById('bookletCheck')?.checked) && (nup in BOOKLET_STRIPS);
     const previewPages = useBooklet ? bookletReorderPreview(active, nup) : null;
     stage = 'build-pages';
-    previewCanvases = await buildAllPages(96 / 25.4, false, previewPages);
+    previewCanvases = await buildAllPages(workPreviewPixelsPerMm(active.length), false, previewPages);
     if (!previewCanvases || !previewCanvases.length) {
       showPreviewError('build-pages', new Error('출력 페이지가 0개 생성됨 (활성 ' + active.length + '페이지)'));
       $('previewBtn').disabled = false;
@@ -3104,6 +3138,12 @@ async function triggerPreview() {
 }
 
 updateActualSizeUi();
+
+$('actualTrimGuidesToggle').addEventListener('click',()=>{
+  const hidden=document.documentElement.classList.toggle('pdf-actual-trim-hidden');
+  $('actualTrimGuidesToggle').setAttribute('aria-pressed',String(!hidden));
+  $('actualTrimGuidesToggle').textContent=hidden?'실제 재단선 OFF':'실제 재단선 ON';
+});
 
 $('previewBtn').addEventListener('click', triggerPreview);
 
@@ -3180,6 +3220,7 @@ function displayPreview(pages, autoFit = false) {
         if (mm !== undefined) wrap.dataset['previewMargin'+edge+'Mm'] = mm;
       }
       wrap.appendChild(c);
+      appendActualTrimGuides(wrap,canvas);
       rowDiv.appendChild(wrap);
       // Vertical insert zone between pages within the row (perRow >= 2)
       if (perRow >= 2 && i < end - 1) {

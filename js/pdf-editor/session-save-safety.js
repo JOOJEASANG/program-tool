@@ -214,23 +214,10 @@
     return Promise.allSettled(paths.map((path) => deleteStoragePath(path)));
   }
 
-  async function trimOldSessions(collection, newDocumentId) {
-    const snapshot = await collection.orderBy('createdAt', 'asc').get();
-    const excess = Math.max(0, snapshot.size - MAX_SESSIONS);
-    if (!excess) return;
-
-    const removable = snapshot.docs
-      .filter((document) => document.id !== newDocumentId)
-      .slice(0, excess);
-
-    for (const document of removable) {
-      const paths = document.data()?.storagePaths || [];
-      const results = await cleanupUploadedPaths(paths);
-      if (results.some((result) => result.status === 'rejected')) {
-        console.warn('[pdf-session] source cleanup incomplete; keeping session document', document.id);
-        continue;
-      }
-      await collection.doc(document.id).delete();
+  async function ensureNewSessionCapacity(collection) {
+    const snapshot = await collection.get({source:'server'});
+    if (snapshot.size >= MAX_SESSIONS) {
+      throw new Error('편집 저장은 최대 10개까지 가능합니다. 기존 저장본을 덮어쓰거나 불필요한 작업을 직접 삭제해 주세요. 기존 저장본은 자동 삭제하지 않습니다.');
     }
   }
 
@@ -365,6 +352,7 @@
     setStatus(target ? '기존 원본 확인 중...' : '파일 업로드 중...', '#6b7280');
 
     try {
+      if (!target) await ensureNewSessionCapacity(collection);
       if (target) {
         // Preflight before uploading any replacement source. The final check
         // is repeated atomically in a Firestore transaction below.
@@ -448,12 +436,6 @@
           }
         } catch (_) {
           console.warn('[pdf-session] old revision cleanup deferred');
-        }
-      } else {
-        try {
-          await trimOldSessions(collection, documentRef.id);
-        } catch (trimError) {
-          console.warn('[pdf-session] old session cleanup failed', trimError);
         }
       }
 

@@ -24,7 +24,11 @@ def test_explicit_mode_switch_wired_to_original_booklet_state():
     html=read("pdf-editor/index.html")
     controller=read("js/pdf-editor/booklet-mode-tabs.js")
     css=read("css/pdf-layout-booklet-mode.css")
-    assert 'id="pdfLayoutModeTabs"' in html
+    assert html.count('id="pdfLayoutModeTabs"') == 1
+    assert html.index('id="sb-nup"') < html.index('id="pdfLayoutModeTabs"')
+    assert '3 · 페이지 배치' in html
+    assert 'if($(\'pdfLayoutModeTabs\')&&$(\'bookletCheck\'))return true;' in read('js/pdf-editor/print-workflow-focus.js')
+    assert 'html.pdf-booklet-dual-mode #pdfPrintWorkflowFocusPanel{display:none!important}' in css
     assert 'id="pdfNormalModeBtn"' in html
     assert 'id="pdfBookletModeBtn"' in html
     assert 'id="bookletCheck"' in html
@@ -36,7 +40,7 @@ def test_explicit_mode_switch_wired_to_original_booklet_state():
     assert 'id="pdfNormalPageOrderField"' in html
     assert 'id="pdfNormalGapField"' in html
     assert "pdf-editor/booklet-mode-tabs.js?v=20261124-1" in html
-    assert "pdf-layout-booklet-mode.css?v=20261124-1" in html
+    assert "pdf-layout-booklet-mode.css?v=20261124-2" in html
     assert "check.dispatchEvent(new Event('change',{bubbles:true}))" in controller
     assert "check.checked=booklet;" in controller
     assert "savedGeneralNup=Number(selected?.dataset?.nup)||2" in controller

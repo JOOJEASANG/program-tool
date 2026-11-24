@@ -276,6 +276,10 @@
       .forEach(([ax,ay,bx,by]) => { ctx.moveTo(ax,ay); ctx.lineTo(bx,by); });
     ctx.stroke();
     ctx.restore();
+    if(source.dataset.actualTrimRects){
+      const rects=JSON.parse(source.dataset.actualTrimRects);
+      output.dataset.actualTrimRects=JSON.stringify(rects.map(rect=>({...rect,x:rect.x+outer,y:rect.y+outer})));
+    }
     output.dataset.cropMarksPreview = '1';
     output.dataset.bleedMm = String(config.bleed_mm);
     // The actual exported sheet expands beyond the requested trim sheet.

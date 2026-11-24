@@ -44,13 +44,13 @@ def test_pdf_lazy_preview_matches_final_output_grouping_and_global_numbering():
         "descriptor.groupPages.slice()",
         "descriptor.pageIndex",
         "descriptor.outputIndex",
-        "applyDocEdits(canvas, descriptor.outputIndex, total, PREVIEW_PPM)",
-        "window.PdfPrintMarks.addMarksToCanvas(canvas, PREVIEW_PPM)",
+        "applyDocEdits(canvas, descriptor.outputIndex, total, ppm)",
+        "window.PdfPrintMarks.addMarksToCanvas(canvas, ppm)",
     ):
         assert marker in source
 
 
-def test_pdf_lazy_preview_hydrates_only_selected_lightweight_sources():
+def test_pdf_lazy_preview_hydrates_selected_sources_at_higher_resolution():
     source = LAZY.read_text(encoding="utf-8")
     for marker in (
         "function isLightweightPage(page)",
@@ -60,7 +60,9 @@ def test_pdf_lazy_preview_hydrates_only_selected_lightweight_sources():
         "const buffer = await file.arrayBuffer()",
         "safety.safePdfGetDocument(buffer, true)",
         "documentHandle.getPage(Number(page.page_index || 0) + 1)",
-        "safety.safeRenderPdfPage(pdfPage, 0.62, rotation, true)",
+        "safety.safeRenderPdfPage(pdfPage, 1.6, rotation, true)",
+        "await renderWorkPreviewSource(pdfPage,rotation)",
+        "temporary.length=0",
         "const documentCache = new Map()",
         "closeSourceDocuments(documentCache)",
         "releaseTemporarySources(temporary)",

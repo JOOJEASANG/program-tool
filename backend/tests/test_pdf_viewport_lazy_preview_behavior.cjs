@@ -332,7 +332,7 @@ assert.equal(api.isLightweightPage({ pdfPage: { __lightweightPdfPage: true } }),
     },
     async safeRenderPdfPage(pdfPage, scale, rotation, heavy) {
       hydratedRenders += 1;
-      assert.equal(scale, 0.62);
+      assert.equal(scale, 1.6);
       assert.equal(rotation, 0);
       assert.equal(heavy, true);
       const canvas = createElement('canvas');
@@ -352,6 +352,7 @@ assert.equal(api.isLightweightPage({ pdfPage: { __lightweightPdfPage: true } }),
   assert.equal(outputCalls.length, 1);
   assert.equal(outputCalls[0].selected[0].lightweight, false);
   assert.equal(outputCalls[0].selected[0].thumbCanvas.dataset.realSource, '1');
+  assert.equal(outputCalls[0].selected[0].thumbCanvas.width, 1, 'temporary higher-resolution source released after drawing');
   assert.equal(JSON.stringify(editCalls.map((call) => [call.outputIndex, call.total])), JSON.stringify([[0, 1]]));
   assert.equal(previewNodes[0].dataset.outputIndex, '0');
   assert.equal(context.previewCanvases.length, 1);
