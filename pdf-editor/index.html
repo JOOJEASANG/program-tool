@@ -3345,7 +3345,8 @@ $('downloadBtn').addEventListener('click', async () => {
     document.body.appendChild(a);
     a.click();
     setTimeout(() => { a.remove(); if (!isRemoteResult) URL.revokeObjectURL(url); }, 30000);
-    showStatus(isRemoteResult ? 'PDF 생성 완료 · 브라우저 다운로드를 확인하세요.' : 'PDF 저장 완료!', 'success');
+    if (isRemoteResult) showStatus('PDF 생성 완료 · 브라우저 다운로드를 확인하세요.', 'success');
+    else showStatus('PDF 저장 완료!', 'success');
     setTimeout(hideStatus, 3000);
   } catch(e) { showStatus('PDF 오류: ' + e.message, 'error'); }
   $('downloadBtn').disabled = false;

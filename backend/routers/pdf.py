@@ -433,7 +433,7 @@ def create_stage_upload(uid):
             if_generation_match=0, timeout=30,
         )
     except Exception:
-        logger.exception("PDF stage session creation failed request_id=%s", _request_id())
+        logger.error("PDF stage session creation failed")
         return _error_response("서버에서 임시 업로드 주소를 발급하지 못했습니다.", 503, "PDF_STAGE_SESSION_FAILED")
     response = jsonify({"storage_path": path, "upload_url": upload_url})
     response.headers["Cache-Control"] = "no-store"
