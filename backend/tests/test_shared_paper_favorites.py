@@ -72,3 +72,19 @@ def test_ai_bleed_opt_in_is_separate_from_free_modes():
     router=read("backend/routers/design_bleed.py")
     assert 'with guard_ai_usage(uid, "image"):' in router
     assert 'outpaint_bleed(' in router
+
+
+
+def test_smart_print_syncs_favorites_before_mutating_and_across_tabs():
+    smart=read("js/smart-print-layout/paper-presets.js")
+    assert "function refreshSharedPaper()" in smart
+    assert "window.addEventListener('storage'" in smart
+    assert "window.addEventListener('shared-paper-favorites-change'" in smart
+    assert "function savePreset() {\n    // Another program/tab" in smart
+    assert "function removePreset() {\n    paperPresets = load();" in smart
+
+
+def test_advanced_original_does_not_save_stale_custom_dimensions():
+    shared=read("js/shared-paper-favorites.js")
+    assert "if(a.kind==='advanced'&&a.target.value==='original')return null;" in shared
+    assert "원본 크기 모드에서는 정확한 용지 크기를 확인할 수 없습니다." in shared

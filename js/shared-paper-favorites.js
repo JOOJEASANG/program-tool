@@ -61,6 +61,9 @@
   function dimensions(a){
     if(!a||a.kind==='native')return null;
     if(a.kind==='design')return [Number(a.w.value),Number(a.h.value)];
+    // Original-size PDF editor output follows the active PDF page, not
+    // advancedPaperCustomW/H. Do not silently save those stale input defaults.
+    if(a.kind==='advanced'&&a.target.value==='original')return null;
     return a.target.value==='custom'?[Number(a.w.value),Number(a.h.value)]
       :(fixed[a.target.value]||[Number(a.w.value),Number(a.h.value)]);
   }
@@ -133,6 +136,8 @@
     select.addEventListener('change',()=>{refresh();if(select.value)choose();});
     $('sharedPaperSave').addEventListener('click',()=>{
       const size=dimensions(a);
+      if(a.kind==='advanced'&&a.target.value==='original')
+        return message('원본 크기 모드에서는 정확한 용지 크기를 확인할 수 없습니다. 출력용지 규격을 선택하거나 직접 입력한 다음 저장해 주세요.',true);
       const result=save($('sharedPaperName').value,size?.[0],size?.[1]);
       if(result.error)return message(result.error,true);
       refresh();select.value=result.item.id;

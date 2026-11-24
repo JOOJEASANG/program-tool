@@ -91,6 +91,8 @@
   }
 
   function savePreset() {
+    // Another program/tab may have changed the shared favorites after boot.
+    paperPresets = load();
     const name = String($('paperPresetName')?.value || '').trim();
     const width = Number($('paperWidth')?.value);
     const height = Number($('paperHeight')?.value);
@@ -118,6 +120,7 @@
   }
 
   function removePreset() {
+    paperPresets = load();
     const item = currentSaved();
     if (!item || !window.confirm('저장한 용지 규격 "' + item.name + '"을 삭제할까요?')) return;
     const previous = paperPresets;
@@ -147,6 +150,16 @@
     document.head.appendChild(style);
   }
 
+  function refreshSharedPaper() {
+    paperPresets = load();
+    const selected = $('paperPreset')?.value || 'custom';
+    renderOptions(selected);
+    if (selected.startsWith('saved:') && !paperPresets.some(item => 'saved:' + item.id === selected)) {
+      $('paperPreset').value = 'custom';
+      $('paperPreset').dispatchEvent(new Event('change', { bubbles: true }));
+    }
+  }
+
   function boot() {
     paperPresets = load();
     installStyles();
@@ -160,6 +173,10 @@
         savePreset();
       }
     });
+    window.addEventListener('storage', event => {
+      if (event.key === STORAGE_KEY) refreshSharedPaper();
+    });
+    window.addEventListener('shared-paper-favorites-change', refreshSharedPaper);
     window.SmartPrintPaperPresets = { load, currentSaved };
   }
 
