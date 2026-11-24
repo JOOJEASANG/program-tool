@@ -124,12 +124,18 @@ async function _fetchPdfResult(downloadUrl, { signal, attempts = 3 } = {}) {
   );
 }
 
-async function _readPdfDelivery(resp, { signal } = {}) {
+async function _readPdfDelivery(resp, { signal, browserDownload = false } = {}) {
   const contentType = resp.headers.get('content-type') || '';
   if (!contentType.includes('application/json')) return resp.blob();
   const delivery = await resp.json();
   if (delivery?.delivery !== 'storage' || !delivery.download_url) {
     throw new Error('PDF 다운로드 정보가 올바르지 않습니다.');
+  }
+  if (browserDownload) {
+    const url = new URL(delivery.download_url);
+    const allowedHost = url.hostname === 'firebasestorage.googleapis.com' || url.hostname === 'storage.googleapis.com' || url.hostname.endsWith('.storage.googleapis.com');
+    if (url.protocol !== 'https:' || !allowedHost || url.username || url.password) throw new Error('안전하지 않은 PDF 다운로드 주소입니다.');
+    return { __pdfStorageBrowserDeliveryV1: true, download_url: url.href, filename: delivery.filename, size_bytes: delivery.size_bytes };
   }
   const resultResp = await _fetchPdfResult(delivery.download_url, { signal });
   const blob = await resultResp.blob();
@@ -224,7 +230,7 @@ function _uploadStorageFile(ref, file, { signal, onProgress, fileIndex, fileCoun
   });
 }
 
-async function _processPdfDirect(files, settings, token, signal, onStatus, onProgress) {
+async function _processPdfDirect(files, settings, token, signal, onStatus, onProgress, browserDownload = false) {
   onStatus && onStatus('임시 업로드 방식 실패 → 직접 업로드 방식으로 재시도 중...');
   _reportProgress(onProgress, 'direct-upload', 35, '직접 업로드 방식으로 재시도 중');
   const form = new FormData();
@@ -243,7 +249,7 @@ async function _processPdfDirect(files, settings, token, signal, onStatus, onPro
     throw new Error(msg || 'PDF 처리 중 오류가 발생했습니다.');
   }
   _reportProgress(onProgress, 'download', 92, '완성 PDF 내려받는 중');
-  return _readPdfDelivery(resp, { signal });
+  return _readPdfDelivery(resp, { signal, browserDownload });
 }
 
 /**
@@ -270,11 +276,15 @@ async function apiProcessPdf(files, settings, options = {}) {
   _reportProgress(onProgress, 'prepare', 2, '저장 작업 준비 중');
   const st = await _ensureStorage();
   const uid = user.uid;
-  const sessionId = Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+  let sessionId = Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
   const storagePaths = [];
   const newlyUploadedPaths = [];
   const reuseSources = preparedOptions.reuseSources === true;
   let completedViaStorage = false;
+  let stage = '원본 업로드';
+  let trace = '';
+  let forceFreshSources = false;
+  const browserDownload = preparedOptions.browserDownload === true;
   if (reuseSources && _pdfEditorExportOwner !== uid) {
     _pdfEditorExportInputs.clear();
     _pdfEditorExportOwner = uid;
@@ -299,14 +309,18 @@ async function apiProcessPdf(files, settings, options = {}) {
   };
 
   try {
+    let resp;
+    for (let attempt = 0; attempt < 2; attempt++) {
+      stage = '원본 업로드';
+      storagePaths.length = 0;
     for (let i = 0; i < files.length; i++) {
       if (controller.signal.aborted) throw _makeAbortError();
-      const savedPath = saved?.paths?.[i];
+      const savedPath = forceFreshSources ? null : saved?.paths?.[i];
       if (reuseSources && savedPath) {
         storagePaths.push(savedPath);
         continue;
       }
-      const existing = reuseSources ? _pdfEditorExportInputs.get(files[i]) : null;
+      const existing = reuseSources && !forceFreshSources ? _pdfEditorExportInputs.get(files[i]) : null;
       if (existing?.uid === uid && existing.path) {
         storagePaths.push(existing.path);
         continue;
@@ -328,33 +342,39 @@ async function apiProcessPdf(files, settings, options = {}) {
       ? '서버에서 PDF 생성 중... (대용량·소책자 작업은 몇 분 걸릴 수 있습니다)'
       : '원본 재업로드 없이 현재 편집 내용으로 PDF 생성 중...');
     _reportProgress(onProgress, 'server', 45, '서버에서 PDF 생성 중');
-    const resp = await _fetchLongPdfApi('/api/pdf/process-storage', {
+    stage = '서버 PDF 생성';
+    resp = await _fetchLongPdfApi('/api/pdf/process-storage', {
       method: 'POST',
       headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
       body: JSON.stringify({
         storage_paths: storagePaths, settings,
-        ...(reuseSources ? { retain_temp_sources: true, source_session_doc: saved?.docId || null } : {}),
+        ...(reuseSources ? { retain_temp_sources: true, source_session_doc: forceFreshSources ? null : (saved?.docId || null) } : {}),
       }),
       signal: controller.signal,
     });
 
-    if (!resp.ok) {
-      const msg = await _readApiError(resp, `서버 오류 (${resp.status})`);
-      if (reuseSources && resp.status === 404) {
-        // Re-upload expired temporary sources once, preserving the layout.
-        for (const [file, cached] of _pdfEditorExportInputs) {
-          if (storagePaths.includes(cached.path)) _pdfEditorExportInputs.delete(file);
-        }
-        if (options._staleSourceRetry !== false && !saved?.paths?.length) {
-          onStatus?.('만료된 임시 원본을 다시 업로드한 뒤 PDF 저장을 재시도합니다...');
-          return await apiProcessPdf(files, settings, { ...options, _staleSourceRetry: false });
-        }
+    if (resp.ok) break;
+    const detail = await resp.clone().json().catch(() => null);
+    const msg = await _readApiError(resp, `서버 오류 (${resp.status})`);
+    trace = detail?.request_id || '';
+    if (attempt === 0 && reuseSources && resp.status === 404 && detail?.code === 'PDF_STORAGE_FILE_NOT_FOUND') {
+      for (const [file, cached] of _pdfEditorExportInputs) {
+        if (storagePaths.includes(cached.path)) _pdfEditorExportInputs.delete(file);
       }
-      throw new Error((msg || 'PDF 처리 중 오류가 발생했습니다.') + ' (HTTP ' + resp.status + ')');
+      forceFreshSources = true;
+      sessionId = Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+      onStatus?.('임시 원본을 다시 업로드한 뒤 PDF 저장을 재시도합니다...');
+      continue;
+    }
+    const error = new Error((msg || 'PDF 처리 중 오류가 발생했습니다.') + ' (HTTP ' + resp.status + ')');
+    error.code = detail?.code;
+    throw error;
     }
 
+    stage = '완성 PDF 다운로드';
+    onStatus?.('완성 PDF 다운로드 준비 중...');
     _reportProgress(onProgress, 'download', 92, '완성 PDF 내려받는 중');
-    const blob = await _readPdfDelivery(resp, { signal: controller.signal });
+    const blob = await _readPdfDelivery(resp, { signal: controller.signal, browserDownload });
     completedViaStorage = true;
     _reportProgress(onProgress, 'complete', 100, 'PDF 생성 완료');
     _finishManagedPdfOperation(__managedOperation, 'success', 'PDF 생성이 완료되었습니다.');
@@ -369,13 +389,13 @@ async function apiProcessPdf(files, settings, options = {}) {
     if (directBytes > 20 * 1024 * 1024) {
       _finishManagedPdfOperation(__managedOperation, 'error', storageErr?.message);
       const errorCode = storageErr?.code ? ' [' + storageErr.code + ']' : '';
-      const detail = storageErr?.message || String(storageErr || '알 수 없는 오류');
+      const detail = stage + ': ' + (storageErr?.message || String(storageErr || '알 수 없는 오류')) + (trace ? ' / 요청번호: ' + trace : '');
       console.error('[pdf-export] storage export failed', { code: storageErr?.code, detail, inputBytes: directBytes });
       throw new Error('대용량 PDF 저장 실패' + errorCode + ': ' + detail
         + ' (20MB 초과 파일은 직접 업로드로 전환할 수 없습니다. 로그인 상태, 저장소 권한 및 서버 연결을 확인해 주세요.)');
     }
     try {
-      const blob = await _processPdfDirect(files, settings, token, controller.signal, onStatus, onProgress);
+      const blob = await _processPdfDirect(files, settings, token, controller.signal, onStatus, onProgress, browserDownload);
       _reportProgress(onProgress, 'complete', 100, 'PDF 생성 완료');
       _finishManagedPdfOperation(__managedOperation, 'success', 'PDF 생성이 완료되었습니다.');
       return blob;

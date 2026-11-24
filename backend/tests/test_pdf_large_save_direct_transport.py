@@ -51,3 +51,15 @@ def test_editor_direct_save_streams_storage_result_without_fetch_buffering():
     assert "mounted-storage-direct-v1" in recovery_js
     assert "browser-direct-v1" in recovery_js
     assert "directStorageUrls" in recovery_js
+
+def test_explicit_browser_download_and_retry_preserve_export_settings():
+    api_js = (ROOT / 'js/api.js').read_text(encoding='utf-8')
+    html = (ROOT / 'pdf-editor/index.html').read_text(encoding='utf-8')
+    assert 'browserDownload: true' in html
+    assert 'isRemoteResult ? blob.download_url : URL.createObjectURL(blob)' in html
+    assert 'const blob = await _readPdfDelivery(resp, { signal: controller.signal, browserDownload })' in api_js
+    assert 'detail?.code === \'PDF_STORAGE_FILE_NOT_FOUND\'' in api_js
+    assert 'return await apiProcessPdf(files, settings' not in api_js
+    assert 'for (let attempt = 0; attempt < 2; attempt++)' in api_js
+    assert '요청번호:' in api_js
+    assert "url.hostname === 'storage.googleapis.com'" in api_js

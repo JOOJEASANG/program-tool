@@ -1031,7 +1031,7 @@
 <script defer src="../js/shared-paper-favorites.js?v=20261124-1"></script>
 <script defer src="../js/pdf-editor/booklet-mode-tabs.js?v=20261124-1"></script>
 <script>const storage = firebase.storage();</script>
-<script src="../js/api.js?v=20261021-5"></script>
+<script src="../js/api.js?v=20261124-export-2"></script>
 <script>
 pdfjsLib.GlobalWorkerOptions.workerSrc =
   'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.worker.min.js';
@@ -3333,16 +3333,19 @@ $('downloadBtn').addEventListener('click', async () => {
     const outputSettings = window.PdfEditorNupRepeat?.expandSettingsPages?.(settings) || settings;
     const blob = await apiProcessPdf(uploadedFiles, outputSettings, {
       reuseSources: true,
+      browserDownload: true,
       onStatus: msg => showStatus(msg),
     });
-    const url = URL.createObjectURL(blob);
+    const isRemoteResult = blob?.__pdfStorageBrowserDeliveryV1 === true;
+    const url = isRemoteResult ? blob.download_url : URL.createObjectURL(blob);
     const a = document.createElement('a');
     const ts = new Date().toISOString().slice(0,16).replace('T','_').replace(':','-');
     const filename = `pdf_edit_${ts}.pdf`;
     a.href = url; a.download = filename;
+    document.body.appendChild(a);
     a.click();
-    URL.revokeObjectURL(url);
-    showStatus('PDF 저장 완료!', 'success');
+    setTimeout(() => { a.remove(); if (!isRemoteResult) URL.revokeObjectURL(url); }, 30000);
+    showStatus(isRemoteResult ? 'PDF 생성 완료 · 브라우저 다운로드를 확인하세요.' : 'PDF 저장 완료!', 'success');
     setTimeout(hideStatus, 3000);
   } catch(e) { showStatus('PDF 오류: ' + e.message, 'error'); }
   $('downloadBtn').disabled = false;
