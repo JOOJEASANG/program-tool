@@ -65,7 +65,7 @@ def test_export_guard_and_session_controls_cover_pdf_layout_options():
     page = (ROOT / "pdf-editor/index.html").read_text(encoding="utf-8")
     save_summary = (ROOT / "js/pdf-editor/save-operation.js").read_text(encoding="utf-8")
     core = (ROOT / "js/pdf-editor/core-runtime.js").read_text(encoding="utf-8")
-    assert "exportBytes > 300 * 1024 * 1024" in page
+    assert "exportBytes > 500 * 1024 * 1024" in page
     assert "state.orderLR ?? true" in page
     assert "$('hfEnabled').checked = hfEnabled" in page
     assert "$('pnEnabled').checked = pnEnabled" in page

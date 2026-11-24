@@ -23,10 +23,10 @@ from utils.storage_delivery import upload_pdf_result
 pdf_bp = Blueprint("pdf", __name__)
 logger = logging.getLogger(__name__)
 
-MAX_PDF_FILE_BYTES = 200 * 1024 * 1024
+MAX_PDF_FILE_BYTES = 500 * 1024 * 1024
 MAX_DIRECT_TOTAL_PDF_BYTES = 20 * 1024 * 1024
 MAX_DIRECT_RESPONSE_BYTES = 20 * 1024 * 1024
-MAX_TOTAL_PDF_BYTES = 300 * 1024 * 1024
+MAX_TOTAL_PDF_BYTES = 500 * 1024 * 1024
 MAX_PDF_FILES = 50
 MAX_REQUEST_PAGES = 2000
 
@@ -126,6 +126,7 @@ def _validate_page_references(req: PdfProcessRequest, docs: list[fitz.Document])
 _SESSION_DOC_ID_RE = re.compile(r"^[A-Za-z0-9_-]{1,128}$")
 _SESSION_ID_RE = re.compile(r"^[A-Za-z0-9_-]{8,40}$")
 _SESSION_CHUNK_BYTES = 4 * 1024 * 1024
+_SESSION_MAX_FILE_BYTES = 200 * 1024 * 1024
 
 
 @pdf_bp.route("/session-source", methods=["GET"])
@@ -144,7 +145,7 @@ def download_session_source(uid):
     if not offset_raw.isascii() or not offset_raw.isdecimal() or len(offset_raw) > 10:
         return _error_response("다운로드 위치가 올바르지 않습니다.", 400, "SESSION_INVALID_OFFSET")
     offset = int(offset_raw)
-    if offset > MAX_PDF_FILE_BYTES:
+    if offset > _SESSION_MAX_FILE_BYTES:
         return _error_response("다운로드 위치가 범위를 넘었습니다.", 416, "SESSION_INVALID_OFFSET")
 
     try:
@@ -174,7 +175,7 @@ def download_session_source(uid):
         total = int(blob.size or 0)
         if total < 1:
             return _error_response("저장된 PDF가 비어 있습니다.", 404, "SESSION_EMPTY_FILE")
-        if total > MAX_PDF_FILE_BYTES:
+        if total > _SESSION_MAX_FILE_BYTES:
             return _error_response("저장된 PDF가 파일 한도를 초과합니다.", 413, "SESSION_FILE_TOO_LARGE")
         if offset >= total:
             return _error_response("다운로드 위치가 파일 끝을 넘었습니다.", 416, "SESSION_INVALID_OFFSET")

@@ -282,7 +282,7 @@ async function apiProcessPdf(files, settings, options = {}) {
   const saved = reuseSources ? window.PdfSessionSaveSafety?.reusableSourcePaths?.(files) : null;
   const token = await user.getIdToken(true);
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 290000);
+  const timeoutId = setTimeout(() => controller.abort(), 15 * 60 * 1000);
   const forwardAbort = () => controller.abort();
   signal?.addEventListener('abort', forwardAbort, { once: true });
 
@@ -463,7 +463,7 @@ async function _preflightStorageRequest(endpoint, file, { expectBlob = false, on
   const path = await _ensurePreflightStoragePath(file, onStatus);
   onStatus && onStatus(endpoint.includes('check') ? '서버에서 PDF 검수 중...' : '서버에서 PDF 복구/정상화 중...');
   try {
-    const resp = await fetch(`/api/preflight/${endpoint}`, {
+    const resp = await _fetchLongPdfApi(`/api/preflight/${endpoint}`, {
       method: 'POST',
       headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
       body: JSON.stringify({ storage_path: path, filename: file.name || 'document.pdf' }),

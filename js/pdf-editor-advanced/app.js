@@ -240,9 +240,9 @@ export async function loadPdfFiles(fileList, { replace = false, validatePages = 
   if (!incoming.length) return false;
   const existingBytes = (replace ? [] : advancedState.files).reduce((sum, file) => sum + Number(file.size || 0), 0);
   const newBytes = incoming.reduce((sum, file) => sum + Number(file.size || 0), 0);
-  if (existingBytes + newBytes > 300 * 1024 * 1024) { setStatus('전체 PDF 용량은 300 MB 이하여야 합니다.', 'error'); return false; }
+  if (existingBytes + newBytes > 500 * 1024 * 1024) { setStatus('전체 PDF 용량은 500 MB 이하여야 합니다.', 'error'); return false; }
   if (incoming.some(file => !file.name.toLowerCase().endsWith('.pdf'))) { setStatus('PDF 파일만 불러올 수 있습니다.', 'error'); return false; }
-  if (incoming.some(file => file.size > 200 * 1024 * 1024)) { setStatus('PDF 한 파일은 200 MB 이하여야 합니다.', 'error'); return false; }
+  if (incoming.some(file => file.size > 500 * 1024 * 1024)) { setStatus('PDF 한 파일은 500 MB 이하여야 합니다.', 'error'); return false; }
 
   setBusy(true, 'PDF 파일을 읽는 중...');
   const staged = [];

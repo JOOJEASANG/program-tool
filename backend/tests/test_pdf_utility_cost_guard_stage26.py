@@ -4,7 +4,7 @@ MAIN=ROOT/"backend"/"main.py"; STORAGE_RULES=ROOT/"storage.rules"; DELIVERY=ROOT
 def compact(v:str)->str:return "".join(v.split())
 def test_pdf_utility_storage_policy_is_500mb_per_file_and_800mb_per_job_while_editor_stays_bounded():
  main=MAIN.read_text(encoding="utf-8"); rules=STORAGE_RULES.read_text(encoding="utf-8"); policy=compact(UTILITY_POLICY.read_text(encoding="utf-8"))
- for marker in ("PDF_STORAGE_FILE_BYTES = 200 * MIB","PDF_STORAGE_TOTAL_BYTES = 300 * MIB","PDF_UTILITY_FILE_BYTES = 500 * MIB","PDF_UTILITY_TOTAL_BYTES = 800 * MIB","pdf_router.MAX_PDF_FILE_BYTES = PDF_STORAGE_FILE_BYTES","pdf_router.MAX_TOTAL_PDF_BYTES = PDF_STORAGE_TOTAL_BYTES","preflight_router.MAX_STORAGE_PDF_BYTES = PDF_UTILITY_FILE_BYTES","pdf_utility_router.MAX_FILE_BYTES = PDF_UTILITY_FILE_BYTES","pdf_utility_router.MAX_TOTAL_BYTES = PDF_UTILITY_TOTAL_BYTES"): assert marker in main
+ for marker in ("PDF_STORAGE_FILE_BYTES = 500 * MIB","PDF_STORAGE_TOTAL_BYTES = 500 * MIB","PDF_UTILITY_FILE_BYTES = 500 * MIB","PDF_UTILITY_TOTAL_BYTES = 800 * MIB","pdf_router.MAX_PDF_FILE_BYTES = PDF_STORAGE_FILE_BYTES","pdf_router.MAX_TOTAL_PDF_BYTES = PDF_STORAGE_TOTAL_BYTES","preflight_router.MAX_STORAGE_PDF_BYTES = PDF_UTILITY_FILE_BYTES","pdf_utility_router.MAX_FILE_BYTES = PDF_UTILITY_FILE_BYTES","pdf_utility_router.MAX_TOTAL_BYTES = PDF_UTILITY_TOTAL_BYTES"): assert marker in main
  assert "validPdfUpload(524288000)" in rules and "validPdfUpload(209715200)" in rules
  for marker in ("constMAX_FILES=10","constMAX_FILE_BYTES=500*1024*1024","constMAX_TOTAL_BYTES=800*1024*1024","nextTotal>MAX_TOTAL_BYTES","전체합계는최대800MB"): assert marker in policy
 def test_high_cost_pdf_work_gets_more_memory_but_stays_instance_and_raster_bounded():

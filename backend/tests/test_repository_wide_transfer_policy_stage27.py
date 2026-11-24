@@ -40,8 +40,8 @@ def test_storage_backed_pdf_utility_policy_is_500mb_file_800mb_job_with_bounded_
     assert pdf_utility_router.BACKGROUND_DPI == 160
 
     main = MAIN.read_text(encoding="utf-8")
-    assert "PDF_STORAGE_FILE_BYTES = 200 * MIB" in main
-    assert "PDF_STORAGE_TOTAL_BYTES = 300 * MIB" in main
+    assert "PDF_STORAGE_FILE_BYTES = 500 * MIB" in main
+    assert "PDF_STORAGE_TOTAL_BYTES = 500 * MIB" in main
     assert "PDF_UTILITY_FILE_BYTES = 500 * MIB" in main
     assert "PDF_UTILITY_TOTAL_BYTES = 800 * MIB" in main
     assert "preflight_router.MAX_STORAGE_PDF_BYTES = PDF_UTILITY_FILE_BYTES" in main
@@ -108,7 +108,8 @@ def test_pdf_editor_workspace_stays_bounded_while_utility_gets_separate_roomy_li
     session = SESSION_SAVE.read_text(encoding="utf-8")
     utility = UTILITY_POLICY.read_text(encoding="utf-8")
 
-    assert "MAX_FILE_BYTES = 200 * 1024 * 1024" in editor
+    assert "MAX_FILE_BYTES = 500 * 1024 * 1024" in editor
+    assert "MAX_SESSION_FILE_BYTES = 200 * 1024 * 1024" in editor
     assert "MAX_WORKSPACE_TOTAL_BYTES = 800 * 1024 * 1024" in editor
     assert "MAX_SESSION_TOTAL_BYTES = 300 * 1024 * 1024" in editor
     assert "totalBytes > MAX_WORKSPACE_TOTAL_BYTES" in editor

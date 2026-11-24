@@ -3205,8 +3205,8 @@ $('downloadBtn').addEventListener('click', async () => {
   }
 
   const exportBytes = uploadedFiles.reduce((sum, file) => sum + Number(file?.size || 0), 0);
-  if (exportBytes > 300 * 1024 * 1024) {
-    showStatus('PDF배치 최종 저장은 원본 파일 전체 합계 300MB까지 지원합니다. 편집 작업공간 800MB 한도와 다르므로 파일을 줄인 후 저장해 주세요.', 'error');
+  if (exportBytes > 500 * 1024 * 1024) {
+    showStatus('PDF배치 최종 저장은 원본 파일 전체 합계 500MB까지 지원합니다. 편집 작업공간 800MB 한도와 다르므로 파일을 줄인 후 저장해 주세요.', 'error');
     return;
   }
 

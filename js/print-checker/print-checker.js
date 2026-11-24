@@ -244,8 +244,9 @@ const PrintChecker = (() => {
   async function inspectFile(file) {
     if (!file) return false;
     clearUploadError();
-    if (file.size > MAX_FILE_BYTES) {
-      showUploadError('파일은 최대 200MB까지 검토할 수 있습니다.');
+    const isLargePdf = file.type === 'application/pdf' || /\.pdf$/i.test(file.name || '');
+    if (file.size > (isLargePdf ? 500 * 1024 * 1024 : MAX_FILE_BYTES)) {
+      showUploadError(isLargePdf ? 'PDF는 최대 500MB까지 검토할 수 있습니다.' : '이미지는 최대 200MB까지 검토할 수 있습니다.');
       return false;
     }
     const isPdf = file.type === 'application/pdf' || /\.pdf$/i.test(file.name || '');

@@ -60,4 +60,4 @@ def test_guides_and_page_selection_preserve_server_pdf_generation_contract():
     assert "document.addEventListener('pdf-import-committed'" in guide
     assert "installThumbImportSync();" in selection
     assert "selectedIds" in selection
-    assert '"version": "2026.11.16.002"' in read("version.json")
+    assert '"version": "2026.11.24.001"' in read("version.json")
