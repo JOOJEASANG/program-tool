@@ -26,7 +26,7 @@ const refFor=id=>({id,async get(){return {exists:docs.has(id),data:()=>docs.get(
 const collection={
  doc:refFor,
  async add(payload){const id='new-'+nextId++;docs.set(id,payload);return refFor(id);},
- orderBy(){return {async get(){return {size:docs.size,docs:[...docs.entries()].map(([id,data])=>({id,data:()=>data}))};}};}
+ async get(){return {size:docs.size,docs:[...docs.entries()].map(([id,data])=>({id,data:()=>data}))};}
 };
 const db={
  collection(){return {doc(){return {collection(){return collection;}};}};},
@@ -116,5 +116,9 @@ const api=context.PdfSessionSaveSafety;
  assert.ok([...docs.values()].some(d=>d.name==='독립 새 작업'));
  assert.notEqual(api.currentLoadedSession().docId,'doc-old');
  assert.equal(api.setLoadedSession({docId:'doc-old',sessionId:'previous123',storagePaths:['pdf_sessions/u2/previous123/src_0.pdf'],uid:'u1',name:'INVALID'}),false);
+ while(docs.size<10)docs.set('legacy-'+docs.size,{name:'legacy'});
+ const countBefore=putCount, deletedBefore=deleted.length;
+ assert.equal(await api.save('new'),false,'full list must require explicit deletion');
+ assert.equal(docs.size,10);assert.equal(putCount,countBefore);assert.equal(deleted.length,deletedBefore);
  console.log('pdf session safe overwrite, cancel, rollback, conflict and save-as-new passed');
 })().catch(e=>{console.error(e);process.exitCode=1;});

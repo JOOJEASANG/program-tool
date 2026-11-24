@@ -28,7 +28,7 @@ def test_transactional_overwrite_keeps_created_at_and_old_sources_until_commit()
         "JSON.stringify(current.storagePaths) !== JSON.stringify(target.storagePaths)",
         "if (!documentRef) await cleanupUploadedPaths(uploadedPaths)",
         "const results = await cleanupUploadedPaths(obsoletePaths)",
-        "await trimOldSessions(collection, documentRef.id)",
+        "await ensureNewSessionCapacity(collection)",
         "createdAt: firebase.firestore.FieldValue.serverTimestamp()",
     ):
         assert marker in src

@@ -19,3 +19,13 @@ def test_actual_trim_is_screen_only_and_follows_rendered_placement():
 def test_boot_accepts_single_canonical_layout_mode():
     guard = (ROOT / "js/app-boot-guard.js").read_text(encoding="utf-8")
     assert "window.PdfLayoutBookletTabs && root.classList.contains('pdf-booklet-dual-mode')" in guard
+
+
+def test_session_listing_includes_legacy_documents_and_distinguishes_error():
+    html = (ROOT / "pdf-editor/index.html").read_text(encoding="utf-8")
+    section = html.split("async function openSessionList()", 1)[1].split("async function fetchOwnedSessionPdfInChunks", 1)[0]
+    assert "collection.get({source:'server'})" in section
+    assert ".orderBy(" not in section
+    assert "저장 날짜 없음" in section
+    assert "저장본이 없다는 뜻은 아닙니다" in section
+    assert "목록 다시 조회" in section

@@ -952,7 +952,7 @@
     <div class="fh-head">
       <div>
         <h2>저장된 편집 불러오기</h2>
-        <div class="fh-head-sub">저장된 편집 상태 목록 (최대 10개)</div>
+        <div class="fh-head-sub">저장된 편집 상태 목록 · 최대 10개 보관, 자동 삭제하지 않음</div>
       </div>
       <button class="modal-close" id="sessionListClose">✕</button>
     </div>
@@ -1127,60 +1127,12 @@ function collectEditorState() {
 }
 
 async function saveEditorSession() {
-  const user = auth.currentUser;
-  if (!user || !uploadedFiles.length) return;
-
-  const name = ($('sessionNameInput').value || '').trim() || '편집 세션';
-  const statusEl = $('sessionSaveStatus');
-  statusEl.style.color = '#6b7280';
-  statusEl.textContent = '파일 업로드 중...';
-  $('sessionSaveConfirm').disabled = true;
-
-  try {
-    const sessionId = Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
-    const col = db.collection('users').doc(user.uid).collection('pdf_sessions');
-
-    // 최대 10개 제한
-    const existing = await col.orderBy('createdAt', 'asc').get();
-    if (existing.size >= 10) {
-      const toDelete = existing.docs.slice(0, existing.size - 9);
-      for (const d of toDelete) {
-        for (const sp of (d.data().storagePaths || [])) {
-          await storage.ref(sp).delete().catch(() => {});
-        }
-        await col.doc(d.id).delete();
-      }
-    }
-
-    // Upload source files
-    const storagePaths = [];
-    for (let i = 0; i < uploadedFiles.length; i++) {
-      statusEl.textContent = `파일 업로드 중... (${i + 1}/${uploadedFiles.length})`;
-      const sp = `pdf_sessions/${user.uid}/${sessionId}/src_${i}.pdf`;
-      await storage.ref(sp).put(uploadedFiles[i], { contentType: 'application/pdf' });
-      storagePaths.push(sp);
-    }
-
-    statusEl.textContent = '상태 저장 중...';
-    const state = collectEditorState();
-    await col.add({
-      name,
-      sessionId,
-      storagePaths,
-      fileCount: uploadedFiles.length,
-      pageCount: parsedPages.length,
-      state: JSON.stringify(state),
-      createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-    });
-
-    statusEl.style.color = '#166534';
-    statusEl.textContent = '✅ 저장 완료!';
-    setTimeout(() => { $('sessionSaveModal').style.display = 'none'; }, 1200);
-  } catch (e) {
-    statusEl.style.color = '#dc2626';
-    statusEl.textContent = '저장 실패: ' + e.message;
-  }
-  $('sessionSaveConfirm').disabled = false;
+  // Never use the old delete-first save implementation while the safe
+  // persistence runtime is loading.
+  if (window.PdfSessionSaveSafety?.save) return window.PdfSessionSaveSafety.save('new');
+  $('sessionSaveStatus').style.color='#dc2626';
+  $('sessionSaveStatus').textContent='편집 저장 준비 중입니다. 다시 시도해 주세요. 기존 저장본은 유지됩니다.';
+  return false;
 }
 
 async function openSessionList() {
@@ -1190,19 +1142,24 @@ async function openSessionList() {
   const body = $('sessionListBody');
   body.innerHTML = '<div class="fh-loading">불러오는 중...</div>';
   try {
-    const snap = await db.collection('users').doc(user.uid)
-      .collection('pdf_sessions')
-      .orderBy('createdAt', 'desc')
-      .limit(20)
-      .get();
+    // Query without orderBy: Firestore excludes documents missing that field.
+    const collection = db.collection('users').doc(user.uid).collection('pdf_sessions');
+    const snap = await collection.get({source:'server'});
+    if(auth.currentUser?.uid !== user.uid) return;
+    const stamp = value => typeof value?.toMillis==='function' ? value.toMillis() : 0;
+    const documents = [...snap.docs].sort((a,b)=>{
+      const x=a.data(), y=b.data();
+      return (stamp(y.updatedAt)||stamp(y.createdAt))-(stamp(x.updatedAt)||stamp(x.createdAt)) || a.id.localeCompare(b.id);
+    });
     if (snap.empty) {
-      body.innerHTML = '<div class="fh-empty">📂 저장된 편집이 없습니다.</div>';
+      body.innerHTML = '<div class="fh-empty">📂 현재 로그인 계정에 저장된 편집이 없습니다.</div>';
       return;
     }
     body.innerHTML = '';
-    snap.forEach(doc => {
+    documents.forEach(doc => {
       const d = doc.data();
-      const dateStr = d.createdAt?.toDate ? d.createdAt.toDate().toLocaleString('ko-KR') : '-';
+      const date = d.updatedAt?.toDate ? d.updatedAt : d.createdAt;
+      const dateStr = date?.toDate ? date.toDate().toLocaleString('ko-KR') : '저장 날짜 없음';
       const item = document.createElement('div');
       item.className = 'fh-item';
       item.innerHTML = `
@@ -1233,8 +1190,9 @@ async function openSessionList() {
     body.replaceChildren();
     const errorMessage = document.createElement('div');
     errorMessage.className = 'fh-empty';
-    errorMessage.textContent = '오류: ' + e.message;
-    body.appendChild(errorMessage);
+    errorMessage.textContent = '저장 목록을 조회하지 못했습니다. 저장본이 없다는 뜻은 아닙니다. (' + (e.code || e.message || '조회 오류') + ')';
+    const retry=document.createElement('button'); retry.type='button'; retry.className='fh-btn'; retry.textContent='목록 다시 조회'; retry.addEventListener('click',openSessionList);
+    body.append(errorMessage,retry);
   }
 }
 

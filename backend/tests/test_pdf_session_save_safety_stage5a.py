@@ -63,15 +63,14 @@ def test_missing_storage_objects_count_as_successful_cleanup():
     assert "paths.map((path) => deleteStoragePath(path))" in source
 
 
-def test_old_sessions_are_trimmed_only_after_new_session_is_committed():
+def test_session_capacity_is_checked_without_automatic_deletion():
     source = MODULE.read_text(encoding="utf-8")
-    add_at = source.index("documentRef = await collection.add")
-    trim_at = source.index("await trimOldSessions(collection, documentRef.id)")
-    assert add_at < trim_at
-    assert "const excess = Math.max(0, snapshot.size - MAX_SESSIONS)" in source
-    assert ".filter((document) => document.id !== newDocumentId)" in source
-    assert "results.some((result) => result.status === 'rejected')" in source
-    assert "keeping session document" in source
+    editor = EDITOR.read_text(encoding="utf-8")
+    assert "await ensureNewSessionCapacity(collection)" in source
+    assert source.index("await ensureNewSessionCapacity(collection)") < source.index("await storage.ref(path).put")
+    assert "snapshot.size >= MAX_SESSIONS" in source
+    assert "trimOldSessions" not in source
+    assert "window.PdfSessionSaveSafety.save('new')" in editor
 
 
 def test_editor_mutation_is_locked_while_session_files_upload():
