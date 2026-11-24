@@ -60,10 +60,10 @@ def test_both_sidebars_keep_functions_and_reveal_only_necessary_options():
     browser = read("tests/browser/pdf-two-sidebars-workflow-smoke.html")
     assert '<details id="pdfActualSizeDisclosure"' in html
     for marker in (
-        "const defaultSections=new Set(['upload','paper','nup','output']);",
+        "const defaultSections=new Set(['upload','nup','paper','trim','output']);",
         "function organizeWorkspace(){",
         "function organizeRightSidebar(){",
-        "paper.compareDocumentPosition(nup)",
+        "previous.compareDocumentPosition(current)",
         "section.classList.toggle('pdf-ui-closed',!isOpen);",
         "head.setAttribute('aria-expanded',String(isOpen));",
         "event.type==='keydown'",
@@ -77,7 +77,7 @@ def test_both_sidebars_keep_functions_and_reveal_only_necessary_options():
     for marker in ("pageSelectionAdvanced", "pageSelectedMarginDetails",
                    "pageJumpInputV3+button", "pdfPageJumpDetails"):
         assert marker in html or marker in script or marker in selection
-    assert "simple-sidebar-ui.js?v=20261116-1" in ui
+    assert "simple-sidebar-ui.js?v=20261124-3" in ui
     assert "PDF_UI_RUNTIME_VERSION='20261112-2'" in shell
     assert "pdf-two-sidebars-workflow-smoke.html" in runner
     assert "data-pdf-two-sidebars-smoke=\"pass\"" in runner

@@ -42,7 +42,7 @@ def test_sheet_and_margin_guides_are_screen_only_and_use_real_mm():
     assert "lazy preview replacement lost guides" in browser
     assert "pdf-preview-margin-guides-smoke.html" in runner
     crop=read("js/pdf-editor/crop-marks.js")
-    assert "crop-marks.js?v=20261113-1" in route
+    assert "crop-marks.js?v=20261124-3" in route
     assert "output.dataset.paperWidthMm = String(output.width / pxPerMm)" in crop
     assert "output.dataset['margin'+edge+'Mm']" in crop
     assert "addMarks(canvas, mm2px, index)" in crop
@@ -60,4 +60,4 @@ def test_guides_and_page_selection_preserve_server_pdf_generation_contract():
     assert "document.addEventListener('pdf-import-committed'" in guide
     assert "installThumbImportSync();" in selection
     assert "selectedIds" in selection
-    assert '"version": "2026.11.24.002"' in read("version.json")
+    assert '"version": "2026.11.24.003"' in read("version.json")

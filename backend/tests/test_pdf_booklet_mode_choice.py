@@ -26,7 +26,7 @@ def test_explicit_mode_switch_wired_to_original_booklet_state():
     css=read("css/pdf-layout-booklet-mode.css")
     assert html.count('id="pdfLayoutModeTabs"') == 1
     assert html.index('id="sb-nup"') < html.index('id="pdfLayoutModeTabs"')
-    assert '3 · 페이지 배치' in html
+    assert '2 · 페이지 배치' in html
     assert 'if($(\'pdfLayoutModeTabs\')&&$(\'bookletCheck\'))return true;' in read('js/pdf-editor/print-workflow-focus.js')
     assert 'html.pdf-booklet-dual-mode #pdfPrintWorkflowFocusPanel{display:none!important}' in css
     assert 'id="pdfNormalModeBtn"' in html

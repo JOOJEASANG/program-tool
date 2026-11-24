@@ -5,8 +5,9 @@
 <div class="app" id="pdfEditorApp">
   <aside id="left">
     <div class="sec" id="uploadSec"><div class="sec-head" data-sec="upload"><span class="sec-title">파일 업로드</span><span class="sec-arrow">▾</span></div><div class="sec-body" id="sb-upload"><button id="uploadProbe">업로드</button></div></div>
-    <div class="sec" id="nupSec"><div class="sec-head" data-sec="nup"><span class="sec-title">N-up 배치</span><span class="sec-arrow">▾</span></div><div class="sec-body" id="sb-nup"><details id="pdfActualSizeDisclosure"><summary>실제 크기 · 상세 배치 설정</summary><div id="actualSizePanel"><input type="checkbox" id="actualSizeCheck"></div></details><button id="nupProbe">N-up</button></div></div>
     <div class="sec" id="paperSec"><div class="sec-head" data-sec="paper"><span class="sec-title">용지 설정</span><span class="sec-arrow">▾</span></div><div class="sec-body" id="sb-paper"><label>용지<input id="paperSize" value="a4"></label><div id="pdfPageCellMarginsV1"><button id="pdfCellMarginApply" type="button">파일에 적용</button></div></div></div>
+    <div class="sec" id="nupSec"><div class="sec-head" data-sec="nup"><span class="sec-title">N-up 배치</span><span class="sec-arrow">▾</span></div><div class="sec-body" id="sb-nup"><button id="nupProbe">N-up</button></div></div>
+    <div class="sec" id="trimSec"><div class="sec-head" data-sec="trim"><span class="sec-title">재단</span><span class="sec-arrow">▾</span></div><div class="sec-body" id="sb-trim"><details id="pdfActualSizeDisclosure"><summary>실제 크기 · 상세 배치 설정</summary><div id="actualSizePanel"><input type="checkbox" id="actualSizeCheck"></div></details><input id="marginH" value="10"></div></div>
     <div class="sec" id="editSec"><div class="sec-head collapsed" data-sec="edit"><span class="sec-title">문서 편집</span><span class="sec-badge">표시 도구</span><span class="sec-arrow">▾</span></div><div class="sec-body hidden" id="sb-edit"><input id="wmEnabled" type="checkbox"><input id="hfEnabled" type="checkbox"><input id="pnEnabled" type="checkbox"></div></div>
     <div class="sec" id="outputSec"><div class="sec-head"><span class="sec-title">출력</span></div><div class="sec-body"><button id="previewBtn">미리보기 새로고침</button><div style="height:6px"></div><button id="downloadBtn">PDF 저장</button><div style="height:6px"></div><button id="resetBtn">전체 초기화</button></div></div>
   </aside>
@@ -21,7 +22,7 @@
 </div>
 <pre id="result">RUNNING</pre>
 <script>history.replaceState(null,'','/pdf-editor/?ui-workflow-smoke=1');</script>
-<script src="/js/pdf-editor/simple-sidebar-ui.js?v=20261116-1"></script>
+<script src="/js/pdf-editor/simple-sidebar-ui.js?v=20261124-3"></script>
 <script>
 (async()=>{
   const sleep=(ms)=>new Promise(resolve=>setTimeout(resolve,ms));
@@ -35,7 +36,16 @@
     await sleep(170);
     const left=byId('left'),right=byId('pageSidebar');
     const ids=[...left.querySelectorAll(':scope>.sec')].map(section=>section.id);
-    if(ids.indexOf('paperSec')>ids.indexOf('nupSec'))fail('paper options did not precede N-up');
+    if(ids.slice(0,5).join(',')!=='uploadSec,nupSec,paperSec,trimSec,editSec')fail('placement-first workflow order incorrect: '+ids.join(','));
+    if(!byId('nupSec').querySelector('.sec-title').textContent.includes('2 · 페이지 배치'))fail('N-up heading incorrect');
+    if(!byId('trimSec').contains(byId('actualSizePanel')))fail('actual size must be in trim settings');
+    const nupHead=byId('nupSec').querySelector('.sec-head');
+    nupHead.click();
+    if(nupHead.getAttribute('aria-expanded')!=='false')fail('N-up did not collapse');
+    document.dispatchEvent(new CustomEvent('pdf-import-committed'));
+    if(nupHead.getAttribute('aria-expanded')!=='true')fail('upload did not reopen page layout');
+    window.PdfEditorSimpleSidebarUi.sync();
+    if([...left.querySelectorAll(':scope>.sec')].map(section=>section.id).join(',')!==ids.join(','))fail('repeat sync reordered sections');
     if(byId('editSec').classList.contains('pdf-ui-closed')!==true)fail('optional document display should start closed');
     if(getComputedStyle(byId('sb-edit')).display!=='none')fail('optional document options are not actually collapsed');
     const editHead=byId('editSec').querySelector('.sec-head');
@@ -74,7 +84,7 @@
     if(!right.contains(byId('thumbArea')))fail('page thumbnails left the right sidebar');
     if(getComputedStyle(byId('outputSec')).position!=='sticky')fail('PDF save actions are not pinned to left sidebar');
     document.body.dataset.pdfTwoSidebarsSmoke='pass';
-    byId('result').textContent='PASS: PDF left paper/N-up workflow, advanced disclosures, right file navigation and margins, preserved action handlers and pinned PDF save';
+    byId('result').textContent='PASS: PDF left placement-first workflow, advanced disclosures, right file navigation and margins, preserved action handlers and pinned PDF save';
   }catch(error){
     document.body.dataset.pdfTwoSidebarsSmoke='fail';
     byId('result').textContent='FAIL: '+String(error.stack||error);
