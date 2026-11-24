@@ -690,7 +690,7 @@
             innerX + insideShiftPx, innerY,
             innerWidthPx, innerHeightPx, mm2px,
             foldCell?.align || 'center',
-            foldCell?(column===0?'left':'right'):null);
+            foldCell?(column===0?'left':'right'):null, insideShiftPx);
           context.restore();
           if (repeated) {
             const overlay = document.createElement('canvas');

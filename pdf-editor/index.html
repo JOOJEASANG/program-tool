@@ -218,6 +218,11 @@
     .preview-row { display: flex; flex-wrap: nowrap; align-items: flex-start; justify-content: center; gap: 8px; margin: 10px 0; }
     .page-preview { background: #fff; box-shadow: 0 4px 16px rgba(0,0,0,0.15); border-radius: 3px; flex-shrink: 0; }
     .page-preview canvas { display: block; width: 100%; }
+    #previewScroll .page-preview { position:relative; }
+    .pdf-actual-trim-guide { position:absolute; box-sizing:border-box; border:1px dashed #db2777; z-index:6; pointer-events:none; }
+    .pdf-actual-trim-guide span { position:absolute; bottom:2px; left:50%; transform:translateX(-50%); padding:1px 4px; background:#fff; color:#9d174d; border:1px solid #f9a8d4; border-radius:3px; font-size:9px; font-weight:800; white-space:nowrap; max-width:100%; overflow:hidden; text-overflow:ellipsis; }
+    html.pdf-actual-trim-hidden .pdf-actual-trim-guide { display:none!important; }
+    @media print { .pdf-actual-trim-guide { display:none!important; } }
     .page-label { text-align: center; font-size: 10px; color: var(--muted); margin-top: 4px; font-weight: 700; }
     /* Preview insert zones */
     .prev-ins-zone { width: 100%; height: 32px; display: flex; align-items: center; justify-content: center; position: relative; cursor: default; opacity: 0; transition: opacity 0.15s; flex-shrink: 0; }
@@ -848,6 +853,7 @@
         <span id="previewPages" style="color:#2563eb;font-weight:800;"></span>
         <div class="preview-zoom">
           <button type="button" id="previewGuidesToggle" aria-pressed="true" title="미리보기 안내선: 실선은 출력 용지 외곽, 점선은 설정한 작업 여백입니다. PDF 저장에는 포함되지 않습니다." style="height:30px;min-height:30px;padding:3px 7px;border:1px solid #0f766e;border-radius:6px;background:#ecfdf5;color:#065f46;font-size:10px;font-weight:800;font-family:inherit;white-space:nowrap;cursor:pointer;">여백선 ON</button>
+          <button type="button" id="actualTrimGuidesToggle" class="page-sidebar-toggle" aria-pressed="true" title="지정한 실제 배치 크기별 재단 위치와 치수 · 미리보기 전용">실제 재단선 ON</button>
           <select id="perRowSelect" style="border:1px solid var(--line);border-radius:6px;padding:2px 4px;font-size:11px;font-weight:800;font-family:inherit;color:#374151;background:#fff;cursor:pointer;">
             <option value="1">줄당 1장</option>
             <option value="2" selected>줄당 2장</option>
@@ -2568,8 +2574,38 @@ function groupByNup(pages) {
   return groups;
 }
 
+// Store screen-only trim geometry on the rendered canvas, not its pixels.
+function recordActualTrimRect(ctx, x, y, w, h, mm2px, bookletSide, bleedCrop) {
+  if (![x,y,w,h,mm2px].every(Number.isFinite) || w<=0 || h<=0 || mm2px<=0) return;
+  if (bleedCrop) {
+    const bleed=3*mm2px;
+    if (bookletSide==='left') x+=bleed;
+    y+=bleed; w-=bleed; h-=2*bleed;
+  }
+  if(w<=0||h<=0)return;
+  const canvas=ctx.canvas;
+  if(!canvas?.dataset)return;
+  const rects=JSON.parse(canvas.dataset.actualTrimRects || '[]');
+  rects.push({x,y,w,h,widthMm:w/mm2px,heightMm:h/mm2px});
+  canvas.dataset.actualTrimRects=JSON.stringify(rects);
+}
+
+function appendActualTrimGuides(wrapper, canvas) {
+  const rects=JSON.parse(canvas.dataset.actualTrimRects || '[]');
+  for(const rect of rects){
+    const guide=document.createElement('div');
+    guide.className='pdf-actual-trim-guide';
+    guide.setAttribute('aria-hidden','true');
+    Object.assign(guide.style,{left:(rect.x/canvas.width*100)+'%',top:(rect.y/canvas.height*100)+'%',width:(rect.w/canvas.width*100)+'%',height:(rect.h/canvas.height*100)+'%'});
+    const label=document.createElement('span');
+    const fmt=value=>String(Number(value.toFixed(2)));
+    label.textContent=fmt(rect.widthMm)+'×'+fmt(rect.heightMm)+'mm';
+    guide.appendChild(label);wrapper.appendChild(guide);
+  }
+}
+
 // ── Draw one page into a cell (auto-rotates 90° when it gives ≥10% better fit) ──
-function drawPageInCell(ctx, src, cellX, cellY, cellW, cellH, mm2px = 1, horizontalAlign = 'center', bookletSide = null) {
+function drawPageInCell(ctx, src, cellX, cellY, cellW, cellH, mm2px = 1, horizontalAlign = 'center', bookletSide = null, artworkShiftPx = 0) {
   const alignX = (width) => horizontalAlign === 'right' ? cellX + cellW - width
     : horizontalAlign === 'left' ? cellX : cellX + (cellW - width) / 2;
   const actual = getActualPlacementSize();
@@ -2591,6 +2627,7 @@ function drawPageInCell(ctx, src, cellX, cellY, cellW, cellH, mm2px = 1, horizon
     const dh = rot ? targetW : targetH;
     const dx = alignX(dw);
     const dy = cellY + (cellH - dh) / 2;
+    if (rot ? fits90 : fits0) recordActualTrimRect(ctx, dx-artworkShiftPx, dy, dw, dh, mm2px, bookletSide, bleedCrop);
 
     ctx.save();
     ctx.beginPath();
@@ -2731,7 +2768,7 @@ function buildOutputPage(groupPages, pageIdx, cols, rows, mm2px, useHi, repeated
     }
     drawPageInCell(ctx, src, cellX + towardFoldPx, cellY,
       placedW, placedH, mm2px, foldCell?.align || 'center',
-      foldCell?(col===0?'left':'right'):null);
+      foldCell?(col===0?'left':'right'):null, towardFoldPx);
     ctx.restore();
     if (repeated) {
       const overlay = document.createElement('canvas');
@@ -3105,6 +3142,12 @@ async function triggerPreview() {
 
 updateActualSizeUi();
 
+$('actualTrimGuidesToggle').addEventListener('click',()=>{
+  const hidden=document.documentElement.classList.toggle('pdf-actual-trim-hidden');
+  $('actualTrimGuidesToggle').setAttribute('aria-pressed',String(!hidden));
+  $('actualTrimGuidesToggle').textContent=hidden?'실제 재단선 OFF':'실제 재단선 ON';
+});
+
 $('previewBtn').addEventListener('click', triggerPreview);
 
 // ── Auto-preview (debounced) ──────────────────────────────────────────
@@ -3180,6 +3223,7 @@ function displayPreview(pages, autoFit = false) {
         if (mm !== undefined) wrap.dataset['previewMargin'+edge+'Mm'] = mm;
       }
       wrap.appendChild(c);
+      appendActualTrimGuides(wrap,canvas);
       rowDiv.appendChild(wrap);
       // Vertical insert zone between pages within the row (perRow >= 2)
       if (perRow >= 2 && i < end - 1) {
