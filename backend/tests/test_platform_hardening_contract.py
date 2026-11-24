@@ -23,8 +23,8 @@ def test_functions_and_storage_transfer_limits_stay_cost_bounded():
     transfer = text("js/pdf-editor/transfer-limit-guard.js")
     utility = text("js/pdf-utility-cost-guard-v2.js")
 
-    assert "PDF_STORAGE_FILE_BYTES = 200 * MIB" in main
-    assert "PDF_STORAGE_TOTAL_BYTES = 300 * MIB" in main
+    assert "PDF_STORAGE_FILE_BYTES = 500 * MIB" in main
+    assert "PDF_STORAGE_TOTAL_BYTES = 500 * MIB" in main
     assert "PDF_UTILITY_FILE_BYTES = 500 * MIB" in main
     assert "PDF_UTILITY_TOTAL_BYTES = 800 * MIB" in main
     assert 'schedule="every 1 hours"' in main
@@ -39,7 +39,8 @@ def test_functions_and_storage_transfer_limits_stay_cost_bounded():
     assert "validPdfUpload(524288000)" in rules
     assert "MAX_FILE_BYTES = 200 * 1024 * 1024" in session
     assert "MAX_SESSION_BYTES = 300 * 1024 * 1024" in session
-    assert "MAX_FILE_BYTES = 200 * 1024 * 1024" in transfer
+    assert "MAX_FILE_BYTES = 500 * 1024 * 1024" in transfer
+    assert "MAX_SESSION_FILE_BYTES = 200 * 1024 * 1024" in transfer
     assert "MAX_WORKSPACE_TOTAL_BYTES = 800 * 1024 * 1024" in transfer
     assert "MAX_SESSION_TOTAL_BYTES = 300 * 1024 * 1024" in transfer
     compact = "".join(utility.split())

@@ -48,8 +48,8 @@ def test_direct_and_storage_aggregate_limits_are_explicit():
     main = MAIN.read_text(encoding="utf-8")
     assert pdf_router.MAX_DIRECT_TOTAL_PDF_BYTES == 20 * 1024 * 1024
     assert "MIB = 1024 * 1024" in main
-    assert "PDF_STORAGE_FILE_BYTES = 200 * MIB" in main
-    assert "PDF_STORAGE_TOTAL_BYTES = 300 * MIB" in main
+    assert "PDF_STORAGE_FILE_BYTES = 500 * MIB" in main
+    assert "PDF_STORAGE_TOTAL_BYTES = 500 * MIB" in main
     assert "pdf_router.MAX_PDF_FILE_BYTES = PDF_STORAGE_FILE_BYTES" in main
     assert "pdf_router.MAX_TOTAL_PDF_BYTES = PDF_STORAGE_TOTAL_BYTES" in main
     assert pdf_router.MAX_DIRECT_TOTAL_PDF_BYTES < 300 * 1024 * 1024
