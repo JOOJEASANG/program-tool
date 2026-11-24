@@ -1,0 +1,129 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <title>PDF 배치 모드·중철 접지선 동작 검사</title>
+  <link rel="stylesheet" href="/css/pdf-layout-booklet-mode.css?v=20261124-1">
+  <style>
+    body{font:12px sans-serif;color:#243549}
+    #previewScroll{width:800px;max-width:100%}
+    .page-preview{width:550px;height:360px;background:linear-gradient(90deg,#edf6ff 50%,#e2fff3 50%);position:relative}
+    .page-preview canvas{width:100%;height:100%}
+    #previewScroll .page-preview.pdf-paper-guides::before{
+      content:'용지 420×297mm';position:absolute;top:0;left:0;background:#fff;
+    }
+    #previewScroll .page-preview.pdf-paper-guides::after{
+      content:'';position:absolute;inset:12px;border:1px dashed #c87110;
+    }
+  </style>
+</head>
+<body data-status="running">
+<section id="sb-nup">
+  <div id="pdfLayoutModeTabs">
+    <button id="pdfNormalModeBtn" type="button">일반 배치</button>
+    <button id="pdfBookletModeBtn" type="button">소책자 · 중철제본</button>
+  </div>
+  <p id="pdfLayoutModeDescription"></p>
+  <div id="nupGrid">
+    <button type="button" class="nup-btn" data-nup="2">2장</button>
+    <button type="button" class="nup-btn active" data-nup="9">9장</button>
+  </div>
+  <div id="bookletRow"><input id="bookletCheck" type="checkbox"></div>
+  <div id="bookletSpineOptions">
+    <input id="bookletSpineGather" type="checkbox">
+    <div id="pdfBookletCenterLock"><span></span></div>
+    <label><input type="checkbox" id="pdfBookletFoldGuide" checked>가운데 접지선</label>
+    <button id="pdfBookletLandscapeBtn" type="button">가로용지</button>
+    <button id="pdfBookletSheetPreviewOpenBtn" type="button">앞뒤보기</button>
+  </div>
+  <div id="pdfNormalPageOrderField">일반 순서 설정</div>
+</section>
+<div id="pdfNormalGapField">일반 간격 설정</div>
+<p id="pdfBookletGapNote" hidden>소책자 간격 0mm</p>
+<button id="orientLand" type="button">가로</button>
+<button id="orientPort" type="button" class="active">세로</button>
+<button id="resetBtn" type="button">전체 초기화</button>
+<div id="previewScroll"><div class="page-preview pdf-paper-guides"><canvas width="550" height="360"></canvas></div></div>
+<output id="result">RUNNING</output>
+<script>
+  var parsedPages=[{excluded:false},{excluded:false},{excluded:false},{excluded:false}];
+  let paperLandscape=false,changeCount=0,sheetOpened=0;
+  window.getSettings=()=>paperLandscape?{pw:420,ph:297}:{pw:297,ph:420};
+  window.BookletSheetPreview={open(){sheetOpened++;}};
+  document.getElementById('orientLand').addEventListener('click',()=>{
+    paperLandscape=true;
+    document.getElementById('orientLand').classList.add('active');
+    document.getElementById('orientPort').classList.remove('active');
+  });
+  document.getElementById('bookletCheck').addEventListener('change',()=>{changeCount++;});
+  document.querySelectorAll('.nup-btn').forEach(btn=>btn.addEventListener('click',()=>{
+    document.querySelectorAll('.nup-btn').forEach(node=>node.classList.remove('active'));
+    btn.classList.add('active');
+  }));
+</script>
+<script defer src="/js/pdf-editor/booklet-mode-tabs.js?v=20261124-1"></script>
+<script>
+  document.addEventListener('DOMContentLoaded',()=>{
+    const $=id=>document.getElementById(id);
+    const assert=(v,m)=>{if(!v)throw Error(m)};
+    try {
+      assert(window.PdfLayoutBookletTabs,'mode controller did not install');
+      assert(!$('bookletCheck').checked,'normal must be initial mode');
+      assert($('pdfNormalModeBtn').getAttribute('aria-pressed')==='true','initial mode aria state');
+      assert(getComputedStyle($('pdfNormalGapField')).display!=='none','general spacing hidden in normal mode');
+      $('pdfBookletModeBtn').click();
+      assert(document.querySelector('.nup-btn.active')?.dataset.nup==='2',
+        'switching booklet from a 9-up document must force two-up');
+      assert($('bookletCheck').checked,'booklet mode did not enable legacy output engine flag');
+      assert(changeCount===1,'booklet mode should use native checkbox change event');
+      assert($('bookletSpineGather').checked,'booklet must enable join-to-spine');
+      assert($('pdfBookletModeBtn').getAttribute('aria-pressed')==='true','booklet mode aria state');
+      assert(getComputedStyle($('pdfNormalPageOrderField')).display==='none','general page order must be hidden in booklet');
+      assert(getComputedStyle($('pdfNormalGapField')).display==='none','general spacing must be hidden in booklet');
+      assert(!$('pdfBookletGapNote').hidden,'zero booklet gutter warning missing');
+      assert(document.documentElement.classList.contains('pdf-booklet-guide-on'),'center fold guide not activated');
+      const pagePreview=document.querySelector('.page-preview');
+      const overlay=pagePreview.querySelector(':scope > .pdf-booklet-fold-guide-overlay');
+      assert(overlay,'separate fold overlay is missing');
+      assert(getComputedStyle(overlay).display==='block','fold overlay is not visible');
+      assert(getComputedStyle(overlay,'::after').borderLeftStyle==='dashed',
+        'center fold line is not visible on its separate overlay');
+      assert(getComputedStyle(pagePreview,'::before').content.includes('용지 420'),
+        'existing physical paper-size label was overwritten by the fold');
+      assert(getComputedStyle(pagePreview,'::after').borderTopStyle==='dashed',
+        'existing margin guide was overwritten by the fold');
+      assert(Math.abs(window.PdfLayoutBookletTabs.paperCenter().fold-148.5)<.001,
+        'portrait paper fold center must be half the physical width');
+      $('pdfBookletFoldGuide').checked=false;
+      $('pdfBookletFoldGuide').dispatchEvent(new Event('change'));
+      assert(!document.documentElement.classList.contains('pdf-booklet-guide-on'),
+        'fold guide must be removable without modifying PDF output');
+      assert(getComputedStyle(overlay).display==='none','fold overlay stayed visible after uncheck');
+      assert(getComputedStyle(pagePreview,'::after').borderTopStyle==='dashed',
+        'hiding fold overlay also disabled the independent margin guide');
+      $('pdfBookletLandscapeBtn').click();
+      assert(Math.abs(window.PdfLayoutBookletTabs.paperCenter().fold-210)<.001,
+        'landscape sheet center must follow paper orientation');
+      $('pdfBookletSheetPreviewOpenBtn').click();
+      assert(sheetOpened===1,'physical front/back booklet preview not opened');
+      $('pdfNormalModeBtn').click();
+      assert(document.querySelector('.nup-btn.active')?.dataset.nup==='9',
+        'previous general 9-up setting not restored after booklet');
+      assert(!$('bookletCheck').checked,'normal mode retained booklet imposition');
+      assert(changeCount===2,'switching back must emit native change event');
+      assert($('pdfNormalModeBtn').getAttribute('aria-pressed')==='true','normal mode aria not restored');
+      assert(getComputedStyle($('pdfNormalGapField')).display!=='none','general spacing must return');
+      assert(getComputedStyle($('bookletSpineOptions')).display==='none','booklet only controls must hide in normal');
+      $('pdfBookletModeBtn').click();
+      $('resetBtn').click();
+      assert(!$('bookletCheck').checked,'reset must restore normal mode');
+      document.body.dataset.status='pass';
+      $('result').textContent='PASS: normal and saddle-stitch modes separated, center zero-gutter guide and sheet preview work';
+    }catch(error){
+      document.body.dataset.status='fail';
+      $('result').textContent='FAIL: '+error.message;
+    }
+  });
+</script>
+</body>
+</html>

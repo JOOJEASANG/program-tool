@@ -1,0 +1,122 @@
+/* The PDF layout tool has two deliberately separate output modes.
+ * Booklet always uses 2-up at the physical sheet center fold.
+ * Fold guides in this CSS are preview-only and never part of saved PDFs. */
+html.pdf-booklet-dual-mode #pdfLayoutModeTabs{
+  display:grid;grid-template-columns:1fr 1fr;gap:7px;margin:3px 0 9px;
+}
+html.pdf-booklet-dual-mode .pdf-layout-mode-btn{
+  border:1.5px solid #d6e2ed;border-radius:10px;background:#f8fafc;
+  color:#475569;min-width:0;min-height:68px;padding:11px 8px;
+  font:inherit;text-align:left;cursor:pointer;display:flex;flex-direction:column;
+  justify-content:center;gap:4px;transition:border-color .15s,background .15s;
+}
+html.pdf-booklet-dual-mode .pdf-layout-mode-btn strong{font-size:12px;font-weight:900;color:#243b55}
+html.pdf-booklet-dual-mode .pdf-layout-mode-btn span{font-size:9px;font-weight:750;color:#64748b;line-height:1.45}
+html.pdf-booklet-dual-mode .pdf-layout-mode-btn:hover{border-color:#86bbda;background:#eff7fd}
+html.pdf-booklet-dual-mode .pdf-layout-mode-btn.active{
+  border-color:#0f766e;background:#eafaf6;box-shadow:inset 0 0 0 1px #0f766e33;
+}
+html.pdf-booklet-dual-mode .pdf-layout-mode-btn.active strong{color:#075f57}
+html.pdf-booklet-dual-mode #pdfLayoutModeDescription{
+  font-size:10px;color:#527087;line-height:1.6;background:#f6f9fb;
+  padding:9px 10px;margin-bottom:12px;border-radius:8px;border:1px solid #e1eaf1;
+}
+html.pdf-booklet-dual-mode #sb-nup #bookletRow{
+  /* Keep the legacy checkbox as the single source of truth for imposition
+     and sessions, but expose the two large mode buttons as its UI. */
+  display:none!important;
+}
+html.pdf-booklet-dual-mode #sb-nup .classic-booklet-note{display:none!important}
+html.pdf-booklet-dual-mode.pdf-booklet-workflow-active #pdfNormalPageOrderField,
+html.pdf-booklet-dual-mode.pdf-booklet-workflow-active #pdfNormalGapField{
+  display:none!important;
+}
+html.pdf-booklet-dual-mode:not(.pdf-booklet-workflow-active) #bookletSpineOptions{
+  display:none!important;
+}
+html.pdf-booklet-dual-mode .pdf-booklet-center-lock{
+  border:1px solid #96d4c5;background:#eafff8;border-radius:8px;
+  padding:11px 10px;display:flex;flex-direction:column;gap:4px;margin-bottom:11px;
+}
+html.pdf-booklet-dual-mode .pdf-booklet-center-lock strong{
+  font-size:11px;font-weight:900;color:#086659;
+}
+html.pdf-booklet-dual-mode .pdf-booklet-center-lock span{
+  font-size:10px;font-weight:800;color:#365e56;line-height:1.5;
+}
+html.pdf-booklet-dual-mode .pdf-booklet-center-lock b{color:#047857}
+html.pdf-booklet-dual-mode .pdf-booklet-fold-diagram{
+  position:relative;display:grid;grid-template-columns:1fr 1fr;
+  height:100px;gap:0;border:1px solid #b8d1e1;
+  border-radius:8px;background:#f0f7fc;overflow:hidden;margin:9px 0 13px;
+}
+html.pdf-booklet-dual-mode .pdf-booklet-half{
+  display:flex;align-items:center;justify-content:center;
+  min-width:0;font-size:10px;font-weight:900;color:#1e4d70;
+  background:#fff;padding:8px;text-align:center;
+}
+html.pdf-booklet-dual-mode .pdf-booklet-half.left{border-right:1px dashed #0f766e}
+html.pdf-booklet-dual-mode .pdf-booklet-fold-seam{
+  position:absolute;left:50%;top:0;bottom:0;z-index:1;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:5px;transform:translateX(-50%);pointer-events:none;
+}
+html.pdf-booklet-dual-mode .pdf-booklet-fold-seam span,
+html.pdf-booklet-dual-mode .pdf-booklet-fold-seam em{
+  padding:3px 6px;border-radius:5px;background:#0f766e;color:#fff;
+  font-size:9px;line-height:1;font-weight:900;font-style:normal;
+}
+html.pdf-booklet-dual-mode .pdf-booklet-fold-seam em{background:#ecfdf5;color:#0f766e}
+html.pdf-booklet-dual-mode .pdf-booklet-preview-guide-option{
+  display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin:8px 0 12px;
+  font-size:10px;color:#214e61;cursor:pointer;font-weight:800;line-height:1.4;
+}
+html.pdf-booklet-dual-mode .pdf-booklet-preview-guide-option input{
+  width:15px;height:15px;accent-color:#0f766e;margin:0;
+}
+html.pdf-booklet-dual-mode .pdf-booklet-preview-guide-option small{font-size:9px;color:#64748b}
+html.pdf-booklet-dual-mode .pdf-booklet-quick-actions{
+  display:grid;grid-template-columns:1fr 1fr;gap:6px;margin:0 0 10px;
+}
+html.pdf-booklet-dual-mode .pdf-booklet-quick-actions button{
+  border:1px solid #a6c9da;border-radius:7px;min-height:36px;
+  padding:6px 8px;background:#fff;color:#175d75;
+  font-size:10px;font-weight:900;cursor:pointer;
+}
+html.pdf-booklet-dual-mode .pdf-booklet-quick-actions button:hover{
+  border-color:#0f766e;background:#edfaf6;color:#075f57;
+}
+html.pdf-booklet-dual-mode #pdfBookletGapNote{
+  display:block;background:#effaf7;border:1px solid #c4e8da;
+  border-radius:8px;padding:9px;margin:4px 0 10px;
+  font-size:10px;font-weight:750;line-height:1.6;color:#176354;
+}
+html.pdf-booklet-dual-mode #pdfBookletGapNote[hidden]{display:none!important}
+/* Preserve page-selection-preview-focus.js's own .page-preview::before
+   (paper-size label) and ::after (margin box). The fold has its OWN
+   nonprinting child overlay, so the three guides can coexist. */
+html.pdf-booklet-dual-mode #previewScroll .page-preview{
+  position:relative;
+}
+html.pdf-booklet-dual-mode #previewScroll .pdf-booklet-fold-guide-overlay{
+  display:none;position:absolute;inset:0;pointer-events:none;z-index:5;
+}
+html.pdf-booklet-dual-mode.pdf-booklet-workflow-active.pdf-booklet-guide-on
+  #previewScroll .pdf-booklet-fold-guide-overlay{
+  display:block;
+}
+html.pdf-booklet-dual-mode #previewScroll .pdf-booklet-fold-guide-overlay::after{
+  content:'';position:absolute;left:50%;top:0;bottom:0;
+  border-left:1px dashed rgba(11,118,104,.9);
+  transform:translateX(-.5px);pointer-events:none;
+}
+html.pdf-booklet-dual-mode #previewScroll .pdf-booklet-fold-guide-overlay span{
+  position:absolute;top:24px;left:50%;transform:translateX(-50%);
+  padding:3px 5px;border-radius:4px;background:#0f766e;color:#fff;
+  font-size:9px;white-space:nowrap;font-weight:850;line-height:1.1;
+}
+@media(max-width:620px){
+  html.pdf-booklet-dual-mode .pdf-layout-mode-btn{min-height:62px;padding:8px 6px}
+  html.pdf-booklet-dual-mode .pdf-layout-mode-btn strong{font-size:11px}
+  html.pdf-booklet-dual-mode .pdf-booklet-quick-actions{grid-template-columns:1fr}
+}
