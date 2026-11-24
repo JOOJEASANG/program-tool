@@ -3,12 +3,14 @@ import logging
 import re
 import shutil
 import tempfile
+import uuid
 from pathlib import Path
 
 import fitz
 import firebase_admin.firestore as fa_firestore
 from flask import (
     Blueprint,
+    g,
     Response,
     jsonify,
     request,
@@ -402,6 +404,40 @@ def process(uid):
             headers={"Content-Disposition": "attachment; filename=output.pdf"},
         )
     )
+
+
+@pdf_bp.route("/stage-upload", methods=["POST"])
+@require_auth
+def create_stage_upload(uid):
+    # The global API access hook verifies Firebase identity AND account approval.
+    # Never issue upload capabilities on authentication alone.
+    if getattr(g, "program_id", None) != "pdf-editor":
+        return _error_response("관리자 승인 정보를 확인할 수 없습니다.", 403, "PDF_STAGE_ACCESS_DENIED")
+    body = request.get_json(silent=True)
+    if not isinstance(body, dict):
+        return _error_response("업로드 요청이 올바르지 않습니다.", 400, "PDF_STAGE_INVALID_REQUEST")
+    size = body.get("size_bytes")
+    if type(size) is not int or size <= 0 or size > MAX_PDF_FILE_BYTES:
+        return _error_response("원본 PDF는 파일당 최대 500MB까지 지원합니다.", 413, "PDF_STAGE_SIZE_LIMIT")
+    origin = request.headers.get("Origin", "")
+    if not re.fullmatch(r"https://program-tool(?:--[A-Za-z0-9-]+)?[.]web[.]app|https://program-tool[.]firebaseapp[.]com", origin):
+        return _error_response("허용되지 않은 업로드 출처입니다.", 403, "PDF_STAGE_ORIGIN_DENIED")
+    if not re.fullmatch(r"[A-Za-z0-9_-]{1,128}", uid):
+        return _error_response("사용자 식별자가 올바르지 않습니다.", 403, "PDF_STAGE_ACCESS_DENIED")
+    # A fresh, owner-scoped immutable object; the client cannot choose a path.
+    path = f"pdf_temp/{uid}/{uuid.uuid4().hex}/source.pdf"
+    try:
+        blob = _bucket().blob(path)
+        upload_url = blob.create_resumable_upload_session(
+            content_type="application/pdf", size=size, origin=origin,
+            if_generation_match=0, timeout=30,
+        )
+    except Exception:
+        logger.exception("PDF stage session creation failed request_id=%s", _request_id())
+        return _error_response("서버에서 임시 업로드 주소를 발급하지 못했습니다.", 503, "PDF_STAGE_SESSION_FAILED")
+    response = jsonify({"storage_path": path, "upload_url": upload_url})
+    response.headers["Cache-Control"] = "no-store"
+    return _attach_request_id(response)
 
 
 @pdf_bp.route("/process-storage", methods=["POST"])

@@ -230,6 +230,47 @@ function _uploadStorageFile(ref, file, { signal, onProgress, fileIndex, fileCoun
   });
 }
 
+// Only an approved account may obtain an owner-scoped, one-object upload
+// capability. This fallback keeps the existing Firebase rules unchanged.
+async function _uploadPdfViaAuthorizedSession(file, user, signal, onProgress, fileIndex, fileCount) {
+  const token = await user.getIdToken(true);
+  const response = await _fetchLongPdfApi('/api/pdf/stage-upload', {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ size_bytes: file.size }),
+    signal,
+  });
+  const body = await response.json().catch(() => null);
+  if (!response.ok) {
+    const error = new Error((body?.detail || '서버 업로드 권한 확인 실패') +
+      ' (HTTP ' + response.status + ')' + (body?.request_id ? ' / 요청번호: ' + body.request_id : ''));
+    error.code = body?.code || 'PDF_STAGE_ACCESS_FAILED';
+    throw error;
+  }
+  const url = new URL(body?.upload_url || '');
+  const path = body?.storage_path || '';
+  const validHost = url.hostname === 'storage.googleapis.com' || url.hostname.endsWith('.storage.googleapis.com') || url.hostname === 'www.googleapis.com';
+  if (url.protocol !== 'https:' || !validHost || url.username || url.password ||
+      !path.startsWith('pdf_temp/' + user.uid + '/') || !/^[a-f0-9]{32}[/]source[.]pdf$/.test(path.slice(('pdf_temp/' + user.uid + '/').length))) {
+    throw new Error('서버의 임시 업로드 주소가 올바르지 않습니다.');
+  }
+  _reportProgress(onProgress, 'upload', 5 + fileIndex / Math.max(1, fileCount) * 35, '승인된 임시 저장소로 원본 업로드 중');
+  // Session URI authorizes only the specific object. Never attach the Firebase ID token.
+  let result;
+  try {
+    result = await fetch(url.href, {
+      method: 'PUT', headers: { 'Content-Type': 'application/pdf' },
+      body: file, signal, credentials: 'omit', redirect: 'error',
+    });
+  } catch (error) {
+    if (error?.name === 'AbortError') throw error;
+    throw new Error('서버 승인 업로드 연결 실패 (네트워크 또는 저장소 연결 오류)');
+  }
+  if (!result.ok) throw new Error('서버 승인 업로드 실패 (HTTP ' + result.status + ')');
+  _reportProgress(onProgress, 'upload', 5 + (fileIndex + 1) / Math.max(1, fileCount) * 35, '원본 업로드 완료');
+  return path;
+}
+
 async function _processPdfDirect(files, settings, token, signal, onStatus, onProgress, browserDownload = false) {
   onStatus && onStatus('임시 업로드 방식 실패 → 직접 업로드 방식으로 재시도 중...');
   _reportProgress(onProgress, 'direct-upload', 35, '직접 업로드 방식으로 재시도 중');
@@ -329,13 +370,22 @@ async function apiProcessPdf(files, settings, options = {}) {
       const path = `pdf_temp/${uid}/${sessionId}/${i}.pdf`;
       storagePaths.push(path);
       newlyUploadedPaths.push(path);
-      await _uploadStorageFile(st.ref(path), files[i], {
-        signal: controller.signal,
-        onProgress,
-        fileIndex: i,
-        fileCount: files.length,
-      });
-      if (reuseSources) _pdfEditorExportInputs.set(files[i], { uid, path });
+      let actualPath = path;
+      try {
+        await _uploadStorageFile(st.ref(path), files[i], {
+          signal: controller.signal,
+          onProgress,
+          fileIndex: i,
+          fileCount: files.length,
+        });
+      } catch (error) {
+        if (error?.code !== 'storage/unauthorized') throw error;
+        onStatus?.('저장소 권한 확인 중 · 서버 승인 업로드로 재시도합니다...');
+        actualPath = await _uploadPdfViaAuthorizedSession(files[i], user, controller.signal, onProgress, i, files.length);
+        storagePaths[storagePaths.length - 1] = actualPath;
+        newlyUploadedPaths.push(actualPath);
+      }
+      if (reuseSources) _pdfEditorExportInputs.set(files[i], { uid, path: actualPath });
     }
 
     onStatus && onStatus(newlyUploadedPaths.length
