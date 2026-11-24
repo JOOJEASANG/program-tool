@@ -14,6 +14,7 @@
   const LARGE_RESTORED_WINDOW_RADIUS = 1;
   const EDGE_SCROLL_STEP = 3;
   const PREVIEW_PPM = 96 / 25.4;
+  function previewPpm(){return typeof workPreviewPixelsPerMm==='function'?workPreviewPixelsPerMm(8):PREVIEW_PPM;}
   const INSTALL_DELAYS = [0, 180, 420, 800, 1300, 2100, 3300, 5000];
 
   let coordinatorInstalled = false;
@@ -308,19 +309,23 @@
   }
 
   async function hydrateSourcePage(page, documentCache, temporary) {
-    if (!isLightweightPage(page) || page?.pageType !== 'pdf') return page;
+    if (page?.pageType !== 'pdf') return page;
     try {
       const fileIndex = Number(page.file_index);
-      const documentHandle = await openSourceDocument(fileIndex, documentCache);
-      const pdfPage = await documentHandle.getPage(Number(page.page_index || 0) + 1);
+      const lightweight=isLightweightPage(page);
+      const documentHandle = lightweight ? await openSourceDocument(fileIndex, documentCache) : null;
+      const pdfPage = lightweight ? await documentHandle.getPage(Number(page.page_index || 0) + 1) : page.pdfPage;
       const safety = window.PdfImportTransactionSafety;
       const rotation = Number(page.rotation || 0);
-      const thumbCanvas = typeof safety?.safeRenderPdfPage === 'function'
-        ? await safety.safeRenderPdfPage(pdfPage, 0.62, rotation, true)
-        : await renderPdfPage(pdfPage, 0.62, rotation);
-      temporary.push({ pdfPage, thumbCanvas });
+      const thumbCanvas = typeof renderWorkPreviewSource === 'function'
+        ? await renderWorkPreviewSource(pdfPage,rotation)
+        : (typeof safety?.safeRenderPdfPage === 'function'
+          ? await safety.safeRenderPdfPage(pdfPage, 1.6, rotation, true)
+          : await renderPdfPage(pdfPage, 1.6, rotation));
+      temporary.push({ pdfPage:lightweight?pdfPage:null, thumbCanvas });
       return { ...page, pdfPage, thumbCanvas, lightweight: false };
     } catch (error) {
+      if (!isLightweightPage(page)) return page;
       console.warn('[lazy-preview] original source page hydration failed', error);
       const thumbCanvas = errorSourceCanvas(page, error?.message);
       temporary.push({ pdfPage: null, thumbCanvas });
@@ -339,6 +344,7 @@
       );
     }
     const repeated = !!descriptor.repeated && !!window.PdfEditorNupRepeat?.enabled?.();
+    const ppm=previewPpm();
     // The original and independent-margin page builders have different optional
     // argument ordering. Pass repetition explicitly so overlays stay in EACH
     // placement cell rather than being stamped once at the paper bottom.
@@ -350,16 +356,16 @@
       descriptor.pageIndex,
       descriptor.cols,
       descriptor.rows,
-      PREVIEW_PPM,
+      ppm,
       false,
       ...argumentsAfterScale,
     );
     if (!repeated) {
-      try { applyDocEdits(canvas, descriptor.outputIndex, total, PREVIEW_PPM); }
+      try { applyDocEdits(canvas, descriptor.outputIndex, total, ppm); }
       catch (error) { console.warn('[lazy-preview] document edit overlay failed', error); }
     }
     if (window.PdfPrintMarks?.enabled?.()) {
-      return window.PdfPrintMarks.addMarksToCanvas(canvas, PREVIEW_PPM);
+      return window.PdfPrintMarks.addMarksToCanvas(canvas, ppm);
     }
     return canvas;
   }
@@ -460,12 +466,12 @@
       }
       for (let index = 0; index < visibleDescriptors.length; index += 1) {
         const descriptor = visibleDescriptors[index];
-        canvases.push(await buildDescriptorCanvas(
-          descriptor,
-          descriptors.length,
-          documentCache,
-          temporary,
-        ));
+        try {
+          canvases.push(await buildDescriptorCanvas(descriptor,descriptors.length,documentCache,temporary));
+        } finally {
+          releaseTemporarySources(temporary);
+          temporary.length=0;
+        }
         // Yield only between small batches; yielding after every single output
         // face caused a visibly staggered, stop-start drawing experience.
         if (index > 0 && index % 3 === 2 && index < visibleDescriptors.length - 1) await nextPaint();

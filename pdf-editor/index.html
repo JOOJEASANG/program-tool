@@ -2038,6 +2038,45 @@ async function renderPdfPage(pdfPage, scale, rotation) {
   return canvas;
 }
 
+// Work previews render directly from the original PDF, never enlarge a
+// low-resolution sidebar thumbnail. Bound each temporary canvas and release
+// it after one output face; the original File used by export is untouched.
+async function renderWorkPreviewSource(pdfPage, rotation) {
+  const base=pdfPage.getViewport({scale:1,rotation});
+  const scale=Math.min(2,1800/Math.max(1,base.width,base.height),
+    Math.sqrt(2200000/Math.max(1,base.width*base.height)));
+  return renderPdfPage(pdfPage,scale,rotation);
+}
+
+async function withSharpPreviewPages(pages, start, count, draw) {
+  const prepared=pages.slice();
+  const temporary=new Map();
+  try {
+    for(let i=start;i<Math.min(start+count,pages.length);i++){
+      const page=pages[i];
+      if(page?.pageType!=='pdf'||!page.pdfPage||page.pdfPage.__lightweightPdfPage)continue;
+      try {
+        if(!temporary.has(page))temporary.set(page,await renderWorkPreviewSource(page.pdfPage,Number(page.rotation)||0));
+        prepared[i]={...page,thumbCanvas:temporary.get(page),hiCanvas:null};
+      } catch(error) {
+        console.warn('[preview] high-resolution render unavailable; using source thumbnail',error);
+      }
+    }
+    return draw(prepared);
+  } finally {
+    for(const canvas of temporary.values()){canvas.width=1;canvas.height=1;}
+  }
+}
+
+function workPreviewPixelsPerMm(pageCount) {
+  const {pw,ph}=getSettings();
+  const count=Math.max(1,Number(pageCount)||1);
+  // Limit retained sheet pixels for large jobs; increase small-job preview
+  // fidelity up to 144 dpi without allocating print-resolution canvases.
+  return Math.min(144/25.4, 2400/Math.max(1,pw,ph),
+    Math.max(96/25.4,Math.sqrt(18000000/Math.max(1,pw*ph*count))));
+}
+
 // ── Divider canvas renderer ───────────────────────────────────────────
 function renderDividerCanvas(content, w, h) {
   const c = document.createElement('canvas');
@@ -2919,7 +2958,7 @@ async function buildAllPages(mm2px, useHi, overridePages = null) {
     const { cols, rows } = getBookletLayout(nup);
     const perPage = cols * rows;
     for (let p = 0; p < Math.ceil(active.length / perPage); p++) {
-      out.push(buildOutputPage(active, p, cols, rows, mm2px, useHi));
+      out.push(await withSharpPreviewPages(active,p*perPage,perPage,prepared=>buildOutputPage(prepared, p, cols, rows, mm2px, useHi)));
       await new Promise(r => setTimeout(r, 0));
     }
   } else {
@@ -2929,7 +2968,7 @@ async function buildAllPages(mm2px, useHi, overridePages = null) {
       const { cols, rows } = getLayout(grp.n);
       const perPage = cols * rows;
       for (let p = 0; p < Math.ceil(grp.pages.length / perPage); p++) {
-        out.push(buildOutputPage(grp.pages, p, cols, rows, mm2px, useHi, !!grp.repeated, out.length, totalOutput));
+        out.push(await withSharpPreviewPages(grp.pages,p*perPage,perPage,prepared=>buildOutputPage(prepared, p, cols, rows, mm2px, useHi, !!grp.repeated, out.length, totalOutput)));
         await new Promise(r => setTimeout(r, 0));
       }
     }
@@ -3071,7 +3110,7 @@ async function triggerPreview() {
     const useBooklet = (document.getElementById('bookletCheck')?.checked) && (nup in BOOKLET_STRIPS);
     const previewPages = useBooklet ? bookletReorderPreview(active, nup) : null;
     stage = 'build-pages';
-    previewCanvases = await buildAllPages(96 / 25.4, false, previewPages);
+    previewCanvases = await buildAllPages(workPreviewPixelsPerMm(active.length), false, previewPages);
     if (!previewCanvases || !previewCanvases.length) {
       showPreviewError('build-pages', new Error('출력 페이지가 0개 생성됨 (활성 ' + active.length + '페이지)'));
       $('previewBtn').disabled = false;

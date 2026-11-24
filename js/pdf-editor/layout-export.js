@@ -722,17 +722,13 @@
           const { cols, rows } = booklet ? {cols:2, rows:1} : getLayout(group.n);
           const perPage = cols * rows;
           for (let pageIndex = 0; pageIndex < Math.ceil(group.pages.length / perPage); pageIndex += 1) {
-            output.push(patchedBuildOutputPage(
-              group.pages,
-              pageIndex,
-              cols,
-              rows,
-              mm2px,
-              useHi,
-              output.length,
-              !!group.repeated,
-              totalOutputPages,
-            ));
+            const draw = prepared => patchedBuildOutputPage(
+              prepared, pageIndex, cols, rows, mm2px, useHi,
+              output.length, !!group.repeated, totalOutputPages,
+            );
+            output.push(typeof withSharpPreviewPages === 'function'
+              ? await withSharpPreviewPages(group.pages,pageIndex*perPage,perPage,draw)
+              : draw(group.pages));
             await new Promise((resolve) => setTimeout(resolve, 0));
           }
         }

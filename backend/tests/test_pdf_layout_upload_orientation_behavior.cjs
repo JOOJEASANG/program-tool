@@ -10,11 +10,11 @@ function extract(start,end){
   if(e<0)throw Error('Missing '+end);
   return text.slice(s,e);
 }
-const drawing=extract('function drawPageInCell(', '// ── Get canvas for a page');
+const drawing=extract('function recordActualTrimRect(', '// ── Get canvas for a page');
 const getSource=extract('function getPageSrc(', '// Canonical booklet fold geometry');
 function spy(){
   const calls=[];
-  const ctx={drawImage(){calls.push('draw');},rotate(){calls.push('rotate');},
+  const ctx={canvas:{dataset:{}},drawImage(){calls.push('draw');},rotate(){calls.push('rotate');},
     save(){calls.push('save');},restore(){calls.push('restore');},
     translate(){calls.push('translate');},beginPath(){calls.push('path');},
     rect(){calls.push('rect');},clip(){calls.push('clip');},
@@ -42,6 +42,7 @@ const old={width:200,height:100};
   assert(!a.calls.includes('rotate'),'Actual size PDF source auto rotated');
   const b=spy();actual(b.ctx,old,0,0,80,100,1);
   assert(b.calls.includes('rotate'),'Actual size non-PDF rotation unexpectedly removed');
+  assert.deepEqual(JSON.parse(b.ctx.canvas.dataset.actualTrimRects)[0],{x:0,y:0,w:80,h:100,widthMm:80,heightMm:100});
 }
 {
   const source=new Function('getSettings','renderDividerCanvas','document',getSource+'\nreturn getPageSrc;')(
