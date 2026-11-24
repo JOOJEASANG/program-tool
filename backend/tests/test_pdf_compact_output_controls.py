@@ -55,7 +55,7 @@ def test_main_handlers_keep_existing_behavior_and_browser_regression_is_required
 
 
 def test_assets_and_cache_versions_are_consistent():
-    assert "simple-sidebar-ui.js?v=20261116-1" in read("js/pdf-editor/ui-runtime.js")
+    assert "simple-sidebar-ui.js?v=20261124-3" in read("js/pdf-editor/ui-runtime.js")
     assert "pdf-editor-final-check.js?v=20261112-2" in read("js/pdf-editor/route-runtime.js")
     assert "PDF_UI_RUNTIME_VERSION='20261112-2'" in read("js/program-shell-unify.js")
-    assert '"version": "2026.11.24.002"' in read("version.json")
+    assert '"version": "2026.11.24.003"' in read("version.json")

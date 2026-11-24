@@ -11,7 +11,7 @@
   let frame=0,observer=null;
   // Only the document-print workflow is visible on first load. Preserve each
   // user's expanded sections throughout dynamic thumbnail and settings updates.
-  const defaultSections=new Set(['upload','paper','nup','output']);
+  const defaultSections=new Set(['upload','nup','paper','trim','output']);
   const openSections=new Set(defaultSections);
   const sectionKey=section=>{
     const head=section?.querySelector(':scope>.sec-head');
@@ -77,7 +77,7 @@
       body[data-program-kind="pdf-editor"] #previewScroll{background:#e8edf3!important;border-radius:9px!important}
       body[data-program-kind="pdf-editor"] #previewScroll .preview-row{width:100%;min-width:max-content;justify-content:center;flex-wrap:nowrap;box-sizing:border-box}
       body[data-program-kind="pdf-editor"] #previewScroll .page-preview{border-radius:5px!important;box-shadow:0 3px 14px rgba(15,23,42,.14)!important}
-      /* Primary print workflow: upload -> paper -> N-up -> optional text -> save. */
+      /* Primary print workflow: upload -> N-up -> paper -> trim/margins -> optional text -> save. */
       body[data-program-kind="pdf-editor"] .app>aside:first-of-type .sec.pdf-ui-closed>.sec-body,
       body[data-program-kind="pdf-editor"] .app>aside:first-of-type .sec.pdf-ui-closed>.sec-body.hidden{display:none!important}
       body[data-program-kind="pdf-editor"] .app>aside:first-of-type .sec.pdf-ui-toggle>.sec-head{cursor:pointer!important}
@@ -247,14 +247,15 @@
   function organizeWorkspace(){
     const left=document.querySelector('.app>aside:first-of-type');
     if(!left)return;
-    const upload=left.querySelector('#sb-upload')?.closest('.sec');
-    const paper=left.querySelector('#sb-paper')?.closest('.sec');
-    const nup=left.querySelector('#sb-nup')?.closest('.sec');
-    if(upload&&paper&&nup&&paper.parentElement===nup.parentElement
-        &&paper.compareDocumentPosition(nup)&Node.DOCUMENT_POSITION_PRECEDING){
-      nup.parentNode.insertBefore(paper,nup);
+    // Correct old tool-rail ordering without cloning or rebinding controls.
+    const sections=['upload','nup','paper','trim','edit'].map(key=>left.querySelector('#sb-'+key)?.closest('.sec')).filter(Boolean);
+    for(let i=1;i<sections.length;i++){
+      const previous=sections[i-1], current=sections[i];
+      if(previous.parentElement===current.parentElement && (previous.compareDocumentPosition(current)&Node.DOCUMENT_POSITION_PRECEDING)){
+        current.parentNode.insertBefore(current,previous.nextSibling);
+      }
     }
-    const names={upload:'1 · PDF 불러오기',paper:'2 · 용지·여백',nup:'3 · 페이지 배치',edit:'추가 · 문서 표시'};
+    const names={upload:'1 · PDF 불러오기',nup:'2 · 페이지 배치',paper:'3 · 출력 용지 설정',trim:'4 · 실제 크기·여백',edit:'5 · 추가 편집 설정'};
     for(const section of left.querySelectorAll('.sec')){
       const key=sectionKey(section);
       if(!key)continue;
@@ -400,6 +401,10 @@
     },true);
     document.addEventListener('click',event=>{
       if(event.target?.closest?.('#pageSidebar #thumbSection>.sec-head'))queueMicrotask(organizeRightSidebar);
+    });
+    document.addEventListener('pdf-import-committed',()=>{
+      openSections.add('nup');
+      sync();
     });
     sync();[80,220,600,1200,2200].forEach(delay=>setTimeout(queue,delay));}
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot();
