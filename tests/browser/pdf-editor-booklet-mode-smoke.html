@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <title>PDF 배치 모드·중철 접지선 동작 검사</title>
-  <link rel="stylesheet" href="/css/pdf-layout-booklet-mode.css?v=20261124-1">
+  <link rel="stylesheet" href="/css/pdf-layout-booklet-mode.css?v=20261124-2">
   <style>
     body{font:12px sans-serif;color:#243549}
     #previewScroll{width:800px;max-width:100%}
@@ -18,6 +18,7 @@
   </style>
 </head>
 <body data-status="running">
+<section id="pdfPrintWorkflowFocusPanel"><button type="button">중복 작업 방식</button></section>
 <section id="sb-nup">
   <div id="pdfLayoutModeTabs">
     <button id="pdfNormalModeBtn" type="button">일반 배치</button>
@@ -69,6 +70,8 @@
     try {
       assert(window.PdfLayoutBookletTabs,'mode controller did not install');
       assert(!$('bookletCheck').checked,'normal must be initial mode');
+      assert(getComputedStyle($('pdfPrintWorkflowFocusPanel')).display==='none','legacy duplicate mode panel must be hidden');
+      assert(getComputedStyle($('pdfLayoutModeTabs')).display!=='none','canonical mode selection must remain visible');
       assert($('pdfNormalModeBtn').getAttribute('aria-pressed')==='true','initial mode aria state');
       assert(getComputedStyle($('pdfNormalGapField')).display!=='none','general spacing hidden in normal mode');
       $('pdfBookletModeBtn').click();
@@ -111,6 +114,7 @@
         'previous general 9-up setting not restored after booklet');
       assert(!$('bookletCheck').checked,'normal mode retained booklet imposition');
       assert(changeCount===2,'switching back must emit native change event');
+      assert(getComputedStyle($('pdfPrintWorkflowFocusPanel')).display==='none','legacy duplicate must stay hidden after mode changes');
       assert($('pdfNormalModeBtn').getAttribute('aria-pressed')==='true','normal mode aria not restored');
       assert(getComputedStyle($('pdfNormalGapField')).display!=='none','general spacing must return');
       assert(getComputedStyle($('bookletSpineOptions')).display==='none','booklet only controls must hide in normal');

@@ -1,6 +1,8 @@
 /* The PDF layout tool has two deliberately separate output modes.
  * Booklet always uses 2-up at the physical sheet center fold.
  * Fold guides in this CSS are preview-only and never part of saved PDFs. */
+/* Suppress a stale legacy workflow panel if an older cached script inserted it. */
+html.pdf-booklet-dual-mode #pdfPrintWorkflowFocusPanel{display:none!important}
 html.pdf-booklet-dual-mode #pdfLayoutModeTabs{
   display:grid;grid-template-columns:1fr 1fr;gap:7px;margin:3px 0 9px;
 }
