@@ -70,7 +70,7 @@
         <div class="upload-zone" id="uploadZone" role="button" tabindex="0" aria-controls="fileInput" aria-label="검사할 PDF 파일 선택" onclick="document.getElementById('fileInput').click()">
           <div class="upload-icon">📂</div>
           <div class="upload-title">PDF 파일을 올려주세요</div>
-          <div class="upload-sub">클릭하거나 파일을 끌어다 놓으세요.<br>검수 최대 200MB · 암호 기능 최대 20MB · PDF 형식만 지원</div>
+          <div class="upload-sub">클릭하거나 파일을 끌어다 놓으세요.<br>검수 최대 500MB · 암호 기능 최대 20MB · PDF 형식만 지원</div>
           <div class="upload-filename" id="uploadFilename"></div>
         </div>
         <input type="file" id="fileInput" accept=".pdf,application/pdf" />
@@ -120,7 +120,7 @@
     function selectFile(file){
       hideError();
       if(!file?.name?.toLowerCase().endsWith('.pdf'))return showError('PDF 파일만 업로드할 수 있습니다.');
-      if(file.size>200*1024*1024)return showError('문서 검수 파일은 최대 200MB까지 지원합니다.');
+      if(file.size>500*1024*1024)return showError('문서 검수 파일은 최대 500MB까지 지원합니다.');
       selectedFile=file;window.selectedFile=file;zone.classList.add('has-file');
       const fn=document.getElementById('uploadFilename');fn.textContent=`✓ ${file.name} · ${(file.size/1024/1024).toFixed(1)}MB`;fn.style.display='block';
       syncFileActionAvailability();

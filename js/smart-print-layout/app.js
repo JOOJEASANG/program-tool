@@ -4,7 +4,8 @@
   const PDFJS_VERSION = '3.11.174';
   const PDFJS_WORKER = `https://cdn.jsdelivr.net/npm/pdfjs-dist@${PDFJS_VERSION}/build/pdf.worker.min.js`;
   const MAX_FILES = 30;
-  const MAX_FILE_BYTES = 20 * 1024 * 1024;
+  const MAX_FILE_BYTES = 500 * 1024 * 1024;
+  const MAX_TOTAL_BYTES = 500 * 1024 * 1024;
   const MAX_TOTAL_COPIES = 2000;
   const EPS = 1e-7;
   const PAPER = {
@@ -73,7 +74,7 @@
 
   async function inspectFile(file) {
     if (!/\.pdf$/i.test(file.name) && file.type !== 'application/pdf') throw new Error(`${file.name}: PDF 파일만 사용할 수 있습니다.`);
-    if (file.size > MAX_FILE_BYTES) throw new Error(`${file.name}: 20MB 이하 PDF를 사용해 주세요.`);
+    if (file.size > MAX_FILE_BYTES) throw new Error(`${file.name}: 500MB 이하 PDF를 사용해 주세요.`);
     const lib = await requirePdfJs();
     const bytes = new Uint8Array(await file.arrayBuffer());
     const doc = await lib.getDocument({ data: bytes }).promise;
@@ -106,6 +107,7 @@
     const incoming = [...fileList];
     if (!incoming.length) return;
     if (state.items.length + incoming.length > MAX_FILES) return status(`파일은 최대 ${MAX_FILES}개까지 추가할 수 있습니다.`, 'error');
+    if (state.items.reduce((sum, item) => sum + item.file.size, 0) + incoming.reduce((sum, file) => sum + file.size, 0) > MAX_TOTAL_BYTES) return status('전체 PDF 용량은 최대 500MB까지 가능합니다.', 'error');
     setBusy(true); status('PDF 크기와 앞·뒷면을 확인하는 중...');
     try {
       for (const file of incoming) {
@@ -423,7 +425,8 @@
           cachedSources.set(files[index], {uid:user.uid,path});
         }
         status(newlyUploaded.length ? '서버에서 PDF 생성 중...' : '원본 재업로드 없이 PDF 생성 중...');
-        response = await fetch('/api/pdf/smart-layout-storage', {
+        response = await fetch(`https://us-central1-${window.firebase.app().options.projectId}.cloudfunctions.net/api/api/pdf/smart-layout-storage`, {
+          mode:'cors',credentials:'omit',
           method:'POST',headers:{Authorization:`Bearer ${token}`,'Content-Type':'application/json'},
           body:JSON.stringify({settings:JSON.parse(form.get('settings')),storage_paths:paths,
             source_session_doc:saved?.docId||null,retain_temp_sources:true}),

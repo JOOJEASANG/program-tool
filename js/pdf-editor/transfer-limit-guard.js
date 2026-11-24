@@ -5,7 +5,8 @@
   window.__pdfEditorTransferLimitGuardV3 = true;
   if (!location.pathname.includes('pdf-editor')) return;
 
-  const MAX_FILE_BYTES = 200 * 1024 * 1024;
+  const MAX_FILE_BYTES = 500 * 1024 * 1024;
+  const MAX_SESSION_FILE_BYTES = 200 * 1024 * 1024;
   const MAX_WORKSPACE_TOTAL_BYTES = 800 * 1024 * 1024;
   const MAX_SESSION_TOTAL_BYTES = 300 * 1024 * 1024;
   const $ = (id) => document.getElementById(id);
@@ -28,7 +29,7 @@
     const nonPdf = incoming.find((file) => !((file.type || '').includes('pdf') || /\.pdf$/i.test(file.name || '')));
     if (nonPdf) return { ok: false, message: 'PDF 파일만 업로드할 수 있습니다.' };
     const tooLarge = incoming.find((file) => Number(file.size || 0) > MAX_FILE_BYTES);
-    if (tooLarge) return { ok: false, message: `“${tooLarge.name}” 파일은 200MB를 초과해 추가할 수 없습니다.` };
+    if (tooLarge) return { ok: false, message: `“${tooLarge.name}” 파일은 500MB를 초과해 추가할 수 없습니다.` };
     const existing = mode === 'new' ? 0 : byteSum(currentFiles());
     const totalBytes = existing + byteSum(incoming);
     if (totalBytes > MAX_WORKSPACE_TOTAL_BYTES) {
@@ -74,7 +75,7 @@
   function validateSessionSave(event) {
     if (!event.target?.closest?.('#sessionSaveConfirm')) return;
     const files = currentFiles();
-    const tooLarge = files.find((file) => Number(file?.size || 0) > MAX_FILE_BYTES);
+    const tooLarge = files.find((file) => Number(file?.size || 0) > MAX_SESSION_FILE_BYTES);
     const total = byteSum(files);
     if (!tooLarge && total <= MAX_SESSION_TOTAL_BYTES) return;
     event.preventDefault();
@@ -101,7 +102,7 @@
     const note = document.createElement('div');
     note.id = 'pdfEditorTransferPolicyNote';
     note.style.cssText = 'margin-top:7px;padding:7px 9px;border:1px solid #dbe5ee;border-radius:8px;background:#f8fafc;color:#64748b;font-size:9px;line-height:1.45;font-weight:700';
-    note.textContent = '편집 작업공간: 파일당 200MB · 합계 800MB. 단, 최종 PDF 생성 및 편집 세션 저장은 원본 파일 합계 300MB까지만 지원합니다.';
+    note.textContent = '편집 작업공간: 파일당 500MB · 합계 800MB. 최종 PDF 생성은 합계 500MB, 편집 세션 저장은 파일당 200MB · 합계 300MB까지 지원합니다.';
     zone.insertAdjacentElement('afterend', note);
     return true;
   }

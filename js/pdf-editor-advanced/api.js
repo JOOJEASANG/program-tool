@@ -94,7 +94,8 @@ async function storageProcess(files, settings, token, signal, onStatus, onProgre
     }
     onStatus?.(newlyUploaded.length ? '서버에서 고급 편집 PDF 생성 중...' : '원본 재업로드 없이 PDF 생성 중...');
     onProgress?.(55);
-    const response = await fetch('/api/pdf/advanced/process-storage', {
+    const response = await fetch(`https://us-central1-${firebase.app().options.projectId}.cloudfunctions.net/api/api/pdf/advanced/process-storage`, {
+      mode: 'cors', credentials: 'omit',
       method: 'POST',
       headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
       body: JSON.stringify({ storage_paths: paths, settings, retain_temp_sources: true,
@@ -127,8 +128,8 @@ export async function processAdvancedPdf(files, settings, { signal, onStatus, on
   if (!user) throw new Error('로그인이 필요합니다.');
   if (!Array.isArray(files) || !files.length) throw new Error('처리할 PDF 파일이 없습니다.');
   const totalBytes = files.reduce((sum, file) => sum + Number(file.size || 0), 0);
-  if (totalBytes > 300 * 1024 * 1024) throw new Error('전체 PDF 용량은 300 MB 이하여야 합니다.');
-  if (files.some(file => Number(file.size || 0) > 200 * 1024 * 1024)) throw new Error('PDF 한 파일은 200 MB 이하여야 합니다.');
+  if (totalBytes > 500 * 1024 * 1024) throw new Error('전체 PDF 용량은 500 MB 이하여야 합니다.');
+  if (files.some(file => Number(file.size || 0) > 500 * 1024 * 1024)) throw new Error('PDF 한 파일은 500 MB 이하여야 합니다.');
   const token = await user.getIdToken(true);
   if (signal?.aborted) throw new DOMException('작업이 취소되었습니다.', 'AbortError');
 

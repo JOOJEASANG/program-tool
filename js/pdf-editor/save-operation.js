@@ -248,7 +248,7 @@
     const warnings = [];
     if (data.booklet) warnings.push('소책자는 프린터 양면 넘김 방향과 첫 용지 시험 출력을 확인하세요.');
     if (data.cropMarks && data.bleedMm > 0) warnings.push('도련 영역은 원본 그림을 자동 확대하지 않으므로 원본에 도련 이미지가 없으면 바깥쪽이 흰색일 수 있습니다.');
-    if (data.totalBytes > 300 * 1024 * 1024) warnings.push('주의: PDF배치 최종 저장 서버는 파일 합계 300MB까지 지원합니다. 작업공간 800MB와 다르므로 원본을 줄여야 저장됩니다.');
+    if (data.totalBytes > 500 * 1024 * 1024) warnings.push('주의: PDF배치 최종 저장 서버는 파일 합계 500MB까지 지원합니다. 작업공간 800MB와 다르므로 원본을 줄여야 저장됩니다.');
     if (data.outputPages > 100 || data.totalBytes > 150 * 1024 * 1024) warnings.push('대용량 작업은 생성 시간이 길어질 수 있습니다. 진행 상태를 확인하거나 필요하면 작업을 취소할 수 있습니다.');
     if (!warnings.length) warnings.push('설정이 맞으면 PDF 생성을 누르세요. 생성 중에는 진행 상태와 취소 버튼이 표시됩니다.');
     $('pdfSaveSummaryWarningV1').textContent = warnings.join(' ');
