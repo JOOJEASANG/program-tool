@@ -51,7 +51,10 @@ def test_explicit_mode_switch_wired_to_original_booklet_state():
     assert "display:none!important" in css
     assert ".pdf-booklet-fold-guide-overlay::after" in css
     assert "function ensureFoldOverlays()" in controller
-    assert "page-preview::before" in css and "page-preview::after" in css
+    assert "#previewScroll .page-preview::before{" not in css
+    assert "#previewScroll .page-preview::after{" not in css
+    assert "page-preview.pdf-paper-guides::before" in read("js/pdf-editor/page-selection-preview-focus.js")
+    assert "page-preview.pdf-paper-guides::after" in read("js/pdf-editor/page-selection-preview-focus.js")
     assert 'overlay.className=\'pdf-booklet-fold-guide-overlay\'' in controller
     assert "pointer-events:none" in css
     assert "PDF 저장에는 포함 안 됨" in html
