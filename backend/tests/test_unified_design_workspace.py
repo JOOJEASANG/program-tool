@@ -48,7 +48,7 @@ def test_print_export_can_start_without_ai_background_and_preserves_source_pdf()
     assert 'centerX-halfW<-.01' in layers
     assert 'const ratio=item.sourceW/item.sourceH' in layers
     manual=(ROOT / 'js/program-manuals/ai-design-maker.js').read_text(encoding='utf-8')
-    assert "updated:'2026-11-23'" in manual
+    assert "updated: '2026-11-24'" in manual
     assert '완성 크기' in manual
     assert 'page.drawRectangle({x:0,y:0,width,height,color:lib.rgb(1,1,1)})' in vector
 

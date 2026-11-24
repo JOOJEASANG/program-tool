@@ -10,6 +10,10 @@ from flask import Blueprint, Response, request
 
 from routers.preflight import _deliver_pdf_response, _error, _request_id, _safe_pdf_name
 from services.design_bleed_extension import ALLOWED_EXTENSIONS, extend_print_bleed
+from services.ai_bleed_outpainting import outpaint_bleed
+from services.ai_cover_image import AiCoverImageError
+from services.ai_usage_guard import AiUsageGuardError, guard_ai_usage
+from services.ai_usage_metrics import record_image_generation
 from utils.auth import require_auth
 from utils.storage import get_bucket
 
@@ -50,15 +54,72 @@ def _optional_mm(value):
 def _run(uid: str, filename: str, source, *, storage_result: bool = False):
     try:
         params = _params()
-        result = extend_print_bleed(
-            source,
-            filename=filename,
-            trim_width_mm=_optional_mm(params.get("trim_width_mm")),
-            trim_height_mm=_optional_mm(params.get("trim_height_mm")),
-            bleed_mm=_optional_mm(params.get("bleed_mm", 3)),
-            edge_mode=str(params.get("edge_mode") or "mirror"),
-            fit_mode=str(params.get("fit_mode") or "contain"),
-        )
+        edge_mode = str(params.get("edge_mode") or "mirror")
+        quality = str(params.get("ai_quality") or "low")
+        side = str(params.get("ai_side") or "all")
+        direction = str(params.get("ai_direction") or "").strip()
+        if edge_mode == "ai":
+            if quality not in {"low", "medium", "high"}:
+                raise ValueError("AI 품질을 다시 선택해 주세요.")
+            if side not in {"all", "top", "bottom", "left", "right"}:
+                raise ValueError("AI 확장할 가장자리를 다시 선택해 주세요.")
+            if len(direction) > 200:
+                raise ValueError("AI 배경 설명은 최대 200자까지 입력해 주세요.")
+
+        def run_extension():
+            ai_processor = None
+            if edge_mode == "ai":
+                # The callable runs once per PDF page. Only generated pixels in
+                # the outside BleedBox are composited over the original vector page.
+                def ai_processor(image, bleed, width, height):
+                    return outpaint_bleed(
+                        image, bleed, width, height,
+                        uid=uid, quality=quality, direction=direction,
+                    )
+            return extend_print_bleed(
+                source,
+                filename=filename,
+                trim_width_mm=_optional_mm(params.get("trim_width_mm")),
+                trim_height_mm=_optional_mm(params.get("trim_height_mm")),
+                bleed_mm=_optional_mm(params.get("bleed_mm", 3)),
+                edge_mode=edge_mode,
+                fit_mode=str(params.get("fit_mode") or "contain"),
+                ai_processor=ai_processor,
+                ai_side=side,
+            )
+        if edge_mode == "ai":
+            with guard_ai_usage(uid, "image"):
+                result = run_extension()
+            record_image_generation({
+                "model": "gpt-image-2",
+                "geometry": {"quality_mode": "high" if quality == "high" else "standard"},
+            })
+        else:
+            result = run_extension()
+    except AiUsageGuardError as exc:
+        public = {
+            "AI_REQUEST_IN_PROGRESS": "이미 진행 중인 AI 작업이 있습니다.",
+            "AI_REQUEST_RATE_LIMITED": "AI 요청이 많습니다. 잠시 후 다시 시도해 주세요.",
+            "AI_SERVICE_BUDGET_EXHAUSTED": "AI 사용 예산 한도에 도달했습니다.",
+            "AI_GUARD_UNAVAILABLE": "AI 사용 권한을 확인하지 못했습니다.",
+        }
+        response = _error(public.get(exc.code, "AI 이용 제한으로 처리하지 못했습니다."),
+                          exc.status_code, exc.code)
+        if exc.retry_after:
+            response.headers["Retry-After"] = str(exc.retry_after)
+        return response
+    except AiCoverImageError as exc:
+        public = {
+            "OPENAI_API_KEY_MISSING": "관리자가 AI 이미지 API 키를 설정해야 사용할 수 있습니다.",
+            "OPENAI_AUTH_FAILED": "AI 이미지 API 설정과 접근 권한을 확인해 주세요.",
+            "OPENAI_RATE_LIMIT": "AI 이미지 사용량 한도에 도달했습니다.",
+            "OPENAI_IMAGE_REQUEST_INVALID": "AI 도련 입력을 확인해 주세요.",
+            "OPENAI_IMAGE_TIMEOUT": "AI 이미지 응답이 지연되었습니다. 다시 시도해 주세요.",
+            "OPENAI_IMAGE_UNAVAILABLE": "AI 이미지 결과를 받아오지 못했습니다.",
+            "OPENAI_IMAGE_MODEL_UNAVAILABLE": "현재 프로젝트에서 AI 이미지 모델을 사용할 수 없습니다.",
+        }
+        return _error(public.get(exc.code, "AI 도련 생성 요청에 실패했습니다."),
+                      exc.status_code, exc.code)
     except ValueError as exc:
         return _error(str(exc), 400, "DESIGN_BLEED_INVALID")
     except Exception:

@@ -15,4 +15,4 @@ def test_design_enhancer_uses_one_explicit_upload_instead_of_ai_design_prompt():
     assert 'id="generateBtn"' not in page
     assert "async function receiveFile(file)" in script
     assert "PDF·JPG·PNG·WEBP" in manual
-    assert "updated:'2026-11-23'" in manual
+    assert "updated: '2026-11-24'" in manual
