@@ -341,12 +341,16 @@ async function apiProcessPdf(files, settings, options = {}) {
     if (!resp.ok) {
       const msg = await _readApiError(resp, `서버 오류 (${resp.status})`);
       if (reuseSources && resp.status === 404) {
-        // Expired browser cache; a subsequent attempt will re-upload it.
+        // Re-upload expired temporary sources once, preserving the layout.
         for (const [file, cached] of _pdfEditorExportInputs) {
           if (storagePaths.includes(cached.path)) _pdfEditorExportInputs.delete(file);
         }
+        if (options._staleSourceRetry !== false && !saved?.paths?.length) {
+          onStatus?.('만료된 임시 원본을 다시 업로드한 뒤 PDF 저장을 재시도합니다...');
+          return await apiProcessPdf(files, settings, { ...options, _staleSourceRetry: false });
+        }
       }
-      throw new Error(msg || 'PDF 처리 중 오류가 발생했습니다.');
+      throw new Error((msg || 'PDF 처리 중 오류가 발생했습니다.') + ' (HTTP ' + resp.status + ')');
     }
 
     _reportProgress(onProgress, 'download', 92, '완성 PDF 내려받는 중');
@@ -364,7 +368,11 @@ async function apiProcessPdf(files, settings, options = {}) {
     const directBytes = files.reduce((sum, file) => sum + Number(file?.size || 0), 0);
     if (directBytes > 20 * 1024 * 1024) {
       _finishManagedPdfOperation(__managedOperation, 'error', storageErr?.message);
-      throw new Error('대용량 PDF 저장에 실패했습니다. 잠시 후 다시 시도하세요: ' + (storageErr?.message || '임시 업로드 오류'));
+      const errorCode = storageErr?.code ? ' [' + storageErr.code + ']' : '';
+      const detail = storageErr?.message || String(storageErr || '알 수 없는 오류');
+      console.error('[pdf-export] storage export failed', { code: storageErr?.code, detail, inputBytes: directBytes });
+      throw new Error('대용량 PDF 저장 실패' + errorCode + ': ' + detail
+        + ' (20MB 초과 파일은 직접 업로드로 전환할 수 없습니다. 로그인 상태, 저장소 권한 및 서버 연결을 확인해 주세요.)');
     }
     try {
       const blob = await _processPdfDirect(files, settings, token, controller.signal, onStatus, onProgress);
