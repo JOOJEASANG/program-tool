@@ -111,7 +111,7 @@
     return script;
   }
 
-  loadRuntimeScript('pdfPrintWorkflowFocusScriptV1','/js/pdf-editor/print-workflow-focus.js?v=20260827-1',isPdfPrintEditor()&&!legacyAdvancedProfile);
+  loadRuntimeScript('pdfPrintWorkflowFocusScriptV1','/js/pdf-editor/print-workflow-focus.js?v=20261124-2',isPdfPrintEditor()&&!legacyAdvancedProfile);
   loadRuntimeScript('pdfPreflightPanelBalanceScriptV1','/js/pdf-preflight-panel-balance.js?v=20260831-3',protectedProgram==='preflight');
 
   let revealed=false;
@@ -182,6 +182,9 @@
   async function waitForPdfEditorFunctionalReady(){
     if(!isPdfPrintEditor()||legacyAdvancedProfile)return true;
     const ready=await waitUntil(()=>{
+      if(document.getElementById('pdfLayoutModeTabs')){
+        return Boolean(window.PdfLayoutBookletTabs && root.classList.contains('pdf-booklet-dual-mode') && document.getElementById('pdfNormalModeBtn') && document.getElementById('pdfBookletModeBtn'));
+      }
       const api=window.PdfPrintWorkflowFocus;
       const panel=document.getElementById('pdfPrintWorkflowFocusPanel');
       const mode=String(root.dataset.pdfPrintMode||'');
