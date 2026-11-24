@@ -18,6 +18,10 @@
     <button id="pdfBookletModeBtn" type="button">소책자 · 중철제본</button>
   </div>
   <p id="pdfLayoutModeDescription"></p>
+  <div id="nupGrid">
+    <button type="button" class="nup-btn" data-nup="2">2장</button>
+    <button type="button" class="nup-btn active" data-nup="9">9장</button>
+  </div>
   <div id="bookletRow"><input id="bookletCheck" type="checkbox"></div>
   <div id="bookletSpineOptions">
     <input id="bookletSpineGather" type="checkbox">
@@ -46,6 +50,10 @@
     document.getElementById('orientPort').classList.remove('active');
   });
   document.getElementById('bookletCheck').addEventListener('change',()=>{changeCount++;});
+  document.querySelectorAll('.nup-btn').forEach(btn=>btn.addEventListener('click',()=>{
+    document.querySelectorAll('.nup-btn').forEach(node=>node.classList.remove('active'));
+    btn.classList.add('active');
+  }));
 </script>
 <script defer src="/js/pdf-editor/booklet-mode-tabs.js?v=20261124-1"></script>
 <script>
@@ -58,6 +66,8 @@
       assert($('pdfNormalModeBtn').getAttribute('aria-pressed')==='true','initial mode aria state');
       assert(getComputedStyle($('pdfNormalGapField')).display!=='none','general spacing hidden in normal mode');
       $('pdfBookletModeBtn').click();
+      assert(document.querySelector('.nup-btn.active')?.dataset.nup==='2',
+        'switching booklet from a 9-up document must force two-up');
       assert($('bookletCheck').checked,'booklet mode did not enable legacy output engine flag');
       assert(changeCount===1,'booklet mode should use native checkbox change event');
       assert($('bookletSpineGather').checked,'booklet must enable join-to-spine');
@@ -80,6 +90,8 @@
       $('pdfBookletSheetPreviewOpenBtn').click();
       assert(sheetOpened===1,'physical front/back booklet preview not opened');
       $('pdfNormalModeBtn').click();
+      assert(document.querySelector('.nup-btn.active')?.dataset.nup==='9',
+        'previous general 9-up setting not restored after booklet');
       assert(!$('bookletCheck').checked,'normal mode retained booklet imposition');
       assert(changeCount===2,'switching back must emit native change event');
       assert($('pdfNormalModeBtn').getAttribute('aria-pressed')==='true','normal mode aria not restored');

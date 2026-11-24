@@ -9,6 +9,7 @@
   const $=id=>document.getElementById(id);
   const root=document.documentElement;
   let initialized=false;
+  let savedGeneralNup=null;
 
   function isBooklet(){return !!$('bookletCheck')?.checked;}
 
@@ -63,10 +64,26 @@
     const check=$('bookletCheck');
     if(!check)return;
     if(check.checked===booklet){sync();return;}
-    // Trigger the native change event so its N-up restoration, imposition,
-    // physical sheet preview, and backend options all stay synchronized.
+    const selected=document.querySelector('.nup-btn.active[data-nup]');
+    if(booklet){
+      savedGeneralNup=Number(selected?.dataset?.nup)||2;
+      // The legacy reliability guard rejects booklet for normal-only N-up
+      // 1/9. Move to the supported fixed 2-up BEFORE raising bookletCheck.
+      // Save the original general N-up so it can be restored on exit.
+      if(![2,4,6,8].includes(savedGeneralNup)){
+        document.querySelector('.nup-btn[data-nup="2"]')?.click();
+      }
+    }
+    // Trigger the native change event so its imposition, sheet preview,
+    // physical-fold and saved PDF settings all use the SAME flag.
     check.checked=booklet;
     check.dispatchEvent(new Event('change',{bubbles:true}));
+    if(!booklet&&savedGeneralNup!==null){
+      const old=Number(savedGeneralNup);
+      const active=Number(document.querySelector('.nup-btn.active[data-nup]')?.dataset?.nup);
+      if(active!==old)document.querySelector('.nup-btn[data-nup="'+old+'"]')?.click();
+      savedGeneralNup=null;
+    }
     sync();
   }
 

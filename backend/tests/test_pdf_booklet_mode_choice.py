@@ -39,6 +39,9 @@ def test_explicit_mode_switch_wired_to_original_booklet_state():
     assert "pdf-layout-booklet-mode.css?v=20261124-1" in html
     assert "check.dispatchEvent(new Event('change',{bubbles:true}))" in controller
     assert "check.checked=booklet;" in controller
+    assert "savedGeneralNup=Number(selected?.dataset?.nup)||2" in controller
+    assert 'document.querySelector(\'.nup-btn[data-nup="2"]\')?.click()' in controller
+    assert "savedGeneralNup=null;" in controller
     assert "window.BookletSheetPreview.open()" in controller
     assert "if($('bookletSpineGather'))$('bookletSpineGather').checked=true;" in controller
     assert "pdf-booklet-workflow-active" in controller
