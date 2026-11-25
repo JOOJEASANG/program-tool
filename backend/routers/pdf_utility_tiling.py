@@ -53,6 +53,8 @@ def _run_with_uid(uid: str, filename: str, data: bytes):
             data,
             paper_size=str(params.get("paper_size") or "A3"),
             orientation=str(params.get("orientation") or "auto"),
+            paper_width_mm=_float(params.get("paper_width_mm"), 0.0),
+            paper_height_mm=_float(params.get("paper_height_mm"), 0.0),
             printer_margin_mm=_float(params.get("printer_margin_mm"), 3.0),
             overlap_mm=_float(params.get("overlap_mm"), 0.0),
             add_sheet_labels=_bool(params.get("add_sheet_labels")),

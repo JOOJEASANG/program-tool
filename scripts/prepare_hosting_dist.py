@@ -121,7 +121,7 @@ PDF_SUITE_SCAN_SNIPPET = (
     f'<script {PDF_SUITE_SCAN_MARKER} defer src="/js/print-specialists/scan-cleanup.js?v=20261028-1"></script>'
 )
 PDF_SUITE_TILING_SNIPPET = (
-    f'<script {PDF_SUITE_TILING_MARKER} defer src="/js/pdf-large-output-tiling.js?v=20261029-1"></script>'
+    f'<script {PDF_SUITE_TILING_MARKER} defer src="/js/pdf-large-output-tiling.js?v=20261125-1"></script>'
 )
 PDF_SUITE_CURATED_CORE_SNIPPET = (
     f'<script {PDF_SUITE_CURATED_CORE_MARKER} defer src="/js/pdf-suite/curated-core.js?v=20261028-4"></script>'

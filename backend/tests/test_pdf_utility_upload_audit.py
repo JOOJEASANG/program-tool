@@ -47,10 +47,10 @@ def test_upload_handlers_and_large_downloads_use_fresh_assets():
     assert "direct-tool-bridge.js?v=20261029-3" in loader
     assert "direct-tool-hook.js?v=20261029-1" in loader
     assert "ocr-tools.js?v=20261029-1" in loader
-    assert "pdf-large-output-tiling.js?v=20261029-1" in loader
+    assert "pdf-large-output-tiling.js?v=20261125-1" in loader
     assert "direct-tool-large-storage.js?v=20261029-1" in hook
     assert "centered-workspace.js?v=20261029-1" in hook
-    assert "pdf-large-output-tiling.js?v=20261029-1" in runtime
+    assert "pdf-large-output-tiling.js?v=20261125-1" in runtime
     for path in ("js/pdf-suite/direct-tool-bridge.js",
                  "js/pdf-suite/direct-tool-large-storage.js",
                  "js/pdf-large-output-tiling.js"):
@@ -78,7 +78,7 @@ def test_upload_workflows_have_browser_selection_and_webp_regressions():
     assert "pdf-utility-image-upload-smoke.html" in shell
     assert "pdf-utility-curated-core-smoke.html" in shell
     manual = read("js/program-manuals/pdf-suite.js")
-    assert "updated: '2026-11-24'" in manual
+    assert "updated: '2026-11-25'" in manual
     assert "WebP" in manual
 
 

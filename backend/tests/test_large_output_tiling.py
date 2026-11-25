@@ -92,7 +92,7 @@ def test_tiling_ui_and_api_are_wired_for_pdf_and_images():
     assert "/api/pdf-utility/tile" in frontend
     assert "/api/pdf-utility/tile-storage" in frontend
     assert "pdfLargeOutputTilingScriptV1" in runtime
-    assert "/js/pdf-large-output-tiling.js?v=20261029-1" in runtime
+    assert "/js/pdf-large-output-tiling.js?v=20261125-1" in runtime
     assert "pdf_utility_tiling_bp" in main
     assert '@pdf_utility_tiling_bp.route("/tile"' in router
     assert '@pdf_utility_tiling_bp.route("/tile-storage"' in router
@@ -169,7 +169,7 @@ def test_pdf_utility_menu_and_crop_mark_controls_are_connected():
     assert '<span class="tool-name">대형 분할 출력</span>' in catalog
     assert "'안전 자동 수정','대형 분할 출력'" in curated
     assert 'PDF_SUITE_TILING_MARKER' in loader
-    assert '/js/pdf-large-output-tiling.js?v=20261029-1' in loader
+    assert '/js/pdf-large-output-tiling.js?v=20261125-1' in loader
     assert 'const onUtility=path===' in tiling
     assert 'data-pdfu-tool' in tiling
     assert "button.dataset.pdfuCoreSource!=='대형 분할 출력'" in tiling
@@ -188,3 +188,42 @@ def test_large_pdf_storage_initializes_without_previous_utility_work():
     )
     assert result.returncode==0,result.stdout+result.stderr
     assert "pdf poster Storage first-run behavior passed" in result.stdout
+
+
+def test_custom_paper_preserves_physical_dimensions_and_vector_content():
+    import pytest
+    for direction, expected in (("portrait", (305, 457)), ("landscape", (457, 305)), ("auto", None)):
+        result = tile_pdf_bytes(_pdf(600, 800), paper_size="CUSTOM",
+                                paper_width_mm=457, paper_height_mm=305,
+                                orientation=direction, printer_margin_mm=3, overlap_mm=2,
+                                add_crop_marks=True)
+        with fitz.open(stream=result.data, filetype="pdf") as doc:
+            assert result.sheet_count == len(doc)
+            sizes = {(round(p.rect.width / MM_TO_PT), round(p.rect.height / MM_TO_PT)) for p in doc}
+            assert len(sizes) == 1
+            assert sizes == {expected} if expected else sizes <= {(305, 457), (457, 305)}
+            assert "VECTOR-TEXT" in doc[0].get_text()
+    for invalid in (None, 0, 49, 1201, float("nan"), float("inf")):
+        with pytest.raises(ValueError, match="50~1,200"):
+            tile_pdf_bytes(_pdf(100, 150), paper_size="CUSTOM",
+                           paper_width_mm=invalid, paper_height_mm=457)
+
+
+def test_tiling_favorites_and_custom_size_share_frontend_and_backend_geometry():
+    frontend = (ROOT / "js/pdf-large-output-tiling.js").read_text(encoding="utf-8")
+    router = (ROOT / "backend/routers/pdf_utility_tiling.py").read_text(encoding="utf-8")
+    for marker in ('id="plotSavedPaper"', 'id="plotSavePaper"', 'id="plotDeletePaper"',
+                   "window.SharedPaperFavorites", "selectedPaper().slice().sort",
+                   "paper_width_mm:paperWidth", "paper_height_mm:paperHeight",
+                   "shared-paper-favorites-change"):
+        assert marker in frontend
+    assert 'paper_width_mm=_float(params.get("paper_width_mm")' in router
+    assert 'paper_height_mm=_float(params.get("paper_height_mm")' in router
+
+
+def test_tiling_shared_paper_favorites_behavior():
+    import subprocess
+    result = subprocess.run(["node", "backend/tests/pdf_tiling_paper_favorites_behavior.cjs"],
+                            cwd=ROOT, capture_output=True, text=True, check=False)
+    assert result.returncode == 0, result.stdout + result.stderr
+    assert "tiling shared paper favorites behavior passed" in result.stdout

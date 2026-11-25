@@ -161,6 +161,8 @@
       document.documentElement.dataset.sharedPaperFavorites='native';return true;
     }
     if(a?.w&&a?.h){mount(a);return true;}
+    // Tiling owns its own controls and uses this shared persistence API.
+    if($('plotSavedPaper'))return true;
     return false;
   }
   window.SharedPaperFavorites={load,save,remove,dimensions,apply,storageKey:KEY};
