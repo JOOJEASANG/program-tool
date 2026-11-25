@@ -38,7 +38,7 @@
       const script=document.createElement('script');
       script.src=src;script.async=true;script.dataset.largeOutputSrc=src;
       script.onload=()=>window[globalName]?resolve(window[globalName]):reject(new Error('PDF 라이브러리 초기화에 실패했습니다.'));
-      script.onerror=()=>reject(new Error('필요한 PDF 라이브러리를 불러오지 못했습니다.'));
+      script.onerror=()=>{script.remove();reject(new Error('필요한 PDF 라이브러리를 불러오지 못했습니다.'));};
       document.head.appendChild(script);
     });
   }
@@ -150,7 +150,7 @@
   function ensureFavorites(){
     if(window.SharedPaperFavorites){refreshFavorites();return;}
     if(!paperFavoritesPromise){
-      paperFavoritesPromise=loadScript('/js/shared-paper-favorites.js','SharedPaperFavorites')
+      paperFavoritesPromise=loadScript('/js/shared-paper-favorites.js?v=20261124-1','SharedPaperFavorites')
         .then(()=>refreshFavorites()).catch(()=>{paperFavoritesPromise=null;paperStatus('저장 규격을 불러오지 못했습니다. 창을 다시 열어 주세요.',true);});
     }
   }

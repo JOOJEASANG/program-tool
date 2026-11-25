@@ -219,3 +219,11 @@ def test_tiling_favorites_and_custom_size_share_frontend_and_backend_geometry():
         assert marker in frontend
     assert 'paper_width_mm=_float(params.get("paper_width_mm")' in router
     assert 'paper_height_mm=_float(params.get("paper_height_mm")' in router
+
+
+def test_tiling_shared_paper_favorites_behavior():
+    import subprocess
+    result = subprocess.run(["node", "backend/tests/pdf_tiling_paper_favorites_behavior.cjs"],
+                            cwd=ROOT, capture_output=True, text=True, check=False)
+    assert result.returncode == 0, result.stdout + result.stderr
+    assert "tiling shared paper favorites behavior passed" in result.stdout
