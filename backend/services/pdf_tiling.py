@@ -45,8 +45,9 @@ def _paper_geometry(
     orientation: str,
     printer_margin_mm: float,
     overlap_mm: float,
+    custom_paper: tuple[float, float] | None = None,
 ) -> tuple[float, float, int, int]:
-    base = PAPER_SIZES_MM.get(paper_size)
+    base = custom_paper if paper_size == "CUSTOM" else PAPER_SIZES_MM.get(paper_size)
     if not base:
         raise ValueError("지원하지 않는 출력 용지입니다.")
 
@@ -126,12 +127,21 @@ def tile_pdf_bytes(
     *,
     paper_size: str = "A3",
     orientation: str = "auto",
+    paper_width_mm: float | None = None,
+    paper_height_mm: float | None = None,
     printer_margin_mm: float = 3.0,
     overlap_mm: float = 0.0,
     add_sheet_labels: bool = False,
     add_crop_marks: bool = False,
 ) -> TilingResult:
     paper_size = str(paper_size or "A3").upper()
+    custom_paper = None
+    if paper_size == "CUSTOM":
+        if not all(isinstance(value, (int, float)) and not isinstance(value, bool) and math.isfinite(value) and 50 <= value <= 1200 for value in (paper_width_mm, paper_height_mm)):
+            raise ValueError("출력 용지 가로·세로는 각각 50~1,200mm로 입력하세요.")
+        custom_paper = tuple(sorted((float(paper_width_mm), float(paper_height_mm))))
+    elif paper_size not in PAPER_SIZES_MM:
+        raise ValueError("지원하지 않는 출력 용지입니다.")
     orientation = str(orientation or "auto").lower()
     if orientation not in {"auto", "portrait", "landscape"}:
         raise ValueError("출력 방향 설정이 올바르지 않습니다.")
@@ -169,6 +179,7 @@ def tile_pdf_bytes(
                 orientation,
                 printer_margin_mm + (CUT_MARK_GUTTER_MM if add_crop_marks else 0.0),
                 overlap_mm,
+                custom_paper=custom_paper,
             )
             if sheet_number + cols * rows > MAX_OUTPUT_SHEETS:
                 raise ValueError(f"분할 결과가 {MAX_OUTPUT_SHEETS}장을 초과합니다. 더 큰 출력 용지를 선택하세요.")
